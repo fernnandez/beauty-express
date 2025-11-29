@@ -9,6 +9,7 @@ import {
 } from "@mantine/core";
 import {
   IconCalendar,
+  IconChartBar,
   IconCurrencyDollar,
   IconScissors,
   IconUsers,
@@ -48,6 +49,13 @@ const dashboardCards = [
     path: "/commissions",
     color: "orange",
   },
+  {
+    title: "Relatórios Financeiros",
+    description: "Visualizar relatórios financeiros",
+    icon: IconChartBar,
+    path: "/financial-reports",
+    color: "pink",
+  },
 ];
 
 export function Dashboard() {
@@ -67,6 +75,8 @@ export function Dashboard() {
         return appointments?.length || 0;
       case "/commissions":
         return commissions?.length || 0;
+      case "/financial-reports":
+        return null; // Não mostra contagem para relatórios
       default:
         return 0;
     }
@@ -80,7 +90,7 @@ export function Dashboard() {
         </Title>
       </Group>
 
-      <SimpleGrid cols={{ base: 1, sm: 2, lg: 2 }} spacing="lg">
+      <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
         {dashboardCards.map((card) => {
           const Icon = card.icon;
           return (
@@ -97,9 +107,11 @@ export function Dashboard() {
                 <ThemeIcon color={card.color} size={40} radius="md">
                   <Icon size={24} />
                 </ThemeIcon>
-                <Text size="xl" fw={700}>
-                  {getCount(card.path)}
-                </Text>
+                {getCount(card.path) !== null && (
+                  <Text size="xl" fw={700}>
+                    {getCount(card.path)}
+                  </Text>
+                )}
               </Group>
               <Text fw={500} size="lg" mb="xs">
                 {card.title}

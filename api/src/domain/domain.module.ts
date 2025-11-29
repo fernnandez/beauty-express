@@ -4,6 +4,7 @@ import { CollaboratorModule } from './modules/collaborator.module';
 import { CommissionModule } from './modules/commission.module';
 import { ServiceModule } from './modules/service.module';
 import { ScheduledServiceModule } from './modules/scheduled-service.module';
+import { FinancialReportModule } from './modules/financial-report.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { ScheduledServiceModule } from './modules/scheduled-service.module';
     CommissionModule,
     ServiceModule,
     ScheduledServiceModule,
+    FinancialReportModule,
   ],
   exports: [
     AppointmentModule,
@@ -19,6 +21,7 @@ import { ScheduledServiceModule } from './modules/scheduled-service.module';
     CommissionModule,
     ServiceModule,
     ScheduledServiceModule,
+    FinancialReportModule,
   ],
 })
 export class DomainModule {}

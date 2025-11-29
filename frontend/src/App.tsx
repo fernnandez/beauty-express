@@ -3,20 +3,16 @@ import { MantineProvider } from '@mantine/core';
 import { DatesProvider } from '@mantine/dates';
 import { Notifications } from '@mantine/notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import dayjs from 'dayjs';
-import 'dayjs/locale/pt-br';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
-
-// Configura o dayjs para usar o locale pt-BR
-dayjs.locale('pt-br');
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Collaborators } from './pages/Collaborators';
 import { Services } from './pages/Services';
 import { Appointments } from './pages/Appointments';
 import { Commissions } from './pages/Commissions';
+import { FinancialReports } from './pages/FinancialReports';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,6 +47,7 @@ function App() {
                 <Route path="/services" element={<Services />} />
                 <Route path="/appointments" element={<Appointments />} />
                 <Route path="/commissions" element={<Commissions />} />
+                <Route path="/financial-reports" element={<FinancialReports />} />
               </Routes>
             </Layout>
           </BrowserRouter>

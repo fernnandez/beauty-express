@@ -26,6 +26,7 @@ import {
   IconUser,
   IconX,
 } from "@tabler/icons-react";
+import { DateTime } from "luxon";
 import { useMemo, useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { useCollaborators } from "../hooks/useCollaborators";
@@ -70,18 +71,32 @@ export function Commissions() {
     }
 
     if (startDate) {
-      // Garante que seja um Date antes de converter
-      const start = startDate instanceof Date ? startDate : new Date(startDate);
-      // Define para o início do dia
-      start.setHours(0, 0, 0, 0);
-      filterObj.startDate = start.toISOString();
+      // Converte para string yyyy-mm-dd usando Luxon
+      let dateString: string;
+      if (startDate instanceof Date) {
+        dateString = DateTime.fromJSDate(startDate, {
+          zone: "America/Sao_Paulo",
+        }).toFormat("yyyy-MM-dd");
+      } else {
+        dateString = DateTime.fromISO(startDate, {
+          zone: "America/Sao_Paulo",
+        }).toFormat("yyyy-MM-dd");
+      }
+      filterObj.startDate = dateString;
     }
     if (endDate) {
-      // Garante que seja um Date antes de converter
-      const end = endDate instanceof Date ? endDate : new Date(endDate);
-      // Define para o final do dia
-      end.setHours(23, 59, 59, 999);
-      filterObj.endDate = end.toISOString();
+      // Converte para string yyyy-mm-dd usando Luxon
+      let dateString: string;
+      if (endDate instanceof Date) {
+        dateString = DateTime.fromJSDate(endDate, {
+          zone: "America/Sao_Paulo",
+        }).toFormat("yyyy-MM-dd");
+      } else {
+        dateString = DateTime.fromISO(endDate, {
+          zone: "America/Sao_Paulo",
+        }).toFormat("yyyy-MM-dd");
+      }
+      filterObj.endDate = dateString;
     }
     if (collaboratorFilter) {
       filterObj.collaboratorId = collaboratorFilter;

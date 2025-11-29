@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository, Between } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Commission } from '../entities/commission.entity';
 
 @Injectable()
@@ -84,16 +84,19 @@ export class CommissionRepository extends Repository<Commission> {
 
     // Filtro por range de data (data do agendamento)
     if (filters.startDate && filters.endDate) {
-      queryBuilder.andWhere('appointment.data BETWEEN :startDate AND :endDate', {
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-      });
+      queryBuilder.andWhere(
+        'appointment.date BETWEEN :startDate AND :endDate',
+        {
+          startDate: filters.startDate,
+          endDate: filters.endDate,
+        },
+      );
     } else if (filters.startDate) {
-      queryBuilder.andWhere('appointment.data >= :startDate', {
+      queryBuilder.andWhere('appointment.date >= :startDate', {
         startDate: filters.startDate,
       });
     } else if (filters.endDate) {
-      queryBuilder.andWhere('appointment.data <= :endDate', {
+      queryBuilder.andWhere('appointment.date <= :endDate', {
         endDate: filters.endDate,
       });
     }

@@ -1,6 +1,7 @@
 import { Anchor, AppShell, Avatar, Center, Group, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import {
   IconCalendar,
+  IconChartBar,
   IconCurrencyDollar,
   IconHome,
   IconScissors,
@@ -18,6 +19,7 @@ const navigationItems = [
   { icon: IconScissors, label: "Serviços", path: "/services" },
   { icon: IconCalendar, label: "Agendamentos", path: "/appointments" },
   { icon: IconCurrencyDollar, label: "Comissões", path: "/commissions" },
+  { icon: IconChartBar, label: "Relatórios", path: "/financial-reports" },
 ];
 
 export function Layout({ children }: LayoutProps) {

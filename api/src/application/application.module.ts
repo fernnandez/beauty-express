@@ -5,6 +5,7 @@ import { CollaboratorController } from './controllers/collaborator.controller';
 import { CommissionController } from './controllers/commission.controller';
 import { ServiceController } from './controllers/service.controller';
 import { ScheduledServiceController } from './controllers/scheduled-service.controller';
+import { FinancialReportController } from './controllers/financial-report.controller';
 
 @Module({
   controllers: [
@@ -13,6 +14,7 @@ import { ScheduledServiceController } from './controllers/scheduled-service.cont
     CommissionController,
     ServiceController,
     ScheduledServiceController,
+    FinancialReportController,
   ],
   imports: [DomainModule],
 })
