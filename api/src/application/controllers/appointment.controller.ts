@@ -1,0 +1,111 @@
+import { AppointmentService } from '@domain/services/appointment.service';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { parseDateString } from '../../common/utils/date.util';
+import { CreateAppointmentDto } from '../dtos/appointment/create-appointment.dto';
+import { UpdateAppointmentDto } from '../dtos/appointment/update-appointment.dto';
+
+@ApiTags('Appointments')
+@Controller('appointments')
+export class AppointmentController {
+  constructor(private readonly appointmentDomainService: AppointmentService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new appointment' })
+  @ApiResponse({
+    status: 201,
+    description: 'Appointment created successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  async create(@Body() createDto: CreateAppointmentDto) {
+    return await this.appointmentDomainService.createAppointment({
+      ...createDto,
+    });
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all appointments' })
+  @ApiResponse({ status: 200, description: 'List of appointments' })
+  async findAll(@Query('date') date?: string) {
+    if (date) {
+      // Valida e converte string yyyy-mm-dd para Date às 00:00:00 usando Luxon
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        throw new Error('Invalid date format. Expected yyyy-mm-dd');
+      }
+      const dateObj = parseDateString(date);
+      return await this.appointmentDomainService.findByDate(dateObj);
+    }
+    return await this.appointmentDomainService.findAll();
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get an appointment by ID' })
+  @ApiResponse({ status: 200, description: 'Appointment found' })
+  @ApiResponse({ status: 404, description: 'Appointment not found' })
+  async findOne(@Param('id') id: string) {
+    return await this.appointmentDomainService.findById(id);
+  }
+
+  @Get(':id/total-price')
+  @ApiOperation({ summary: 'Get total price of an appointment' })
+  @ApiResponse({
+    status: 200,
+    description: 'Total price calculated successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Appointment not found' })
+  async getTotalPrice(@Param('id') id: string) {
+    const total =
+      await this.appointmentDomainService.getAppointmentTotalPrice(id);
+    return { totalPrice: total };
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update an appointment' })
+  @ApiResponse({
+    status: 200,
+    description: 'Appointment updated successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Appointment not found' })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateAppointmentDto,
+  ) {
+    return await this.appointmentDomainService.updateAppointment(id, {
+      ...updateDto,
+    });
+  }
+
+  @Put(':id/complete')
+  @ApiOperation({ summary: 'Complete an appointment' })
+  @ApiResponse({
+    status: 200,
+    description: 'Appointment completed successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Appointment not found' })
+  async complete(@Param('id') id: string) {
+    return await this.appointmentDomainService.completeAppointment(id);
+  }
+
+  @Put(':id/cancel')
+  @ApiOperation({ summary: 'Cancel an appointment' })
+  @ApiResponse({
+    status: 200,
+    description: 'Appointment cancelled successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Appointment not found' })
+  async cancel(@Param('id') id: string) {
+    return await this.appointmentDomainService.cancelAppointment(id);
+  }
+}

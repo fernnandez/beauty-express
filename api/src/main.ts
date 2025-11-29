@@ -1,0 +1,49 @@
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  // Enable validation
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  // Swagger configuration
+  const config = new DocumentBuilder()
+    .setTitle('Beauty Express API')
+    .setDescription('Backend API for beauty salon management system')
+    .setVersion('1.0')
+    .addTag('Collaborators', 'Collaborator management endpoints')
+    .addTag('Services', 'Service catalog endpoints')
+    .addTag('Appointments', 'Appointment scheduling endpoints')
+    .addTag('Commissions', 'Commission calculation endpoints')
+    .build();
+
+  // Enable CORS - deve ser antes do listen
+  app.enableCors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    credentials: true,
+  });
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup(process.env.SWAGGER_PATH || 'api', app, document);
+
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+
+  console.log(`Application is running on: http://localhost:${port}`);
+  console.log(
+    `Swagger documentation: http://localhost:${port}/${process.env.SWAGGER_PATH || 'api'}`,
+  );
+}
+
+bootstrap();
