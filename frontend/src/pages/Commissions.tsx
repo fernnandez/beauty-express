@@ -1,12 +1,12 @@
 import {
   ActionIcon,
-  Avatar,
   Badge,
   Button,
   Checkbox,
   Container,
   Group,
   Paper,
+  ScrollArea,
   Select,
   Stack,
   Table,
@@ -202,9 +202,8 @@ export function Commissions() {
   };
 
   return (
-    <Container size="xl">
+    <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
       <Group gap="md" mb="xl">
-        <Avatar src="/logo.png" size={48} radius="md" />
         <Title order={1} c="pink">
           Comissões
         </Title>
@@ -388,98 +387,100 @@ export function Commissions() {
               Nenhuma comissão encontrada
             </Text>
           ) : (
-            <Table striped highlightOnHover>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th style={{ width: 50 }}>
-                    <Checkbox
-                      checked={allSelected}
-                      indeterminate={someSelected}
-                      onChange={handleSelectAll}
-                    />
-                  </Table.Th>
-                  <Table.Th>Status</Table.Th>
-                  <Table.Th>Colaborador</Table.Th>
-                  <Table.Th>Serviço</Table.Th>
-                  <Table.Th>Agendamento</Table.Th>
-                  <Table.Th>Percentual</Table.Th>
-                  <Table.Th>Valor</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {commissionsToShow.map((commission) => (
-                  <Table.Tr
-                    key={commission.id}
-                    style={{
-                      opacity: commission.paid ? 0.7 : 1,
-                    }}
-                  >
-                    <Table.Td>
+            <ScrollArea>
+              <Table striped highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th style={{ width: 50 }}>
                       <Checkbox
-                        checked={selectedCommissions.has(commission.id)}
-                        onChange={() => handleSelectCommission(commission.id)}
+                        checked={allSelected}
+                        indeterminate={someSelected}
+                        onChange={handleSelectAll}
                       />
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge
-                        color={commission.paid ? "green" : "yellow"}
-                        variant="light"
-                      >
-                        {commission.paid ? "Pago" : "Pendente"}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap="xs">
-                        <IconUser size={14} />
-                        <Text size="sm">
-                          {commission.collaborator?.name || "-"}
-                        </Text>
-                      </Group>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm">
-                        {commission.scheduledService?.service?.name || "-"}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      {commission.scheduledService?.appointment ? (
-                        <Group gap="xs">
-                          <IconCalendar size={14} />
-                          <div>
-                            <Text size="sm">
-                              {formatDate(
-                                commission.scheduledService.appointment?.date ||
-                                  ""
-                              )}
-                            </Text>
-                            <Text size="xs" c="dimmed">
-                              {commission.scheduledService.appointment
-                                ?.clientName
-                                ? commission.scheduledService.appointment
-                                    .clientName
-                                : "-"}
-                            </Text>
-                          </div>
-                        </Group>
-                      ) : (
-                        "-"
-                      )}
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm">{commission.percentage}%</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap="xs">
-                        <IconCurrencyDollar size={14} />
-                        <Text size="sm" fw={500}>
-                          {formatPrice(commission.amount)}
-                        </Text>
-                      </Group>
-                    </Table.Td>
+                    </Table.Th>
+                    <Table.Th>Status</Table.Th>
+                    <Table.Th>Colaborador</Table.Th>
+                    <Table.Th>Serviço</Table.Th>
+                    <Table.Th>Agendamento</Table.Th>
+                    <Table.Th>Percentual</Table.Th>
+                    <Table.Th>Valor</Table.Th>
                   </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
+                </Table.Thead>
+                <Table.Tbody>
+                  {commissionsToShow.map((commission) => (
+                    <Table.Tr
+                      key={commission.id}
+                      style={{
+                        opacity: commission.paid ? 0.7 : 1,
+                      }}
+                    >
+                      <Table.Td>
+                        <Checkbox
+                          checked={selectedCommissions.has(commission.id)}
+                          onChange={() => handleSelectCommission(commission.id)}
+                        />
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge
+                          color={commission.paid ? "green" : "yellow"}
+                          variant="light"
+                        >
+                          {commission.paid ? "Pago" : "Pendente"}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <Group gap="xs">
+                          <IconUser size={14} />
+                          <Text size="sm">
+                            {commission.collaborator?.name || "-"}
+                          </Text>
+                        </Group>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm">
+                          {commission.scheduledService?.service?.name || "-"}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        {commission.scheduledService?.appointment ? (
+                          <Group gap="xs">
+                            <IconCalendar size={14} />
+                            <div>
+                              <Text size="sm">
+                                {formatDate(
+                                  commission.scheduledService.appointment
+                                    ?.date || ""
+                                )}
+                              </Text>
+                              <Text size="xs" c="dimmed">
+                                {commission.scheduledService.appointment
+                                  ?.clientName
+                                  ? commission.scheduledService.appointment
+                                      .clientName
+                                  : "-"}
+                              </Text>
+                            </div>
+                          </Group>
+                        ) : (
+                          "-"
+                        )}
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm">{commission.percentage}%</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Group gap="xs">
+                          <IconCurrencyDollar size={14} />
+                          <Text size="sm" fw={500}>
+                            {formatPrice(commission.amount)}
+                          </Text>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </ScrollArea>
           )}
         </Tabs.Panel>
       </Tabs>

@@ -1,44 +1,52 @@
-import { Container, Title, SimpleGrid, Card, Text, Group, ThemeIcon, Avatar } from '@mantine/core';
-import { useNavigate } from 'react-router-dom';
 import {
-  IconUsers,
-  IconScissors,
+  Card,
+  Container,
+  Group,
+  SimpleGrid,
+  Text,
+  ThemeIcon,
+  Title,
+} from "@mantine/core";
+import {
   IconCalendar,
   IconCurrencyDollar,
-} from '@tabler/icons-react';
-import { useCollaborators } from '../hooks/useCollaborators';
-import { useServices } from '../hooks/useServices';
-import { useAppointments } from '../hooks/useAppointments';
-import { useCommissions } from '../hooks/useCommissions';
+  IconScissors,
+  IconUsers,
+} from "@tabler/icons-react";
+import { useNavigate } from "react-router-dom";
+import { useAppointments } from "../hooks/useAppointments";
+import { useCollaborators } from "../hooks/useCollaborators";
+import { useCommissions } from "../hooks/useCommissions";
+import { useServices } from "../hooks/useServices";
 
 const dashboardCards = [
   {
-    title: 'Colaboradores',
-    description: 'Gerenciar colaboradores',
+    title: "Colaboradores",
+    description: "Gerenciar colaboradores",
     icon: IconUsers,
-    path: '/collaborators',
-    color: 'blue',
+    path: "/collaborators",
+    color: "blue",
   },
   {
-    title: 'Serviços',
-    description: 'Gerenciar serviços',
+    title: "Serviços",
+    description: "Gerenciar serviços",
     icon: IconScissors,
-    path: '/services',
-    color: 'violet',
+    path: "/services",
+    color: "violet",
   },
   {
-    title: 'Agendamentos',
-    description: 'Gerenciar agendamentos',
+    title: "Agendamentos",
+    description: "Gerenciar agendamentos",
     icon: IconCalendar,
-    path: '/appointments',
-    color: 'green',
+    path: "/appointments",
+    color: "green",
   },
   {
-    title: 'Comissões',
-    description: 'Visualizar comissões',
+    title: "Comissões",
+    description: "Visualizar comissões",
     icon: IconCurrencyDollar,
-    path: '/commissions',
-    color: 'orange',
+    path: "/commissions",
+    color: "orange",
   },
 ];
 
@@ -51,13 +59,13 @@ export function Dashboard() {
 
   const getCount = (path: string) => {
     switch (path) {
-      case '/collaborators':
+      case "/collaborators":
         return collaborators?.length || 0;
-      case '/services':
+      case "/services":
         return services?.length || 0;
-      case '/appointments':
+      case "/appointments":
         return appointments?.length || 0;
-      case '/commissions':
+      case "/commissions":
         return commissions?.length || 0;
       default:
         return 0;
@@ -65,13 +73,14 @@ export function Dashboard() {
   };
 
   return (
-    <Container size="xl">
+    <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
       <Group gap="md" mb="xl">
-        <Avatar src="/logo.png" size={48} radius="md" />
-        <Title order={1} c="pink">Dashboard</Title>
+        <Title order={1} c="pink">
+          Dashboard
+        </Title>
       </Group>
 
-      <SimpleGrid cols={{ base: 2, sm: 2, lg: 2 }} spacing="lg">
+      <SimpleGrid cols={{ base: 1, sm: 2, lg: 2 }} spacing="lg">
         {dashboardCards.map((card) => {
           const Icon = card.icon;
           return (
@@ -81,7 +90,7 @@ export function Dashboard() {
               padding="lg"
               radius="md"
               withBorder
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: "pointer" }}
               onClick={() => navigate(card.path)}
             >
               <Group justify="space-between" mb="xs">
@@ -105,4 +114,3 @@ export function Dashboard() {
     </Container>
   );
 }
-

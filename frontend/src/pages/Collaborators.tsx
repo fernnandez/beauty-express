@@ -4,11 +4,12 @@ import {
   Button,
   Container,
   Group,
+  ScrollArea,
+  Stack,
   Table,
   Text,
   TextInput,
   Title,
-  Avatar,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -98,96 +99,102 @@ export function Collaborators() {
   };
 
   return (
-    <Container size="xl">
-      <Group justify="space-between" mb="xl">
-        <Group gap="md">
-          <Avatar src="/logo.png" size={48} radius="md" />
-          <Title order={1} c="pink">Colaboradores</Title>
+    <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
+      <Stack gap="md" mb="xl">
+        <Group justify="space-between" wrap="wrap">
+          <Group gap="md">
+            <Title order={1} c="pink">
+              Colaboradores
+            </Title>
+          </Group>
+          <Button
+            leftSection={<IconPlus size={16} />}
+            onClick={() => setCreateModalOpened(true)}
+            color="pink"
+            size="md"
+          >
+            Novo Colaborador
+          </Button>
         </Group>
-        <Button
-          leftSection={<IconPlus size={16} />}
-          onClick={() => setCreateModalOpened(true)}
-          color="pink"
-        >
-          Novo Colaborador
-        </Button>
-      </Group>
 
-      <TextInput
-        placeholder="Buscar por nome..."
-        leftSection={<IconSearch size={16} />}
-        rightSection={
-          searchTerm && (
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              onClick={() => setSearchTerm("")}
-              size="sm"
-            >
-              <IconX size={16} />
-            </ActionIcon>
-          )
-        }
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.currentTarget.value)}
-        mb="md"
-        style={{ maxWidth: 400 }}
-      />
+        <TextInput
+          placeholder="Buscar por nome..."
+          leftSection={<IconSearch size={16} />}
+          rightSection={
+            searchTerm && (
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                onClick={() => setSearchTerm("")}
+                size="sm"
+              >
+                <IconX size={16} />
+              </ActionIcon>
+            )
+          }
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.currentTarget.value)}
+          mb="md"
+          style={{ maxWidth: "100%" }}
+        />
+      </Stack>
 
       {isLoading ? (
         <Text>Carregando...</Text>
       ) : !collaborators || collaborators.length === 0 ? (
         <Text c="dimmed">Nenhum colaborador encontrado.</Text>
       ) : (
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Nome</Table.Th>
-              <Table.Th>Área de Atuação</Table.Th>
-              <Table.Th>Telefone</Table.Th>
-              <Table.Th>Comissão</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th>Ações</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {collaborators.map((collaborator) => (
-              <Table.Tr key={collaborator.id}>
-                <Table.Td>{collaborator.name}</Table.Td>
-                <Table.Td>{collaborator.area}</Table.Td>
-                <Table.Td>{collaborator.phone}</Table.Td>
-                <Table.Td>{collaborator.commissionPercentage}%</Table.Td>
-                <Table.Td>
-                  <Badge color={collaborator.isActive ? "green" : "red"}>
-                    {collaborator.isActive ? "Ativo" : "Inativo"}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>
-                  <Group gap="xs">
-                    <Button
-                      variant="light"
-                      size="xs"
-                      leftSection={<IconEdit size={14} />}
-                      onClick={() => handleEdit(collaborator)}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      variant="light"
-                      color="red"
-                      size="xs"
-                      leftSection={<IconTrash size={14} />}
-                      disabled
-                      onClick={() => handleDelete(collaborator)}
-                    >
-                      Excluir
-                    </Button>
-                  </Group>
-                </Table.Td>
+        <ScrollArea>
+          <Table striped highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Nome</Table.Th>
+                <Table.Th>Área de Atuação</Table.Th>
+                <Table.Th>Telefone</Table.Th>
+                <Table.Th>Comissão</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.Th>Ações</Table.Th>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Thead>
+            <Table.Tbody>
+              {collaborators.map((collaborator) => (
+                <Table.Tr key={collaborator.id}>
+                  <Table.Td>{collaborator.name}</Table.Td>
+                  <Table.Td>{collaborator.area}</Table.Td>
+                  <Table.Td>{collaborator.phone}</Table.Td>
+                  <Table.Td>{collaborator.commissionPercentage}%</Table.Td>
+                  <Table.Td>
+                    <Badge color={collaborator.isActive ? "green" : "red"}>
+                      {collaborator.isActive ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Group gap="xs">
+                      <Button
+                        variant="light"
+                        size="xs"
+                        leftSection={<IconEdit size={14} />}
+                        onClick={() => handleEdit(collaborator)}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        variant="light"
+                        color="red"
+                        size="xs"
+                        leftSection={<IconTrash size={14} />}
+                        disabled
+                        onClick={() => handleDelete(collaborator)}
+                      >
+                        Excluir
+                      </Button>
+                    </Group>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </ScrollArea>
       )}
 
       <CollaboratorCreateModal

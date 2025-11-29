@@ -10,7 +10,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { useServiceForm } from "../../hooks/useServiceForm";
 import { useCreateService } from "../../hooks/useServices";
-import type { CreateServiceDto } from "../../types";
+import type { CreateServiceDto, UpdateServiceDto } from "../../types";
 
 interface ServiceCreateModalProps {
   opened: boolean;
@@ -56,7 +56,11 @@ export function ServiceCreateModal({
       title="Novo Serviço"
       size="md"
     >
-      <form onSubmit={form.onSubmit(handleSubmit)}>
+      <form
+        onSubmit={form.onSubmit((values: CreateServiceDto | UpdateServiceDto) =>
+          handleSubmit(values as CreateServiceDto)
+        )}
+      >
         <Stack gap="md">
           <TextInput
             label="Nome"

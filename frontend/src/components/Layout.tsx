@@ -1,4 +1,4 @@
-import { Anchor, AppShell, Avatar, Group, NavLink, Text } from "@mantine/core";
+import { Anchor, AppShell, Avatar, Center, Group, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import {
   IconCalendar,
   IconCurrencyDollar,
@@ -27,7 +27,7 @@ export function Layout({ children }: LayoutProps) {
   return (
     <AppShell
       navbar={{
-        width: 240,
+        width: 80,
         breakpoint: "sm",
       }}
       footer={{
@@ -35,31 +35,63 @@ export function Layout({ children }: LayoutProps) {
       }}
     >
       <AppShell.Navbar p="md" style={{ backgroundColor: "#faf5ff" }}>
-        <Group gap="sm" mb="xl">
-          <Avatar src="/logo.png" size={40} radius="md" />
-          <Text size="xl" fw={700} c="pink">
-            Beauty Express
-          </Text>
-        </Group>
-        {navigationItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.path}
-              label={item.label}
-              leftSection={<Icon size={20} />}
-              active={location.pathname === item.path}
-              onClick={() => navigate(item.path)}
-              mb="xs"
-              style={{
-                borderRadius: "8px",
-              }}
-            />
-          );
-        })}
+        <Center mb="xl">
+          <Avatar src="/logo.png" size={48} radius="md" />
+        </Center>
+
+        <Stack justify="center" gap={0}>
+          {navigationItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            
+            return (
+              <Tooltip
+                key={item.path}
+                label={item.label}
+                position="right"
+                withArrow
+                transitionProps={{ duration: 0 }}
+              >
+                <UnstyledButton
+                  onClick={() => navigate(item.path)}
+                  style={{
+                    width: "100%",
+                    height: 50,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "8px",
+                    backgroundColor: isActive ? "var(--mantine-color-pink-0)" : "transparent",
+                    color: isActive ? "var(--mantine-color-pink-6)" : "var(--mantine-color-gray-7)",
+                    transition: "background-color 150ms ease, color 150ms ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.backgroundColor = "var(--mantine-color-gray-1)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }
+                  }}
+                >
+                  <Icon size={22} stroke={1.5} />
+                </UnstyledButton>
+              </Tooltip>
+            );
+          })}
+        </Stack>
       </AppShell.Navbar>
 
-      <AppShell.Main style={{ backgroundColor: "#fefefe" }} pt="md">
+      <AppShell.Main 
+        style={{ 
+          backgroundColor: "#fefefe",
+          width: "100%",
+          maxWidth: "100%",
+        }} 
+        pt="md"
+      >
         {children}
       </AppShell.Main>
 
