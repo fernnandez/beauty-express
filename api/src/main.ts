@@ -26,24 +26,30 @@ async function bootstrap() {
     .addTag('Commissions', 'Commission calculation endpoints')
     .build();
 
+  // Configurar prefixo global para todas as rotas da API
+  app.setGlobalPrefix('api');
+
   // Enable CORS - deve ser antes do listen
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:5173',
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
   });
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup(process.env.SWAGGER_PATH || 'api', app, document);
+  SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  console.log(`Application is running on: http://localhost:${port}`);
-  console.log(
-    `Swagger documentation: http://localhost:${port}/${process.env.SWAGGER_PATH || 'api'}`,
-  );
+  console.log(`🚀 Application is running on: http://localhost:${port}`);
+  console.log(`📱 Frontend: http://localhost:${port}`);
+  console.log(`🔌 API: http://localhost:${port}/api`);
+  console.log(`📚 Swagger documentation: http://localhost:${port}/api/docs`);
 }
 
 bootstrap();

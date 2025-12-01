@@ -79,5 +79,5 @@ export class CreateAppointmentDto {
   })
   @IsString()
   @IsOptional()
-  observacoes?: string;
+  observations?: string;
 }

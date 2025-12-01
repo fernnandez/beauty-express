@@ -54,6 +54,12 @@ export class AppointmentService {
     // Garante que a data seja às 00:00:00 no timezone America/Sao_Paulo
     const normalizedDate = parseDateString(createDto.date);
 
+    // Trata observações: se for string vazia ou undefined, converte para null
+    const observations =
+      createDto.observations && createDto.observations.trim()
+        ? createDto.observations.trim()
+        : null;
+
     // Create appointment using spread operator
     const savedAppointment = await this.appointmentRepository.save({
       clientName: createDto.clientName,
@@ -62,7 +68,7 @@ export class AppointmentService {
       startTime: createDto.startTime,
       endTime: createDto.endTime,
       status: AppointmentStatus.SCHEDULED,
-      observations: createDto.observacoes,
+      observations: observations,
     });
 
     // Create scheduled services
@@ -181,7 +187,12 @@ export class AppointmentService {
       updatePayload.endTime = updateDto.endTime;
     }
     if (updateDto.observations !== undefined) {
-      updatePayload.observations = updateDto.observations;
+      console.log(updateDto.observations);
+      // Trata observações: se for string vazia, converte para null
+      updatePayload.observations =
+        updateDto.observations && updateDto.observations.trim()
+          ? updateDto.observations.trim()
+          : null;
     }
 
     // Update appointment using repository.update

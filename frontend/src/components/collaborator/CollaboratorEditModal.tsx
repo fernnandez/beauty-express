@@ -95,8 +95,6 @@ export function CollaboratorEditModal({
             placeholder="Selecione ou digite uma área de atuação"
             required
             data={COLLABORATOR_AREAS.map((area) => area.label)}
-            creatable
-            getCreateLabel={(query) => `+ Criar "${query}"`}
             {...form.getInputProps("area")}
           />
 

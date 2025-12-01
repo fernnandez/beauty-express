@@ -53,7 +53,7 @@ export interface CreateAppointmentDto {
   startTime: string; // HH:MM
   endTime: string; // HH:MM
   servicos: ScheduledServiceInputDto[];
-  observacoes?: string;
+  observations?: string;
 }
 
 export interface UpdateAppointmentDto {
@@ -130,7 +130,7 @@ export interface Appointment {
   startTime: string; // HH:MM
   endTime: string; // HH:MM
   status: AppointmentStatus;
-  observacoes?: string;
+  observations?: string;
   scheduledServices?: ScheduledService[];
 }
 

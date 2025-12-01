@@ -116,21 +116,12 @@ export function FinancialReports() {
             label="Selecione o mês"
             placeholder="Escolha o mês"
             value={selectedDate}
-            onChange={(value) => {
+            onChange={(value: string | null) => {
               // Garante que sempre temos um Date válido usando Luxon
               if (value) {
-                let dateValue: Date;
-                if (value instanceof Date) {
-                  dateValue = value;
-                } else if (typeof value === "string") {
-                  dateValue = DateTime.fromISO(value, {
-                    zone: "America/Sao_Paulo",
-                  }).toJSDate();
-                } else {
-                  dateValue = DateTime.fromJSDate(value, {
-                    zone: "America/Sao_Paulo",
-                  }).toJSDate();
-                }
+                const dateValue = DateTime.fromISO(value, {
+                  zone: "America/Sao_Paulo",
+                }).toJSDate();
                 setSelectedDate(dateValue);
               } else {
                 setSelectedDate(DateTime.now().setZone("America/Sao_Paulo").toJSDate());

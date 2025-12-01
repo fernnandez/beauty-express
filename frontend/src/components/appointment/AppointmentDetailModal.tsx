@@ -16,6 +16,7 @@ import {
   IconCheck,
   IconCurrencyDollar,
   IconEdit,
+  IconNotes,
   IconPhone,
   IconScissors,
   IconUser,
@@ -204,13 +205,18 @@ export function AppointmentDetailModal({
         </Group>
 
         {/* Observações */}
-        {appointment.observacoes && (
-          <div>
-            <Text size="xs" c="dimmed" mb={4}>
-              Observações
-            </Text>
-            <Text size="sm">{appointment.observacoes}</Text>
-          </div>
+        {appointment.observations && (
+          <Group gap="xs" align="flex-start">
+            <IconNotes size={18} style={{ marginTop: 2 }} />
+            <div style={{ flex: 1 }}>
+              <Text size="xs" c="dimmed">
+                Observações
+              </Text>
+              <Text size="sm" fw={500} style={{ whiteSpace: "pre-wrap" }}>
+                {appointment.observations}
+              </Text>
+            </div>
+          </Group>
         )}
 
         <Divider label="Serviços Agendados" labelPosition="center" />

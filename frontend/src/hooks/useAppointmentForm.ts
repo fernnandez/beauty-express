@@ -1,14 +1,14 @@
 import { useForm } from "@mantine/form";
 import { useMemo } from "react";
-import { useCollaborators } from "./useCollaborators";
-import { useServices } from "./useServices";
+import type { CreateAppointmentDto, UpdateAppointmentDto } from "../types";
 import {
   calculateTotalPrice,
   convertServicesToDto,
   formatDateToString,
   validateTimeRange,
 } from "../utils/appointment.utils";
-import type { CreateAppointmentDto, UpdateAppointmentDto } from "../types";
+import { useCollaborators } from "./useCollaborators";
+import { useServices } from "./useServices";
 
 export interface ServiceFormItem {
   serviceId: string;
@@ -19,14 +19,16 @@ export interface ServiceFormItem {
 export interface AppointmentFormValues {
   clientName: string;
   clientPhone: string;
-  data: Date | null;
+  data: Date | string | null; // DatePickerInput pode retornar string quando valueFormat está definido
   startTime: string;
   endTime: string;
   observacoes?: string;
   servicos: ServiceFormItem[];
 }
 
-export const useAppointmentForm = (initialValues?: Partial<AppointmentFormValues>) => {
+export const useAppointmentForm = (
+  initialValues?: Partial<AppointmentFormValues>
+) => {
   const { data: services } = useServices();
   const { data: collaborators } = useCollaborators();
 
@@ -89,29 +91,42 @@ export const useAppointmentForm = (initialValues?: Partial<AppointmentFormValues
   };
 
   const convertToCreateDto = (): CreateAppointmentDto => {
+    console.log(form.values.data);
     const dateString = formatDateToString(form.values.data);
     if (!dateString) {
       throw new Error("Data é obrigatória");
     }
+    console.log(dateString);
 
     const servicos = convertServicesToDto(form.values.servicos, services);
 
-    return {
+    const dto: CreateAppointmentDto = {
       clientName: form.values.clientName.trim(),
       clientPhone: form.values.clientPhone.trim(),
       date: dateString,
       startTime: form.values.startTime,
       endTime: form.values.endTime,
       servicos,
-      observacoes: form.values.observacoes?.trim() || undefined,
     };
+
+    // Inclui observacoes se houver valor (não vazio após trim)
+    // Se o campo existir e não for vazio, inclui no DTO
+    const observacoesTrimmed = form.values.observacoes?.trim();
+    if (observacoesTrimmed && observacoesTrimmed.length > 0) {
+      dto.observations = observacoesTrimmed;
+    }
+
+    return dto;
   };
 
   const convertToUpdateDto = (): UpdateAppointmentDto => {
     const dateString = formatDateToString(form.values.data);
+    console.log(dateString);
+    console.log(form.values.data);
+
     const servicos = convertServicesToDto(form.values.servicos, services);
 
-    return {
+    const dto: UpdateAppointmentDto = {
       clientName: form.values.clientName.trim(),
       clientPhone: form.values.clientPhone.trim(),
       date: dateString,
@@ -120,6 +135,8 @@ export const useAppointmentForm = (initialValues?: Partial<AppointmentFormValues
       services: servicos,
       observations: form.values.observacoes?.trim() || undefined,
     };
+
+    return dto;
   };
 
   const totalPrice = useMemo(() => {
@@ -142,4 +159,3 @@ export const useAppointmentForm = (initialValues?: Partial<AppointmentFormValues
     totalPrice,
   };
 };
-

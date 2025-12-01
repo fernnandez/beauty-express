@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import type { Service, ScheduledServiceInputDto } from "../types";
+import type { ScheduledServiceInputDto, Service } from "../types";
 
 // Gera opções de horário de 8h às 20h em intervalos de 30 minutos
 export const generateTimeOptions = () => {
@@ -51,9 +51,39 @@ export const validateTimeRange = (
 };
 
 // Formata data para yyyy-MM-dd usando Luxon
-export const formatDateToString = (date: Date | null): string | undefined => {
+// Aceita Date ou string (do DatePickerInput do Mantine)
+// Usa os componentes da data (ano, mês, dia) para evitar problemas de fuso horário
+export const formatDateToString = (date: Date | string | null): string | undefined => {
   if (!date) return undefined;
-  const luxonDate = DateTime.fromJSDate(date, { zone: "America/Sao_Paulo" });
+  
+  let luxonDate: DateTime;
+  
+  if (typeof date === "string") {
+    // Se for string, tenta parsear com Luxon
+    // Pode vir no formato DD/MM/YYYY do DatePickerInput ou ISO
+    luxonDate = DateTime.fromFormat(date, "dd/MM/yyyy", { zone: 'local' });
+    if (!luxonDate.isValid) {
+      // Tenta como ISO se não funcionar
+      luxonDate = DateTime.fromISO(date, { zone: 'local' });
+    }
+    if (!luxonDate.isValid) {
+      // Se ainda não funcionar, tenta criar a partir de new Date
+      const dateObj = new Date(date);
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth() + 1;
+      const day = dateObj.getDate();
+      luxonDate = DateTime.fromObject({ year, month, day }, { zone: 'local' });
+    }
+  } else if (date instanceof Date) {
+    // Se for Date, extrai os componentes da data local para evitar problemas de fuso horário
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // getMonth() retorna 0-11
+    const day = date.getDate();
+    luxonDate = DateTime.fromObject({ year, month, day }, { zone: 'local' });
+  } else {
+    return undefined;
+  }
+  
   return luxonDate.toFormat("yyyy-MM-dd");
 };
 
@@ -119,14 +149,43 @@ export const formatPrice = (price: number): string => {
 
 // Formata uma data para exibição em pt-BR
 export const formatDate = (date: Date | string): string => {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-  return dateObj.toLocaleDateString("pt-BR");
+  let luxonDate: DateTime;
+  if (typeof date === "string") {
+    // Tenta parsear como ISO primeiro, depois como objeto
+    luxonDate = DateTime.fromISO(date, { zone: 'local' });
+    if (!luxonDate.isValid) {
+      // Se não for ISO válido, tenta criar a partir de componentes
+      const dateObj = new Date(date);
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth() + 1;
+      const day = dateObj.getDate();
+      luxonDate = DateTime.fromObject({ year, month, day }, { zone: 'local' });
+    }
+  } else {
+    // Extrai componentes da data local para evitar problemas de fuso horário
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    luxonDate = DateTime.fromObject({ year, month, day }, { zone: 'local' });
+  }
+  return luxonDate.setLocale('pt-BR').toLocaleString(DateTime.DATE_SHORT);
 };
 
 // Formata uma data e hora para exibição em pt-BR
 export const formatDateTime = (date: Date | string): string => {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-  return dateObj.toLocaleString("pt-BR");
+  let luxonDate: DateTime;
+  if (typeof date === "string") {
+    // Tenta parsear como ISO primeiro
+    luxonDate = DateTime.fromISO(date, { zone: 'local' });
+    if (!luxonDate.isValid) {
+      // Se não for ISO válido, usa new Date e converte
+      luxonDate = DateTime.fromJSDate(new Date(date), { zone: 'local' });
+    }
+  } else {
+    // Converte Date para DateTime mantendo o fuso local
+    luxonDate = DateTime.fromJSDate(date, { zone: 'local' });
+  }
+  return luxonDate.setLocale('pt-BR').toLocaleString(DateTime.DATETIME_SHORT);
 };
 
 // Formata data e horário do agendamento (data + startTime - endTime)
@@ -147,4 +206,3 @@ export const formatServiceOption = (service: Service) => ({
   value: service.id,
   label: `${service.name} - ${formatPrice(service.defaultPrice)}`,
 });
-

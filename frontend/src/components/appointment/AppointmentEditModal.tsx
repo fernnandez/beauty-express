@@ -19,6 +19,7 @@ import {
   IconPlus,
   IconUserCircle,
 } from "@tabler/icons-react";
+import { DateTime } from "luxon";
 import { useEffect } from "react";
 import { useAppointmentForm } from "../../hooks/useAppointmentForm";
 import { useUpdateAppointment } from "../../hooks/useAppointments";
@@ -51,8 +52,6 @@ export function AppointmentEditModal({
 
   useEffect(() => {
     if (appointment && opened) {
-      const appointmentDate = new Date(appointment.date);
-
       const servicos =
         appointment.scheduledServices?.map((service) => ({
           serviceId: service.serviceId,
@@ -63,13 +62,29 @@ export function AppointmentEditModal({
               : undefined,
         })) || [];
 
+      // Converte a string ISO da data para Date usando Luxon
+      // Isso evita problemas de fuso horário
+      let appointmentDate: Date | string | null = null;
+      if (appointment.date) {
+        const luxonDate = DateTime.fromISO(appointment.date, { zone: 'local' });
+        if (luxonDate.isValid) {
+          appointmentDate = luxonDate.toJSDate();
+        } else {
+          // Fallback: tenta parsear como yyyy-MM-dd
+          const parsedDate = DateTime.fromFormat(appointment.date, "yyyy-MM-dd", { zone: 'local' });
+          if (parsedDate.isValid) {
+            appointmentDate = parsedDate.toJSDate();
+          }
+        }
+      }
+
       form.setValues({
         clientName: appointment.clientName,
         clientPhone: appointment.clientPhone,
         data: appointmentDate,
         startTime: appointment.startTime || "",
         endTime: appointment.endTime || "",
-        observacoes: appointment.observacoes || "",
+        observacoes: appointment.observations || "",
         servicos,
       });
     } else {

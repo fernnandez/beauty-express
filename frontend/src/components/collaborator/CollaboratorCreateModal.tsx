@@ -57,7 +57,11 @@ export function CollaboratorCreateModal({
       title="Novo Colaborador"
       size="md"
     >
-      <form onSubmit={form.onSubmit(handleSubmit)}>
+      <form
+        onSubmit={form.onSubmit((values) =>
+          handleSubmit(values as CreateCollaboratorDto)
+        )}
+      >
         <Stack gap="md">
           <TextInput
             label="Nome"
@@ -78,8 +82,6 @@ export function CollaboratorCreateModal({
             placeholder="Selecione ou digite uma área de atuação"
             required
             data={COLLABORATOR_AREAS.map((area) => area.label)}
-            creatable
-            getCreateLabel={(query) => `+ Criar "${query}"`}
             {...form.getInputProps("area")}
           />
 

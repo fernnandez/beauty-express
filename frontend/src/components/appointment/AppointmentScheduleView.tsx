@@ -38,7 +38,7 @@ interface AppointmentScheduleViewProps {
 // Gera slots de horário de 30 em 30 minutos
 const generateTimeSlots = () => {
   const slots = [];
-  for (let hour = 8; hour < 20; hour++) {
+  for (let hour = 8; hour <= 21; hour++) {
     for (let minute = 0; minute < 60; minute += 30) {
       const time = `${hour.toString().padStart(2, "0")}:${minute
         .toString()
@@ -276,52 +276,26 @@ export function AppointmentScheduleView({
             Amanhã
           </Button>
         </Group>
-        <Text fw={500}>
-          {currentDate.toLocaleDateString("pt-BR", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })}
-        </Text>
+        <Stack mr="sm">
+          <Text size="xs" fw={500} ta="center" c="dimmed">
+            {currentDate.toLocaleDateString("pt-BR", { weekday: "long" })}
+          </Text>
+          <Text size="lg" fw={700} ta="center">
+            {currentDate.toLocaleDateString("pt-BR", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </Text>
+        </Stack>
       </Group>
 
       {/* Visualização diária */}
-      <ScrollArea h={600} style={{ maxHeight: "600px" }}>
+      <ScrollArea h={650} style={{ maxHeight: "650px" }}>
         <Paper withBorder p="md">
           <div
             style={{ position: "relative", minHeight: TIME_SLOTS.length * 60 }}
           >
-            {/* Cabeçalho */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "100px 1fr",
-                gap: "8px",
-                marginBottom: "8px",
-                position: "sticky",
-                top: 0,
-                backgroundColor: "var(--mantine-color-body)",
-                zIndex: 10,
-                paddingBottom: "8px",
-                borderBottom: "2px solid var(--mantine-color-gray-3)",
-              }}
-            >
-              <div></div>
-              <div>
-                <Text size="xs" fw={500} ta="center" c="dimmed">
-                  {currentDate.toLocaleDateString("pt-BR", { weekday: "long" })}
-                </Text>
-                <Text size="lg" fw={700} ta="center">
-                  {currentDate.toLocaleDateString("pt-BR", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </Text>
-              </div>
-            </div>
-
             {/* Grid de horários */}
             <div
               style={{
