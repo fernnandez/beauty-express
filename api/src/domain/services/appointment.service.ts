@@ -6,7 +6,7 @@ import {
   endOfDay,
   parseDateString,
   startOfDay,
-} from '../../common/utils/date.util';
+} from '../../utils/date.util';
 import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';

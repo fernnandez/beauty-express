@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CommissionService } from '@domain/services/commission.service';
-import { endOfDay, parseDateString } from '../../common/utils/date.util';
+import { endOfDay, parseDateString } from '../../utils/date.util';
 import { MarkCommissionsDto } from '../dtos/commission/mark-commissions.dto';
 
 @ApiTags('Commissions')

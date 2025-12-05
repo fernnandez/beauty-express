@@ -1,4 +1,4 @@
-import { formatDateToString } from '../../common/utils/date.util';
+import { formatDateToString } from '../../utils/date.util';
 import {
   Injectable,
   NestInterceptor,

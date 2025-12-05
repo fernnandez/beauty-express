@@ -3,7 +3,7 @@ import {
   endOfDay,
   formatDateToString,
   startOfDay,
-} from '../../common/utils/date.util';
+} from '../../utils/date.util';
 import { ScheduledServiceStatus } from '../entities/scheduled-service.entity';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';

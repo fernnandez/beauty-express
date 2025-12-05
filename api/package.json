@@ -64,6 +64,7 @@
     "glob": "^10.4.6"
   },
   "jest": {
+    "preset": "ts-jest",
     "moduleFileExtensions": [
       "js",
       "json",
@@ -75,9 +76,44 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.(t|j)s",
+      "!**/*.spec.ts",
+      "!**/*.dto.ts",
+      "!**/*.entity.ts",
+      "!**/*.module.ts",
+      "!**/main.ts",
+      "!**/seed.ts",
+      "!**/dist/**",
+      "!**/node_modules/**",
+      "!**/repositories/**",
+      "!**/interceptors/**",
+      "!**/config/**"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "coverageProvider": "v8",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/dist/",
+      "\\.spec\\.ts$",
+      "\\.dto\\.ts$",
+      "\\.entity\\.ts$",
+      "\\.module\\.ts$",
+      "main\\.ts$",
+      "seed\\.ts$",
+      "/repositories/",
+      "/interceptors/",
+      "/config/"
+    ],
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@application/(.*)$": "<rootDir>/application/$1",
+      "^@domain/(.*)$": "<rootDir>/domain/$1",
+      "^@config/(.*)$": "<rootDir>/config/$1"
+    }
   }
 }

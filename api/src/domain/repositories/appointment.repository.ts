@@ -1,4 +1,4 @@
-import { startOfDay, endOfDay } from '../../common/utils/date.util';
+import { startOfDay, endOfDay } from '../../utils/date.util';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
