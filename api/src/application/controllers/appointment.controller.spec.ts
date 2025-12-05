@@ -86,14 +86,16 @@ describe('AppointmentController', () => {
   describe('findAll', () => {
     const mockAppointments: Appointment[] = [mockAppointment];
 
-    it('should return all appointments when no date query', async () => {
-      mockAppointmentService.findAll.mockResolvedValue(mockAppointments);
+    it('should return appointments for today when no date query', async () => {
+      const today = new Date();
+      const todayString = today.toISOString().split('T')[0];
+      mockAppointmentService.findByDate.mockResolvedValue(mockAppointments);
 
       const result = await controller.findAll();
 
       expect(result).toEqual(mockAppointments);
-      expect(service.findAll).toHaveBeenCalled();
-      expect(service.findByDate).not.toHaveBeenCalled();
+      expect(service.findByDate).toHaveBeenCalledWith(parseDateString(todayString));
+      expect(service.findAll).not.toHaveBeenCalled();
     });
 
     it('should return appointments by date when date query is provided', async () => {

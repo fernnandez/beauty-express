@@ -207,33 +207,12 @@ export function AppointmentScheduleView({
     onDateChange?.(dateString);
   };
 
-  // Coleta todos os agendamentos do dia
+  // Filtra apenas agendamentos com horário definido (o backend já retorna apenas do dia)
   const dayAppointments = useMemo(() => {
-    const dayAppts: Appointment[] = [];
-
-    // Normaliza a data atual usando Luxon no timezone America/Sao_Paulo
-    const currentDateObj = externalDate
-      ? DateTime.fromISO(externalDate, { zone: "America/Sao_Paulo" })
-      : DateTime.fromJSDate(currentDate, { zone: "America/Sao_Paulo" });
-    const normalizedCurrentDateString = currentDateObj.toFormat("yyyy-MM-dd");
-
-    appointments.forEach((apt) => {
-      // Normaliza a data do agendamento usando Luxon no timezone America/Sao_Paulo
-      const aptDate = DateTime.fromISO(apt.date, { zone: "America/Sao_Paulo" });
-      const aptDateString = aptDate.toFormat("yyyy-MM-dd");
-
-      // Verifica se a data do agendamento corresponde ao dia selecionado
-      if (
-        aptDateString === normalizedCurrentDateString &&
-        apt.startTime &&
-        apt.endTime
-      ) {
-        dayAppts.push(apt);
-      }
-    });
-
-    return dayAppts;
-  }, [appointments, currentDate, externalDate]);
+    return appointments.filter(
+      (apt) => apt.startTime && apt.endTime
+    );
+  }, [appointments]);
 
   const navigateDay = (direction: "prev" | "next") => {
     const newDate = new Date(currentDate);

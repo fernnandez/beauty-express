@@ -22,7 +22,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { DateTime } from "luxon";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { AppointmentCreateModal } from "../components/appointment/AppointmentCreateModal";
 import { AppointmentDetailModal } from "../components/appointment/AppointmentDetailModal";
@@ -56,27 +56,10 @@ export function Appointments() {
     new Date().toISOString().split("T")[0]
   );
 
-  // Busca todos os agendamentos, não apenas do dia selecionado
-  // O filtro por data é feito no componente AppointmentScheduleView
-  const { data: appointments, isLoading } = useAppointments();
+  // Busca apenas os agendamentos do dia selecionado (filtro no backend)
+  const { data: appointments, isLoading } = useAppointments(selectedDate);
   const completeMutation = useCompleteAppointment();
   const cancelMutation = useCancelAppointment();
-
-  // Filtra agendamentos pela data selecionada na aba de lista
-  const filteredAppointments = useMemo(() => {
-    if (!appointments || !selectedDate) return appointments || [];
-
-    return appointments.filter((appointment) => {
-      // Normaliza a data do agendamento usando Luxon no timezone America/Sao_Paulo
-      const aptDate = DateTime.fromISO(appointment.date, {
-        zone: "America/Sao_Paulo",
-      });
-      const aptDateString = aptDate.toFormat("yyyy-MM-dd");
-
-      // Compara com a data selecionada
-      return aptDateString === selectedDate;
-    });
-  }, [appointments, selectedDate]);
 
   const [createModalOpened, setCreateModalOpened] = useState(false);
   const [editModalOpened, setEditModalOpened] = useState(false);
@@ -194,7 +177,9 @@ export function Appointments() {
               onCancel={handleCancel}
               onEdit={handleEdit}
               currentDate={selectedDate}
-              onDateChange={(date) => setSelectedDate(date)}
+              onDateChange={(date) => {
+                setSelectedDate(date);
+              }}
               onAppointmentClick={(appointment) => {
                 setSelectedAppointment(appointment);
                 setDetailModalOpened(true);
@@ -259,7 +244,7 @@ export function Appointments() {
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
-                  {filteredAppointments?.map((appointment) => (
+                  {appointments?.map((appointment) => (
                     <Table.Tr key={appointment.id}>
                       <Table.Td>
                         <Stack gap={2}>
