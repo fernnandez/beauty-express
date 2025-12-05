@@ -3,10 +3,14 @@ import { UpdateServiceDto } from '@application/dtos/service/update-service.dto';
 import { Injectable } from '@nestjs/common';
 import { Service } from '../entities/service.entity';
 import { ServiceRepository } from '../repositories/service.repository';
+import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 
 @Injectable()
 export class ServiceService {
-  constructor(private repository: ServiceRepository) {}
+  constructor(
+    private repository: ServiceRepository,
+    private scheduledServiceRepository: ScheduledServiceRepository,
+  ) {}
 
   async createService(createDto: CreateServiceDto): Promise<Service> {
     // Business rule: price must be positive
@@ -14,7 +18,16 @@ export class ServiceService {
       throw new Error('Default price must be greater than zero');
     }
 
-    return await this.repository.save({ ...createDto });
+    // Trata descrição: se for string vazia, converte para null
+    const description =
+      createDto.description && createDto.description.trim()
+        ? createDto.description.trim()
+        : null;
+
+    return await this.repository.save({
+      ...createDto,
+      description,
+    });
   }
 
   async findAll(search?: string): Promise<Service[]> {
@@ -53,6 +66,18 @@ export class ServiceService {
     if (!service) {
       throw new Error('Service not found');
     }
+
+    // Business rule: cannot delete service if it's being used in scheduled services
+    const scheduledServices = await this.scheduledServiceRepository.find({
+      where: { serviceId: id },
+    });
+
+    if (scheduledServices.length > 0) {
+      throw new Error(
+        'Cannot delete service that is being used in scheduled services. Please cancel or complete the related appointments first.',
+      );
+    }
+
     await this.repository.delete(id);
   }
 }

@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Alert,
   Button,
   Container,
   Group,
@@ -14,6 +15,7 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
   IconEdit,
+  IconInfoCircle,
   IconPlus,
   IconSearch,
   IconTrash,
@@ -60,10 +62,16 @@ export function Services() {
         message: "Serviço excluído com sucesso!",
         color: "green",
       });
-    } catch {
+      setDeleteModalOpened(false);
+      setSelectedService(null);
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Erro ao excluir serviço";
       notifications.show({
         title: "Erro",
-        message: "Erro ao excluir serviço",
+        message: errorMessage,
         color: "red",
       });
     }
@@ -108,6 +116,17 @@ export function Services() {
           mb="md"
           style={{ maxWidth: "100%" }}
         />
+
+        <Alert
+          icon={<IconInfoCircle size={16} />}
+          title="Informação"
+          color="blue"
+          variant="light"
+        >
+          Não é possível excluir serviços que estão em uso em algum agendamento.
+          Para excluir um serviço, é necessário cancelar ou concluir todos os
+          agendamentos relacionados primeiro.
+        </Alert>
       </Stack>
 
       {isLoading ? (

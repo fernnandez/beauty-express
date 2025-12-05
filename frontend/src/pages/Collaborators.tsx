@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Alert,
   Badge,
   Button,
   Container,
@@ -15,6 +16,7 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
   IconEdit,
+  IconInfoCircle,
   IconPlus,
   IconSearch,
   IconTrash,
@@ -137,6 +139,16 @@ export function Collaborators() {
           mb="md"
           style={{ maxWidth: "100%" }}
         />
+
+        <Alert
+          icon={<IconInfoCircle size={16} />}
+          title="Informação"
+          color="blue"
+          variant="light"
+        >
+          A exclusão de colaboradores está desabilitada por hora. Para
+          desativar um colaborador, utilize a opção de edição.
+        </Alert>
       </Stack>
 
       {isLoading ? (

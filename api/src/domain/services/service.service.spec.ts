@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ServiceService } from './service.service';
 import { ServiceRepository } from '../repositories/service.repository';
+import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { Service } from '../entities/service.entity';
 import { CreateServiceDto } from '@application/dtos/service/create-service.dto';
 import { UpdateServiceDto } from '@application/dtos/service/update-service.dto';
@@ -8,6 +9,7 @@ import { UpdateServiceDto } from '@application/dtos/service/update-service.dto';
 describe('ServiceService', () => {
   let service: ServiceService;
   let repository: jest.Mocked<ServiceRepository>;
+  let scheduledServiceRepository: jest.Mocked<ScheduledServiceRepository>;
 
   const mockRepository = {
     save: jest.fn(),
@@ -18,6 +20,10 @@ describe('ServiceService', () => {
     searchByName: jest.fn(),
   };
 
+  const mockScheduledServiceRepository = {
+    find: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -26,11 +32,16 @@ describe('ServiceService', () => {
           provide: ServiceRepository,
           useValue: mockRepository,
         },
+        {
+          provide: ScheduledServiceRepository,
+          useValue: mockScheduledServiceRepository,
+        },
       ],
     }).compile();
 
     service = module.get<ServiceService>(ServiceService);
     repository = module.get(ServiceRepository);
+    scheduledServiceRepository = module.get(ScheduledServiceRepository);
 
     jest.clearAllMocks();
   });
@@ -290,13 +301,17 @@ describe('ServiceService', () => {
       collaborators: [],
     };
 
-    it('should delete service when found', async () => {
+    it('should delete service when found and not in use', async () => {
       repository.findById.mockResolvedValue(existingService);
+      scheduledServiceRepository.find.mockResolvedValue([]);
       repository.delete.mockResolvedValue(undefined);
 
       await service.delete(existingService.id);
 
       expect(repository.findById).toHaveBeenCalledWith(existingService.id);
+      expect(scheduledServiceRepository.find).toHaveBeenCalledWith({
+        where: { serviceId: existingService.id },
+      });
       expect(repository.delete).toHaveBeenCalledWith(existingService.id);
     });
 
@@ -307,8 +322,24 @@ describe('ServiceService', () => {
         'Service not found',
       );
 
+      expect(scheduledServiceRepository.find).not.toHaveBeenCalled();
+      expect(repository.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when service is being used in scheduled services', async () => {
+      repository.findById.mockResolvedValue(existingService);
+      scheduledServiceRepository.find.mockResolvedValue([
+        {
+          id: 'scheduled-1',
+          serviceId: existingService.id,
+        } as any,
+      ]);
+
+      await expect(service.delete(existingService.id)).rejects.toThrow(
+        'Cannot delete service that is being used in scheduled services',
+      );
+
       expect(repository.delete).not.toHaveBeenCalled();
     });
   });
 });
-
