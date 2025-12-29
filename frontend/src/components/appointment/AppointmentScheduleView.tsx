@@ -20,7 +20,6 @@ import {
   IconUser,
   IconX,
 } from "@tabler/icons-react";
-import { DateTime } from "luxon";
 import { useMemo } from "react";
 import type { Appointment } from "../../types";
 import { AppointmentStatus } from "../../types";
