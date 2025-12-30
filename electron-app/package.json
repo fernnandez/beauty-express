@@ -1,0 +1,86 @@
+{
+  "name": "beauty-express-electron",
+  "version": "1.0.0",
+  "description": "Sistema de gestão para salões de beleza - Aplicativo Electron",
+  "main": "./dist/main.js",
+  "scripts": {
+    "build:ts": "tsc && cp preload.js dist/preload.js",
+    "build:renderer": "cd renderer && npm run build",
+    "build:all": "npm run build:ts && npm run build:renderer",
+    "start": "npm run build:all && electron .",
+    "dev": "npm run build:ts && concurrently \"npm run dev:renderer\" \"wait-on http://localhost:5173 && electron . --dev\"",
+    "dev:renderer": "cd renderer && npm run dev",
+    "build": "npm run build:all && electron-builder",
+    "build:mac": "npm run build:all && electron-builder --mac",
+    "build:win": "npm run build:all && electron-builder --win",
+    "build:linux": "npm run build:all && electron-builder --linux",
+    "check:build": "node scripts/check-build.js",
+    "rebuild:native": "npm rebuild better-sqlite3"
+  },
+  "keywords": [
+    "beauty",
+    "salon",
+    "management",
+    "electron"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "better-sqlite3": "^9.6.0",
+    "luxon": "^3.7.2",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.20",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "concurrently": "^8.2.2",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "typescript": "^5.3.3",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.beautyexpress.app",
+    "productName": "Beauty Express",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/main.js",
+      "dist/preload.js",
+      "dist/src/**/*",
+      "dist/services/**/*",
+      "dist/entities/**/*",
+      "dist/database/**/*",
+      "dist/renderer-dist/**/*",
+      "package.json",
+      "node_modules/better-sqlite3/**/*",
+      "!dist/mac-arm64/**/*",
+      "!dist/*.dmg",
+      "!dist/*.zip",
+      "!dist/*.blockmap",
+      "!dist/builder-*.yaml",
+      "!dist/**/*.map"
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.business",
+      "icon": "build/icon.icns"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/icon.png"
+    },
+    "icon": "assets/icon.png"
+  }
+}

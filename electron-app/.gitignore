@@ -1,0 +1,15 @@
+node_modules/
+dist/
+renderer-dist/
+renderer/node_modules/
+*.log
+.DS_Store
+*.db
+*.sqlite
+*.sqlite3
+.env
+.vscode/
+.idea/
+*.tsbuildinfo
+release/
+
