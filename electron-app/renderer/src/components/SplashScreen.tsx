@@ -21,8 +21,16 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
     return () => clearTimeout(timer);
   }, [onFinish]);
 
+  // Não renderiza nada após o fade-out para garantir que não bloqueie cliques
+  if (fadeOut) {
+    console.log('✅ SplashScreen removido do DOM (fadeOut)');
+    return null;
+  }
+  
+  console.log('🖼️ SplashScreen visível');
+
   return (
-    <div className={`splash-screen ${fadeOut ? 'fade-out' : ''}`}>
+    <div className="splash-screen">
       <div className="splash-content">
         <div className="splash-logo-container">
           <img 

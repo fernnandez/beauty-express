@@ -9,14 +9,46 @@ let dbReady = false;
 
 // Cria a janela principal
 function createWindow() {
-  const preloadPath = path.join(__dirname, 'preload.js');
-  console.log('📄 Caminho do preload:', preloadPath);
   const fs = require('fs');
-  if (fs.existsSync(preloadPath)) {
-    console.log('✅ Preload.js encontrado');
+  
+  // Tenta múltiplos caminhos possíveis (Mac vs Windows empacotado)
+  let preloadPath = path.join(__dirname, 'preload.js');
+  
+  // Se não encontrar, tenta caminhos alternativos (especialmente no Windows)
+  if (!fs.existsSync(preloadPath)) {
+    console.warn('⚠️ Preload não encontrado em:', preloadPath);
+    
+    // Tenta caminho relativo ao app (Windows empacotado)
+    const altPath1 = path.join(app.getAppPath(), 'preload.js');
+    if (fs.existsSync(altPath1)) {
+      console.log('✅ Preload encontrado em caminho alternativo 1:', altPath1);
+      preloadPath = altPath1;
+    } else {
+      // Tenta caminho relativo ao resources (Windows)
+      const altPath2 = path.join(process.resourcesPath || __dirname, 'app', 'preload.js');
+      if (fs.existsSync(altPath2)) {
+        console.log('✅ Preload encontrado em caminho alternativo 2:', altPath2);
+        preloadPath = altPath2;
+      } else {
+        // Tenta sem asar (se estiver descompactado)
+        const altPath3 = path.join(__dirname.replace('app.asar', 'app.asar.unpacked'), 'preload.js');
+        if (fs.existsSync(altPath3)) {
+          console.log('✅ Preload encontrado em caminho alternativo 3:', altPath3);
+          preloadPath = altPath3;
+        } else {
+          console.error('❌ Preload.js NÃO encontrado em nenhum caminho!');
+          console.error('📁 __dirname:', __dirname);
+          console.error('📁 app.getAppPath():', app.getAppPath());
+          console.error('📁 process.resourcesPath:', process.resourcesPath);
+        }
+      }
+    }
   } else {
-    console.error('❌ Preload.js NÃO encontrado em:', preloadPath);
+    console.log('✅ Preload.js encontrado em:', preloadPath);
   }
+  
+  // Normaliza o caminho para Windows (usa forward slashes que Electron aceita)
+  preloadPath = path.normalize(preloadPath);
   
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -37,29 +69,171 @@ function createWindow() {
   // Carrega o React app
   const isDev = process.argv.includes('--dev');
   if (isDev) {
+    console.log('🔧 Modo DEV ativado');
+    
+    // Log de erros do renderer em dev
+    mainWindow.webContents.on('console-message', (event, level, message) => {
+      console.log(`[Renderer ${level}]:`, message);
+    });
+    
+    // Log de erros de carregamento
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+      console.error('❌ Erro ao carregar em DEV:', {
+        errorCode,
+        errorDescription,
+        url: validatedURL,
+      });
+    });
+    
+    // Verifica se o preload carregou
+    mainWindow.webContents.on('dom-ready', () => {
+      console.log('✅ DOM pronto em DEV');
+      // Verifica se electronAPI está disponível
+      mainWindow?.webContents.executeJavaScript(`
+        console.log('🔌 [DEV] Verificando electronAPI...');
+        console.log('electronAPI disponível:', typeof window.electronAPI !== 'undefined');
+        if (typeof window.electronAPI === 'undefined') {
+          console.error('❌ [DEV] electronAPI NÃO está disponível! O preload não carregou corretamente.');
+        } else {
+          console.log('✅ [DEV] electronAPI está disponível:', Object.keys(window.electronAPI));
+        }
+      `).catch((err) => {
+        console.error('❌ Erro ao verificar electronAPI em DEV:', err);
+      });
+    });
+    
     // Aguarda o preload ser carregado antes de carregar a URL
     mainWindow.webContents.once('did-finish-load', () => {
-      console.log('✅ Preload carregado e página pronta');
+      console.log('✅ Preload carregado e página pronta em DEV');
+      
+      // Verifica se há erros no console
+      mainWindow?.webContents.executeJavaScript(`
+        console.log('🔍 [DEV] Verificando aplicação...');
+        console.log('📍 Pathname:', window.location.pathname);
+        console.log('🔌 electronAPI disponível:', typeof window.electronAPI !== 'undefined');
+        console.log('⚛️ React root:', !!document.getElementById('root'));
+        console.log('⚛️ React root children:', document.getElementById('root')?.children.length || 0);
+        
+        // Verifica se há elementos bloqueando cliques
+        const allElements = document.querySelectorAll('*');
+        const blockingElements = [];
+        allElements.forEach(el => {
+          const style = window.getComputedStyle(el);
+          if (style.position === 'fixed' && parseInt(style.zIndex) > 1000) {
+            blockingElements.push({
+              element: el.tagName,
+              zIndex: style.zIndex,
+              pointerEvents: style.pointerEvents
+            });
+          }
+        });
+        if (blockingElements.length > 0) {
+          console.warn('⚠️ Elementos com z-index alto encontrados:', blockingElements);
+        }
+      `).catch((err) => {
+        console.error('❌ Erro ao executar JavaScript em DEV:', err);
+      });
+      
       // Mostra a janela quando estiver pronta
       mainWindow?.show();
     });
+    
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
     // Em produção, o renderer-dist está no dist
     const rendererPath = path.join(__dirname, 'renderer-dist', 'index.html');
     console.log('📄 Carregando renderer de:', rendererPath);
-    mainWindow.loadFile(rendererPath);
+    
+    // Verifica se o arquivo existe
+    const fs = require('fs');
+    if (!fs.existsSync(rendererPath)) {
+      console.error('❌ Arquivo index.html não encontrado em:', rendererPath);
+      console.error('📁 __dirname:', __dirname);
+      console.error('📁 Listando arquivos em __dirname:');
+      try {
+        const files = fs.readdirSync(__dirname);
+        console.error('Arquivos encontrados:', files);
+      } catch (e) {
+        console.error('Erro ao listar arquivos:', e);
+      }
+      
+      // Tenta caminho alternativo (para Windows)
+      const altPath = path.join(process.resourcesPath || __dirname, 'app', 'renderer-dist', 'index.html');
+      console.log('🔄 Tentando caminho alternativo:', altPath);
+      if (fs.existsSync(altPath)) {
+        console.log('✅ Arquivo encontrado no caminho alternativo');
+        mainWindow.loadFile(altPath);
+      } else {
+        dialog.showErrorBox(
+          'Erro ao Carregar',
+          `Arquivo index.html não encontrado.\n\nCaminho esperado: ${rendererPath}\n\nO build pode estar incompleto.`
+        );
+        return;
+      }
+    } else {
+      mainWindow.loadFile(rendererPath);
+    }
+    
+    // Abre DevTools em produção para debug (comentado por padrão)
+    // Descomente a linha abaixo se precisar debug no Windows
+    // mainWindow.webContents.openDevTools();
+    
+    // Verifica se o preload foi carregado corretamente
+    mainWindow.webContents.on('dom-ready', () => {
+      console.log('✅ DOM pronto');
+      // Verifica se electronAPI está disponível
+      mainWindow?.webContents.executeJavaScript(`
+        console.log('🔌 Verificando electronAPI...');
+        console.log('electronAPI disponível:', typeof window.electronAPI !== 'undefined');
+        if (typeof window.electronAPI === 'undefined') {
+          console.error('❌ electronAPI NÃO está disponível! O preload não carregou corretamente.');
+        }
+      `).catch((err) => {
+        console.error('❌ Erro ao verificar electronAPI:', err);
+      });
+    });
+    
+    // Log de erros do renderer
+    mainWindow.webContents.on('console-message', (event, level, message) => {
+      console.log(`[Renderer ${level}]:`, message);
+    });
+    
+    // Log de erros de carregamento
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+      console.error('❌ Erro ao carregar:', {
+        errorCode,
+        errorDescription,
+        url: validatedURL,
+      });
+    });
+    
     // Mostra a janela quando estiver pronta e garante que está na rota "/"
     mainWindow.webContents.once('did-finish-load', () => {
+      console.log('✅ Página carregada com sucesso');
       // Garante que a aplicação inicia na rota Dashboard
       mainWindow?.webContents.executeJavaScript(`
+        console.log('🔍 Verificando aplicação...');
+        console.log('📍 Pathname:', window.location.pathname);
+        console.log('🔌 electronAPI disponível:', typeof window.electronAPI !== 'undefined');
+        console.log('⚛️ React root:', !!document.getElementById('root'));
         if (window.location.pathname !== '/') {
           window.history.replaceState({}, '', '/');
           window.dispatchEvent(new PopStateEvent('popstate'));
         }
-      `).catch(console.error);
+      `).catch((err) => {
+        console.error('❌ Erro ao executar JavaScript:', err);
+      });
       mainWindow?.show();
+    });
+    
+    // Log de erros não capturados
+    mainWindow.webContents.on('unresponsive', () => {
+      console.error('⚠️ Janela não está respondendo');
+    });
+    
+    mainWindow.webContents.on('crashed', () => {
+      console.error('💥 Renderer process crashed');
     });
   }
 

@@ -13,6 +13,8 @@
     "build": "npm run build:all && electron-builder",
     "build:mac": "npm run build:all && electron-builder --mac",
     "build:win": "npm run build:all && electron-builder --win",
+    "build:win32": "npm run build:all && electron-builder --win --ia32",
+    "build:win64": "npm run build:all && electron-builder --win --x64",
     "build:linux": "npm run build:all && electron-builder --linux",
     "check:build": "node scripts/check-build.js",
     "rebuild:native": "npm rebuild better-sqlite3"
@@ -74,7 +76,12 @@
       "icon": "build/icon.icns"
     },
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["ia32", "x64"]
+        }
+      ],
       "icon": "build/icon.ico"
     },
     "linux": {
