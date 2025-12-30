@@ -4,7 +4,7 @@
   "description": "Sistema de gestão para salões de beleza - Aplicativo Electron",
   "main": "./dist/main.js",
   "scripts": {
-    "build:ts": "tsc && cp preload.js dist/preload.js",
+    "build:ts": "tsc && node scripts/copy-preload.js",
     "build:renderer": "cd renderer && npm run build",
     "build:all": "npm run build:ts && npm run build:renderer",
     "start": "npm run build:all && electron .",
