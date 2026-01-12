@@ -19,8 +19,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "ts-node -r tsconfig-paths/register src/scripts/seed.ts",
-    "build:all": "cd ../frontend && npm ci && npm run build && cd ../api && npm ci --production && npm run build && npm run copy:client" ,
-    "copy:client": "rm -rf client && mkdir client && cp -r ../frontend/dist/* client"
+    "build:all": "cd ../frontend && npm ci --include=dev && npm run build && cd ../api && npm ci --production && npm run build && npm run copy:client" ,
+    "copy:client": "rm -rf client && mkdir client && cp -r ../frontend/dist/* client" 
   },
   "dependencies": {
     "@nestjs/common": "^10.4.20",
