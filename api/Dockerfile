@@ -1,4 +1,4 @@
-# Dockerfile otimizado para Render
+# Dockerfile otimizado para Railway/Render
 # Assume que a pasta client/ já está buildada e commitada
 
 # Stage 1: Build da API
@@ -33,17 +33,17 @@ COPY --from=builder /app/dist ./dist
 # Copia frontend buildado (já deve estar no repositório)
 COPY client ./client
 
-# Cria diretório para banco de dados (SQLite - apenas se não usar PostgreSQL)
-# Se usar PostgreSQL no Render, este diretório não será necessário
+# Cria diretório para banco de dados SQLite
+# No Railway, monte um volume persistente em /app/data
 RUN mkdir -p /app/data
 
-# Expõe a porta (Render define PORT automaticamente)
+# Expõe a porta (Railway/Render definem PORT automaticamente)
 EXPOSE 3000
 
 # Define variáveis de ambiente padrão
 ENV NODE_ENV=production
 
-# Render define PORT automaticamente, mas definimos um fallback
+# Railway/Render definem PORT automaticamente, mas definimos um fallback
 ENV PORT=3000
 
 # Comando para iniciar a aplicação
