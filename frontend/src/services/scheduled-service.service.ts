@@ -1,5 +1,6 @@
 import { api } from '../config/api';
 import type {
+  CreateScheduledServiceDto,
   ScheduledService,
   UpdateScheduledServiceDto,
 } from '../types';
@@ -22,6 +23,17 @@ export const scheduledServiceService = {
   ): Promise<ScheduledService[]> => {
     const response = await api.get<ScheduledService[]>(
       `/scheduled-services/appointment/${appointmentId}`,
+    );
+    return response.data;
+  },
+
+  create: async (
+    appointmentId: string,
+    data: CreateScheduledServiceDto,
+  ): Promise<ScheduledService> => {
+    const response = await api.post<ScheduledService>(
+      `/scheduled-services/appointment/${appointmentId}`,
+      data,
     );
     return response.data;
   },

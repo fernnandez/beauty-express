@@ -226,7 +226,7 @@ export function Appointments() {
         }}
         onConfirm={confirmComplete}
         title="Concluir Agendamento"
-        message={`Tem certeza que deseja concluir este agendamento? Todos os serviços devem estar concluídos.`}
+        message={`Tem certeza que deseja concluir este agendamento? Todos os serviços pendentes serão concluídos automaticamente.`}
         confirmLabel="Concluir"
         confirmColor="green"
         loading={completeMutation.isPending}

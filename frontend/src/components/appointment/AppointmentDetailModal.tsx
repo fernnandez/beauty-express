@@ -1,14 +1,16 @@
 import {
+  ActionIcon,
   Badge,
   Button,
   Card,
   Divider,
   Group,
   Modal,
+  NumberInput,
   Paper,
+  Select,
   Stack,
   Text,
-  Tooltip,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
@@ -18,20 +20,33 @@ import {
   IconEdit,
   IconNotes,
   IconPhone,
+  IconPlus,
   IconScissors,
+  IconTrash,
   IconUser,
   IconUserCircle,
   IconX,
 } from "@tabler/icons-react";
 import { DateTime } from "luxon";
+import { useState } from "react";
 import { useAppointment } from "../../hooks/useAppointments";
 import {
   useCancelScheduledService,
-  useCompleteScheduledService,
+  useCreateScheduledService,
+  useUpdateScheduledService,
 } from "../../hooks/useScheduledServices";
-import { formatPrice } from "../../utils/appointment.utils";
-import type { Appointment, ScheduledService } from "../../types";
+import { useServices } from "../../hooks/useServices";
+import { useCollaborators } from "../../hooks/useCollaborators";
+import type {
+  Appointment,
+  CreateScheduledServiceDto,
+  ScheduledService,
+} from "../../types";
 import { AppointmentStatus, ScheduledServiceStatus } from "../../types";
+import {
+  formatPrice,
+  formatServiceOption,
+} from "../../utils/appointment.utils";
 
 interface AppointmentDetailModalProps {
   opened: boolean;
@@ -76,7 +91,33 @@ export function AppointmentDetailModal({
   onCancel,
   onEdit,
 }: AppointmentDetailModalProps) {
-  const completeServiceMutation = useCompleteScheduledService();
+  const [addServiceModalOpened, setAddServiceModalOpened] = useState(false);
+  const [editServiceModalOpened, setEditServiceModalOpened] = useState(false);
+  const [editingService, setEditingService] = useState<ScheduledService | null>(
+    null
+  );
+  const [newService, setNewService] = useState<{
+    serviceId: string;
+    collaboratorId?: string;
+    price?: number;
+  }>({
+    serviceId: "",
+    collaboratorId: undefined,
+    price: undefined,
+  });
+  const [editServiceData, setEditServiceData] = useState<{
+    collaboratorId?: string;
+    price?: number;
+  }>({
+    collaboratorId: undefined,
+    price: undefined,
+  });
+
+  const { data: services } = useServices();
+  const { data: collaborators } = useCollaborators();
+  const activeCollaborators = collaborators?.filter((c) => c.isActive) || [];
+  const createServiceMutation = useCreateScheduledService();
+  const updateServiceMutation = useUpdateScheduledService();
   const cancelServiceMutation = useCancelScheduledService();
 
   // Busca os dados atualizados do agendamento quando o modal está aberto
@@ -90,52 +131,143 @@ export function AppointmentDetailModal({
 
   if (!appointment) return null;
 
-  const handleCompleteService = async (serviceId: string) => {
+  const nonCancelledServices =
+    appointment.scheduledServices?.filter(
+      (s) => s.status !== "cancelado"
+    ) || [];
+
+  const canRemoveService = nonCancelledServices.length > 1;
+
+  const handleAddService = async () => {
+    if (!appointment || !newService.serviceId) return;
+
     try {
-      await completeServiceMutation.mutateAsync(serviceId);
+      const selectedService = services?.find(
+        (s) => s.id === newService.serviceId
+      );
+      if (!selectedService) {
+        notifications.show({
+          title: "Erro",
+          message: "Serviço não encontrado",
+          color: "red",
+        });
+        return;
+      }
+
+      const data: CreateScheduledServiceDto = {
+        serviceId: newService.serviceId,
+        collaboratorId: newService.collaboratorId,
+        price: newService.price ?? selectedService.defaultPrice,
+      };
+
+      await createServiceMutation.mutateAsync({
+        appointmentId: appointment.id,
+        data,
+      });
+
       notifications.show({
         title: "Sucesso",
-        message: "Serviço concluído com sucesso!",
+        message: "Serviço adicionado com sucesso!",
         color: "green",
       });
-    } catch {
+
+      setNewService({
+        serviceId: "",
+        collaboratorId: undefined,
+        price: undefined,
+      });
+      setAddServiceModalOpened(false);
+    } catch (error: unknown) {
       notifications.show({
         title: "Erro",
-        message: "Erro ao concluir serviço",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Erro ao adicionar serviço",
         color: "red",
       });
     }
   };
 
-  const handleCancelService = async (serviceId: string) => {
+  const handleEditService = (service: ScheduledService) => {
+    setEditingService(service);
+    setEditServiceData({
+      collaboratorId: service.collaboratorId || undefined,
+      price: service.price,
+    });
+    setEditServiceModalOpened(true);
+  };
+
+  const handleUpdateService = async () => {
+    if (!editingService) return;
+
+    try {
+      await updateServiceMutation.mutateAsync({
+        id: editingService.id,
+        data: {
+          collaboratorId: editServiceData.collaboratorId,
+          price: editServiceData.price,
+        },
+      });
+
+      notifications.show({
+        title: "Sucesso",
+        message: "Serviço atualizado com sucesso!",
+        color: "green",
+      });
+
+      setEditServiceModalOpened(false);
+      setEditingService(null);
+      setEditServiceData({
+        collaboratorId: undefined,
+        price: undefined,
+      });
+    } catch (error: unknown) {
+      notifications.show({
+        title: "Erro",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Erro ao atualizar serviço",
+        color: "red",
+      });
+    }
+  };
+
+  const handleRemoveService = async (serviceId: string) => {
+    if (!canRemoveService) {
+      notifications.show({
+        title: "Erro",
+        message:
+          "Não é possível remover o último serviço. O agendamento deve ter pelo menos um serviço.",
+        color: "red",
+      });
+      return;
+    }
+
     try {
       await cancelServiceMutation.mutateAsync(serviceId);
       notifications.show({
         title: "Sucesso",
-        message: "Serviço cancelado com sucesso!",
+        message: "Serviço removido com sucesso!",
         color: "green",
       });
-    } catch {
+    } catch (error: unknown) {
       notifications.show({
         title: "Erro",
-        message: "Erro ao cancelar serviço",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Erro ao remover serviço",
         color: "red",
       });
     }
   };
 
   const totalPrice =
-    appointment.scheduledServices?.reduce(
-      (total, service) => total + service.price,
-      0
-    ) || 0;
-
-  const allServicesCompleted =
-    appointment.scheduledServices?.every(
-      (s) =>
-        s.status === ScheduledServiceStatus.COMPLETED ||
-        s.status === ScheduledServiceStatus.CANCELLED
-    ) || false;
+    appointment.scheduledServices
+      ?.filter((service) => service.status !== "cancelado")
+      .reduce((total, service) => total + service.price, 0) || 0;
 
   return (
     <Modal
@@ -193,7 +325,9 @@ export function AppointmentDetailModal({
                   zone: "America/Sao_Paulo",
                 });
                 // Formata em português brasileiro: "Segunda-feira, 28 de dezembro de 2024"
-                return luxonDate.setLocale("pt-BR").toFormat("cccc, d 'de' MMMM 'de' yyyy");
+                return luxonDate
+                  .setLocale("pt-BR")
+                  .toFormat("cccc, d 'de' MMMM 'de' yyyy");
               })()}
             </Text>
             {appointment.startTime && appointment.endTime && (
@@ -224,99 +358,91 @@ export function AppointmentDetailModal({
         {/* Lista de Serviços Agendados */}
         <Stack gap="sm">
           {appointment.scheduledServices?.map((service: ScheduledService) => (
-            <Card key={service.id} withBorder padding="md" radius="md">
-              <Stack gap="sm">
-                <Group justify="space-between">
-                  <Group gap="xs">
-                    <IconScissors size={18} />
-                    <div>
-                      <Text size="sm" fw={500}>
-                        {service.service?.name || "-"}
-                      </Text>
-                      {service.service?.description && (
-                        <Text size="xs" c="dimmed">
-                          {service.service.description}
+              <Card key={service.id} withBorder padding="md" radius="md">
+                <Stack gap="sm">
+                  <Group justify="space-between">
+                    <Group gap="xs">
+                      <IconScissors size={18} />
+                      <div>
+                        <Text size="sm" fw={500}>
+                          {service.service?.name || "-"}
                         </Text>
-                      )}
-                    </div>
-                  </Group>
-                  <Badge color={serviceStatusColors[service.status]} size="sm">
-                    {serviceStatusLabels[service.status]}
-                  </Badge>
-                </Group>
-
-                <Group gap="md">
-                  <Group gap={4}>
-                    <IconCurrencyDollar size={14} />
-                    <Text size="xs" fw={500}>
-                      {formatPrice(service.price)}
-                    </Text>
-                  </Group>
-                </Group>
-
-                {service.collaborator && (
-                  <Group gap="xs">
-                    <IconUser size={14} />
-                    <Text size="xs" c="dimmed">
-                      Colaborador: {service.collaborator.name}
-                    </Text>
-                  </Group>
-                )}
-
-                {/* Ações do Serviço */}
-
-                <Group gap="xs" mt="xs">
-                  {service.status === ScheduledServiceStatus.PENDING && (
-                    <>
-                      {!service.collaboratorId ? (
-                        <Tooltip
-                          label="Para concluir um serviço, é preciso indicar um colaborador"
-                          withArrow
-                        >
-                          <div>
-                            <Button
-                              disabled
-                              size="xs"
-                              variant="light"
-                              color="green"
-                              leftSection={<IconCheck size={14} />}
-                            >
-                              Concluir
-                            </Button>
-                          </div>
-                        </Tooltip>
-                      ) : (
-                        <Button
-                          disabled={!service.collaboratorId}
-                          size="xs"
-                          variant="light"
-                          color="green"
-                          leftSection={<IconCheck size={14} />}
-                          onClick={() => handleCompleteService(service.id)}
-                          loading={completeServiceMutation.isPending}
-                        >
-                          Concluir
-                        </Button>
-                      )}
-                    </>
-                  )}
-                  {service.status !== ScheduledServiceStatus.COMPLETED &&
-                    service.status !== ScheduledServiceStatus.CANCELLED && (
-                      <Button
-                        size="xs"
-                        variant="light"
-                        color="red"
-                        leftSection={<IconX size={14} />}
-                        onClick={() => handleCancelService(service.id)}
-                        loading={cancelServiceMutation.isPending}
+                        {service.service?.description && (
+                          <Text size="xs" c="dimmed">
+                            {service.service.description}
+                          </Text>
+                        )}
+                      </div>
+                    </Group>
+                    <Group gap="xs">
+                      <Badge
+                        color={serviceStatusColors[service.status]}
+                        size="sm"
                       >
-                        Cancelar
-                      </Button>
-                    )}
-                </Group>
-              </Stack>
-            </Card>
-          ))}
+                        {serviceStatusLabels[service.status]}
+                      </Badge>
+                      {appointment.status === AppointmentStatus.SCHEDULED &&
+                        service.status === ScheduledServiceStatus.PENDING && (
+                          <>
+                            <ActionIcon
+                              color="blue"
+                              variant="light"
+                              size="sm"
+                              onClick={() => handleEditService(service)}
+                              title="Editar serviço"
+                            >
+                              <IconEdit size={16} />
+                            </ActionIcon>
+                            <ActionIcon
+                              color="red"
+                              variant="light"
+                              size="sm"
+                              onClick={() => handleRemoveService(service.id)}
+                              disabled={!canRemoveService}
+                              title={
+                                canRemoveService
+                                  ? "Remover serviço"
+                                  : "Não é possível remover o último serviço"
+                              }
+                            >
+                              <IconTrash size={16} />
+                            </ActionIcon>
+                          </>
+                        )}
+                    </Group>
+                  </Group>
+
+                  <Group gap="md">
+                    <Group gap={4}>
+                      <IconCurrencyDollar size={14} />
+                      <Text size="xs" fw={500}>
+                        {formatPrice(service.price)}
+                      </Text>
+                    </Group>
+                  </Group>
+
+                  {service.collaborator && (
+                    <Group gap="xs">
+                      <IconUser size={14} />
+                      <Text size="xs" c="dimmed">
+                        Colaborador: {service.collaborator.name}
+                      </Text>
+                    </Group>
+                  )}
+                </Stack>
+              </Card>
+            ))}
+
+          {appointment.status === AppointmentStatus.SCHEDULED && (
+            <Button
+              variant="light"
+              leftSection={<IconPlus size={16} />}
+              onClick={() => setAddServiceModalOpened(true)}
+              fullWidth
+            >
+              Adicionar Serviço
+            </Button>
+          )}
         </Stack>
 
         {/* Preço Total */}
@@ -352,38 +478,19 @@ export function AppointmentDetailModal({
                   Editar
                 </Button>
               )}
-              {onComplete &&
-                (allServicesCompleted ? (
-                  <Button
-                    variant="light"
-                    color="green"
-                    leftSection={<IconCheck size={16} />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onComplete();
-                    }}
-                  >
-                    Concluir Agendamento
-                  </Button>
-                ) : (
-                  <Tooltip
-                    label="Todos os serviços devem estar concluídos para finalizar o agendamento"
-                    withArrow
-                  >
-                    <Button
-                      variant="light"
-                      color="green"
-                      disabled
-                      leftSection={<IconCheck size={16} />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Não chama onComplete se desabilitado
-                      }}
-                    >
-                      Concluir Agendamento
-                    </Button>
-                  </Tooltip>
-                ))}
+              {onComplete && (
+                <Button
+                  variant="light"
+                  color="green"
+                  leftSection={<IconCheck size={16} />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onComplete();
+                  }}
+                >
+                  Concluir Agendamento
+                </Button>
+              )}
               {onCancel && (
                 <Button
                   variant="light"
@@ -401,6 +508,183 @@ export function AppointmentDetailModal({
           </>
         )}
       </Stack>
+
+      {/* Modal para Adicionar Serviço */}
+      <Modal
+        opened={addServiceModalOpened}
+        onClose={() => {
+          setAddServiceModalOpened(false);
+          setNewService({
+            serviceId: "",
+            collaboratorId: undefined,
+            price: undefined,
+          });
+        }}
+        title="Adicionar Serviço"
+        size="md"
+      >
+        <Stack gap="md">
+          <Select
+            label="Serviço"
+            placeholder="Selecione o serviço"
+            required
+            leftSection={<IconScissors size={16} />}
+            data={services?.map(formatServiceOption) || []}
+            searchable
+            value={newService.serviceId}
+            onChange={(value) =>
+              setNewService({ ...newService, serviceId: value || "" })
+            }
+          />
+
+          {newService.serviceId && (
+            <>
+              <Select
+                label="Colaborador (Opcional)"
+                placeholder="Selecione o colaborador"
+                leftSection={<IconUser size={16} />}
+                data={activeCollaborators.map((collaborator) => ({
+                  value: collaborator.id,
+                  label: collaborator.name,
+                }))}
+                searchable
+                clearable
+                value={newService.collaboratorId || null}
+                onChange={(value) =>
+                  setNewService({
+                    ...newService,
+                    collaboratorId: value || undefined,
+                  })
+                }
+              />
+              <NumberInput
+                label="Preço (Opcional)"
+                placeholder={`Padrão: ${formatPrice(
+                  services?.find((s) => s.id === newService.serviceId)
+                    ?.defaultPrice || 0
+                )}`}
+                leftSection={<IconCurrencyDollar size={16} />}
+                min={0.01}
+                decimalScale={2}
+                fixedDecimalScale
+                value={
+                  newService.price ??
+                  services?.find((s) => s.id === newService.serviceId)
+                    ?.defaultPrice
+                }
+                onChange={(value) =>
+                  setNewService({
+                    ...newService,
+                    price: Number(value) || undefined,
+                  })
+                }
+              />
+            </>
+          )}
+
+          <Group justify="flex-end" mt="md">
+            <Button
+              variant="subtle"
+              onClick={() => {
+                setAddServiceModalOpened(false);
+                setNewService({
+                  serviceId: "",
+                  collaboratorId: undefined,
+                  price: undefined,
+                });
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleAddService}
+              loading={createServiceMutation.isPending}
+              disabled={!newService.serviceId}
+            >
+              Adicionar
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      {/* Modal para Editar Serviço */}
+      <Modal
+        opened={editServiceModalOpened}
+        onClose={() => {
+          setEditServiceModalOpened(false);
+          setEditingService(null);
+          setEditServiceData({
+            collaboratorId: undefined,
+            price: undefined,
+          });
+        }}
+        title="Editar Serviço"
+        size="md"
+      >
+        {editingService && (
+          <Stack gap="md">
+            <Text size="sm" fw={500}>
+              {editingService.service?.name || "-"}
+            </Text>
+
+            <Select
+              label="Colaborador (Opcional)"
+              placeholder="Selecione o colaborador"
+              leftSection={<IconUser size={16} />}
+              data={activeCollaborators.map((collaborator) => ({
+                value: collaborator.id,
+                label: collaborator.name,
+              }))}
+              searchable
+              clearable
+              value={editServiceData.collaboratorId || null}
+              onChange={(value) =>
+                setEditServiceData({
+                  ...editServiceData,
+                  collaboratorId: value || undefined,
+                })
+              }
+            />
+
+            <NumberInput
+              label="Preço"
+              leftSection={<IconCurrencyDollar size={16} />}
+              min={0.01}
+              decimalScale={2}
+              fixedDecimalScale
+              value={editServiceData.price ?? editingService.price}
+              onChange={(value) =>
+                setEditServiceData({
+                  ...editServiceData,
+                  price: Number(value) || editingService.price,
+                })
+              }
+            />
+
+            <Group justify="flex-end" mt="md">
+              <Button
+                variant="subtle"
+                onClick={() => {
+                  setEditServiceModalOpened(false);
+                  setEditingService(null);
+                  setEditServiceData({
+                    collaboratorId: undefined,
+                    price: undefined,
+                  });
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleUpdateService}
+                loading={updateServiceMutation.isPending}
+              >
+                Salvar
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
     </Modal>
   );
 }

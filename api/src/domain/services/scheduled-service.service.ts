@@ -75,6 +75,8 @@ export class ScheduledServiceService {
     id: string,
     updateDto: UpdateScheduledServiceDto,
   ): Promise<ScheduledService> {
+    console.log('updateDto', updateDto);
+
     const scheduledService = await this.scheduledServiceRepository.findById(id);
     if (!scheduledService) {
       throw new Error('ScheduledService not found');
@@ -84,7 +86,6 @@ export class ScheduledServiceService {
       throw new Error('Can only update pending scheduled services');
     }
 
-    // Business rule: if service is being updated, it must exist
     if (updateDto.serviceId) {
       const service = await this.serviceRepository.findById(
         updateDto.serviceId,
@@ -92,13 +93,11 @@ export class ScheduledServiceService {
       if (!service) {
         throw new Error('Service not found');
       }
-      // If service changes and price is not provided, update to new service default price
       if (updateDto.price === undefined) {
         updateDto.price = service.defaultPrice;
       }
     }
 
-    // Business rule: if collaborator is being updated, it must exist and be active
     if (updateDto.collaboratorId !== undefined) {
       if (updateDto.collaboratorId) {
         const collaborator = await this.collaboratorRepository.findById(
@@ -126,9 +125,11 @@ export class ScheduledServiceService {
       updatePayload.price = updateDto.price;
     }
 
-    // Update using repository.update
     if (Object.keys(updatePayload).length > 0) {
-      await this.scheduledServiceRepository.update(id, updatePayload);
+      await this.scheduledServiceRepository.update(id, {
+        ...updatePayload,
+        collaboratorId: updateDto.collaboratorId || null,
+      });
     }
 
     return await this.scheduledServiceRepository.findById(id);
@@ -200,10 +201,12 @@ export class ScheduledServiceService {
       throw new Error('ScheduledService not found');
     }
 
-    if (scheduledService.status === ScheduledServiceStatus.COMPLETED) {
-      throw new Error('Cannot cancel completed scheduled services');
+    // Se já estiver cancelado, retorna sem fazer nada
+    if (scheduledService.status === ScheduledServiceStatus.CANCELLED) {
+      return scheduledService;
     }
 
+    // Sempre marca como cancelado, nunca exclui fisicamente (mantém histórico)
     scheduledService.status = ScheduledServiceStatus.CANCELLED;
     return await this.scheduledServiceRepository.save(scheduledService);
   }

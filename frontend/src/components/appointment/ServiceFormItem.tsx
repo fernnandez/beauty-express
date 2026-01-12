@@ -14,7 +14,10 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import type { Collaborator, Service } from "../../types";
-import { formatPrice, formatServiceOption } from "../../utils/appointment.utils";
+import {
+  formatPrice,
+  formatServiceOption,
+} from "../../utils/appointment.utils";
 
 interface ServiceFormItemProps {
   index: number;
@@ -95,7 +98,9 @@ export function ServiceFormItem({
             />
             <NumberInput
               label="Preço (Opcional)"
-              placeholder={`Padrão: ${formatPrice(selectedService.defaultPrice)}`}
+              placeholder={`Padrão: ${formatPrice(
+                selectedService.defaultPrice
+              )}`}
               leftSection={<IconCurrencyDollar size={16} />}
               min={0.01}
               decimalScale={2}
@@ -104,7 +109,7 @@ export function ServiceFormItem({
               onChange={(value) =>
                 onPriceChange(
                   index,
-                  typeof value === "number" ? value : selectedService.defaultPrice
+                  Number(value) || selectedService.defaultPrice
                 )
               }
             />
@@ -114,4 +119,3 @@ export function ServiceFormItem({
     </Card>
   );
 }
-

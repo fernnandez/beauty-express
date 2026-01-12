@@ -62,12 +62,10 @@ export interface UpdateAppointmentDto {
   date?: string; // yyyy-MM-dd
   startTime?: string; // HH:MM
   endTime?: string; // HH:MM
-  services?: ScheduledServiceInputDto[];
   observations?: string;
 }
 
 export interface CreateScheduledServiceDto {
-  appointmentId: string;
   serviceId: string;
   collaboratorId?: string;
   price?: number;

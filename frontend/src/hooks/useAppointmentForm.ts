@@ -124,6 +124,8 @@ export const useAppointmentForm = (
     console.log(dateString);
     console.log(form.values.data);
 
+    console.log('servicos', form.values.servicos);
+
     const servicos = convertServicesToDto(form.values.servicos, services);
 
     const dto: UpdateAppointmentDto = {

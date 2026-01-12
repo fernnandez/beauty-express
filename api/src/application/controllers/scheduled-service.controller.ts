@@ -1,6 +1,7 @@
 import { ScheduledServiceService } from '@domain/services/scheduled-service.service';
-import { Body, Controller, Get, Param, Put } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { CreateScheduledServiceDto } from '../dtos/scheduled-service/create-scheduled-service.dto';
 import { UpdateScheduledServiceDto } from '../dtos/scheduled-service/update-scheduled-service.dto';
 
 @ApiTags('Scheduled Services')
@@ -36,6 +37,25 @@ export class ScheduledServiceController {
   async findByAppointmentId(@Param('appointmentId') appointmentId: string) {
     return await this.scheduledServiceDomainService.findByAppointmentId(
       appointmentId,
+    );
+  }
+
+  @Post('appointment/:appointmentId')
+  @ApiOperation({
+    summary: 'Create a new scheduled service for an appointment',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Scheduled service created successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Appointment or service not found' })
+  async create(
+    @Param('appointmentId') appointmentId: string,
+    @Body() createDto: CreateScheduledServiceDto,
+  ) {
+    return await this.scheduledServiceDomainService.createScheduledService(
+      appointmentId,
+      createDto,
     );
   }
 

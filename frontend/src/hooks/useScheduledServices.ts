@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { scheduledServiceService } from "../services/scheduled-service.service";
-import type { UpdateScheduledServiceDto } from "../types";
+import type {
+  CreateScheduledServiceDto,
+  UpdateScheduledServiceDto,
+} from "../types";
 
 export const useScheduledServices = () => {
   return useQuery({
@@ -25,6 +28,32 @@ export const useScheduledServicesByAppointment = (appointmentId: string) => {
   });
 };
 
+export const useCreateScheduledService = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      appointmentId,
+      data,
+    }: {
+      appointmentId: string;
+      data: CreateScheduledServiceDto;
+    }) => scheduledServiceService.create(appointmentId, data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["scheduled-services"] });
+      queryClient.invalidateQueries({
+        queryKey: ["scheduled-services", "appointment", data.appointmentId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      if (data.appointmentId) {
+        queryClient.invalidateQueries({
+          queryKey: ["appointments", data.appointmentId],
+        });
+      }
+    },
+  });
+};
+
 export const useUpdateScheduledService = () => {
   const queryClient = useQueryClient();
 
@@ -36,12 +65,21 @@ export const useUpdateScheduledService = () => {
       id: string;
       data: UpdateScheduledServiceDto;
     }) => scheduledServiceService.update(id, data),
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-services"] });
       queryClient.invalidateQueries({
         queryKey: ["scheduled-services", variables.id],
       });
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      // Invalida a query específica do appointment que contém este serviço
+      if (data.appointmentId) {
+        queryClient.invalidateQueries({
+          queryKey: ["appointments", data.appointmentId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["scheduled-services", "appointment", data.appointmentId],
+        });
+      }
     },
   });
 };

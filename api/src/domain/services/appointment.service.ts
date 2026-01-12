@@ -198,78 +198,6 @@ export class AppointmentService {
       await this.appointmentRepository.update(appointmentId, updatePayload);
     }
 
-    // Update scheduled services if provided
-    if (updateDto.services !== undefined) {
-      // Get existing scheduled services
-      const existingServices =
-        await this.scheduledServiceRepository.findByAppointmentId(
-          appointmentId,
-        );
-
-      // Remove existing services that are not in the new list
-      for (const existing of existingServices) {
-        if (existing.status !== 'pendente') {
-          continue; // Don't remove non-pending services
-        }
-        const stillExists = updateDto.services.some(
-          (s) => s.serviceId === existing.serviceId,
-        );
-        if (!stillExists) {
-          await this.scheduledServiceService.cancelScheduledService(
-            existing.id,
-          );
-        }
-      }
-
-      // Add or update services
-      for (const service of updateDto.services) {
-        const existing = existingServices.find(
-          (s) => s.serviceId === service.serviceId && s.status === 'pendente',
-        );
-
-        if (existing) {
-          // Update existing - sempre atualiza preço quando fornecido
-          const updatePayload: {
-            collaboratorId?: string;
-            price?: number;
-          } = {};
-
-          if (service.collaboratorId !== undefined) {
-            updatePayload.collaboratorId = service.collaboratorId;
-          }
-
-          // Sempre atualiza o preço quando fornecido (frontend sempre envia um preço)
-          if (service.price !== undefined && service.price !== null) {
-            updatePayload.price = Number(service.price);
-          }
-
-          // Sempre atualiza se houver preço ou colaborador para atualizar
-          if (Object.keys(updatePayload).length > 0) {
-            await this.scheduledServiceService.updateScheduledService(
-              existing.id,
-              updatePayload,
-            );
-          } else if (service.price !== undefined && service.price !== null) {
-            // Força atualização do preço mesmo se não houver outros campos
-            await this.scheduledServiceService.updateScheduledService(
-              existing.id,
-              { price: Number(service.price) },
-            );
-          }
-        } else {
-          // Create new
-          await this.scheduledServiceService.createScheduledService(
-            appointmentId,
-            {
-              serviceId: service.serviceId,
-              collaboratorId: service.collaboratorId,
-              price: service.price,
-            },
-          );
-        }
-      }
-    }
-
     return await this.findById(appointmentId);
   }
 
@@ -286,20 +214,18 @@ export class AppointmentService {
       throw new Error('Appointment must have at least one scheduled service');
     }
 
-    const allCompleted = scheduledServices.every(
-      (s) => s.status === 'concluido' || s.status === 'cancelado',
-    );
-
-    if (!allCompleted) {
-      throw new Error(
-        'All scheduled services must be completed before completing the appointment',
-      );
-    }
-
+    // Filtra apenas serviços não cancelados
     const nonCancelledServices = scheduledServices.filter(
       (s) => s.status !== 'cancelado',
     );
 
+    if (nonCancelledServices.length === 0) {
+      throw new Error(
+        'Appointment must have at least one non-cancelled service',
+      );
+    }
+
+    // Verifica se todos os serviços não cancelados têm colaborador
     const allHaveCollaborator = nonCancelledServices.every(
       (s) => s.collaboratorId !== null && s.collaboratorId !== undefined,
     );
@@ -308,6 +234,13 @@ export class AppointmentService {
       throw new Error(
         'All scheduled services must have a collaborator assigned before completing the appointment',
       );
+    }
+
+    // Conclui automaticamente todos os serviços pendentes
+    for (const service of nonCancelledServices) {
+      if (service.status === 'pendente') {
+        await this.scheduledServiceService.completeScheduledService(service.id);
+      }
     }
 
     appointment.status = AppointmentStatus.COMPLETED;
@@ -327,12 +260,16 @@ export class AppointmentService {
     const scheduledServices =
       await this.scheduledServiceRepository.findByAppointmentId(appointmentId);
 
-    for (const scheduledService of scheduledServices) {
-      if (scheduledService.status === 'pendente') {
-        await this.scheduledServiceService.cancelScheduledService(
-          scheduledService.id,
-        );
-      }
+    // Filtra apenas serviços não cancelados
+    const nonCancelledServices = scheduledServices.filter(
+      (s) => s.status !== 'cancelado',
+    );
+
+    // Cancela automaticamente todos os serviços não cancelados
+    for (const scheduledService of nonCancelledServices) {
+      await this.scheduledServiceService.cancelScheduledService(
+        scheduledService.id,
+      );
     }
 
     appointment.status = AppointmentStatus.CANCELLED;
@@ -344,10 +281,13 @@ export class AppointmentService {
       await this.scheduledServiceRepository.findByAppointmentId(appointmentId);
 
     // Soma os preços reais dos serviços agendados (não o preço padrão)
-    return scheduledServices.reduce(
-      (total, scheduledService) => total + Number(scheduledService.price),
-      0,
-    );
+    // Exclui serviços cancelados do cálculo do valor total
+    return scheduledServices
+      .filter((scheduledService) => scheduledService.status !== 'cancelado')
+      .reduce(
+        (total, scheduledService) => total + Number(scheduledService.price),
+        0,
+      );
   }
 
   async updateAppointmentStatus(): Promise<void> {

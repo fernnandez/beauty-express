@@ -1,29 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import {
-  IsArray,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Matches,
-  ValidateNested,
-} from 'class-validator';
-
-export class ScheduledServiceInputDto {
-  @ApiProperty({ example: 'service-id-123' })
-  @IsString()
-  serviceId: string;
-
-  @ApiProperty({ example: 'collaborator-id-123', required: false })
-  @IsString()
-  @IsOptional()
-  collaboratorId?: string;
-
-  @ApiProperty({ example: 100.0, required: false })
-  @IsNumber()
-  @IsOptional()
-  price?: number;
-}
+import { IsOptional, IsString, Matches } from 'class-validator';
 
 export class UpdateAppointmentDto {
   @ApiProperty({ example: 'João Silva', required: false })
@@ -71,17 +47,6 @@ export class UpdateAppointmentDto {
   })
   @IsOptional()
   endTime?: string;
-
-  @ApiProperty({
-    type: [ScheduledServiceInputDto],
-    description: 'Lista de serviços a serem agendados',
-    required: false,
-  })
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ScheduledServiceInputDto)
-  @IsOptional()
-  services?: ScheduledServiceInputDto[];
 
   @ApiProperty({
     example: 'Observações sobre o agendamento',

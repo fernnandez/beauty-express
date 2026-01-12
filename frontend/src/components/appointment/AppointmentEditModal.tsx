@@ -1,13 +1,10 @@
 import {
-  Badge,
   Button,
-  Card,
   Divider,
   Group,
   Modal,
   Select,
   Stack,
-  Text,
   TextInput,
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
@@ -16,16 +13,14 @@ import {
   IconCalendar,
   IconClock,
   IconPhone,
-  IconPlus,
   IconUserCircle,
 } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import { useEffect } from "react";
-import { useAppointmentForm } from "../../hooks/useAppointmentForm";
+import { useForm } from "@mantine/form";
 import { useUpdateAppointment } from "../../hooks/useAppointments";
-import type { Appointment } from "../../types";
-import { ServiceFormItem } from "./ServiceFormItem";
-import { TIME_OPTIONS, formatPrice } from "../../utils/appointment.utils";
+import type { Appointment, UpdateAppointmentDto } from "../../types";
+import { TIME_OPTIONS, formatDateToString, validateTimeRange } from "../../utils/appointment.utils";
 
 interface AppointmentEditModalProps {
   opened: boolean;
@@ -39,39 +34,43 @@ export function AppointmentEditModal({
   appointment,
 }: AppointmentEditModalProps) {
   const updateMutation = useUpdateAppointment();
-  const {
-    form,
-    services,
-    activeCollaborators,
-    addService,
-    removeService,
-    validateForm,
-    convertToUpdateDto,
-    totalPrice,
-  } = useAppointmentForm();
+
+  const form = useForm({
+    initialValues: {
+      clientName: "",
+      clientPhone: "",
+      data: null as Date | string | null,
+      startTime: "",
+      endTime: "",
+      observacoes: "",
+    },
+    validate: {
+      clientName: (value: string) =>
+        !value || value.trim().length < 2
+          ? "Nome do cliente é obrigatório"
+          : null,
+      clientPhone: (value: string) =>
+        !value ? "Telefone do cliente é obrigatório" : null,
+      data: (value: Date | string | null) => (!value ? "Data é obrigatória" : null),
+      startTime: (value: string) => (!value ? "Horário de início é obrigatório" : null),
+      endTime: (value: string) => (!value ? "Horário de término é obrigatório" : null),
+    },
+  });
 
   useEffect(() => {
     if (appointment && opened) {
-      const servicos =
-        appointment.scheduledServices?.map((service) => ({
-          serviceId: service.serviceId,
-          collaboratorId: service.collaboratorId,
-          price:
-            service.price !== undefined && service.price !== null
-              ? service.price
-              : undefined,
-        })) || [];
-
       // Converte a string ISO da data para Date usando Luxon
-      // Isso evita problemas de fuso horário
       let appointmentDate: Date | string | null = null;
       if (appointment.date) {
-        const luxonDate = DateTime.fromISO(appointment.date, { zone: 'local' });
+        const luxonDate = DateTime.fromISO(appointment.date, { zone: "local" });
         if (luxonDate.isValid) {
           appointmentDate = luxonDate.toJSDate();
         } else {
-          // Fallback: tenta parsear como yyyy-MM-dd
-          const parsedDate = DateTime.fromFormat(appointment.date, "yyyy-MM-dd", { zone: 'local' });
+          const parsedDate = DateTime.fromFormat(
+            appointment.date,
+            "yyyy-MM-dd",
+            { zone: "local" }
+          );
           if (parsedDate.isValid) {
             appointmentDate = parsedDate.toJSDate();
           }
@@ -85,7 +84,6 @@ export function AppointmentEditModal({
         startTime: appointment.startTime || "",
         endTime: appointment.endTime || "",
         observacoes: appointment.observations || "",
-        servicos,
       });
     } else {
       form.reset();
@@ -97,17 +95,39 @@ export function AppointmentEditModal({
     if (!appointment) return;
 
     try {
-      const validation = validateForm();
-      if (!validation.valid) {
+      // Validação de horário
+      const timeValidation = validateTimeRange(
+        form.values.startTime,
+        form.values.endTime
+      );
+      if (!timeValidation.valid) {
         notifications.show({
           title: "Erro",
-          message: validation.error || "Erro de validação",
+          message: timeValidation.error || "Erro de validação",
           color: "red",
         });
         return;
       }
 
-      const data = convertToUpdateDto();
+      const dateString = formatDateToString(form.values.data);
+      if (!dateString) {
+        notifications.show({
+          title: "Erro",
+          message: "Data é obrigatória",
+          color: "red",
+        });
+        return;
+      }
+
+      const data: UpdateAppointmentDto = {
+        clientName: form.values.clientName.trim(),
+        clientPhone: form.values.clientPhone.trim(),
+        date: dateString,
+        startTime: form.values.startTime,
+        endTime: form.values.endTime,
+        observations: form.values.observacoes?.trim() || undefined,
+      };
+
       await updateMutation.mutateAsync({
         id: appointment.id,
         data,
@@ -198,76 +218,12 @@ export function AppointmentEditModal({
             />
           </Group>
 
-          {/* Serviços */}
-          <Divider
-            label={`Serviços (${form.values.servicos.length})`}
-            labelPosition="center"
-          />
-          <Stack gap="md">
-            {form.values.servicos.map((servico, index) => (
-              <ServiceFormItem
-                key={index}
-                index={index}
-                serviceId={servico.serviceId}
-                collaboratorId={servico.collaboratorId}
-                price={servico.price}
-                services={services}
-                collaborators={activeCollaborators}
-                canRemove={form.values.servicos.length > 1}
-                onServiceChange={(idx, serviceId) =>
-                  form.setFieldValue(`servicos.${idx}.serviceId`, serviceId)
-                }
-                onCollaboratorChange={(idx, collaboratorId) =>
-                  form.setFieldValue(
-                    `servicos.${idx}.collaboratorId`,
-                    collaboratorId
-                  )
-                }
-                onPriceChange={(idx, price) =>
-                  form.setFieldValue(`servicos.${idx}.price`, price)
-                }
-                onRemove={removeService}
-              />
-            ))}
-
-            <Button
-              variant="light"
-              leftSection={<IconPlus size={16} />}
-              onClick={addService}
-            >
-              Adicionar Serviço
-            </Button>
-          </Stack>
-
           {/* Observações */}
           <TextInput
             label="Observações (Opcional)"
             placeholder="Observações sobre o agendamento"
             {...form.getInputProps("observacoes")}
           />
-
-          {/* Resumo */}
-          {form.values.servicos.length > 0 && (
-            <Card withBorder padding="md" radius="md" bg="gray.0">
-              <Stack gap="xs">
-                <Text fw={500} size="sm">
-                  Resumo
-                </Text>
-                <Group justify="space-between">
-                  <Text size="sm">Total de Serviços:</Text>
-                  <Badge>{form.values.servicos.length}</Badge>
-                </Group>
-                <Group justify="space-between">
-                  <Text size="sm" fw={500}>
-                    Preço Total:
-                  </Text>
-                  <Badge color="blue" size="lg">
-                    {formatPrice(totalPrice)}
-                  </Badge>
-                </Group>
-              </Stack>
-            </Card>
-          )}
 
           <Group justify="flex-end" mt="md">
             <Button variant="subtle" onClick={handleClose}>
@@ -276,7 +232,6 @@ export function AppointmentEditModal({
             <Button
               type="submit"
               loading={updateMutation.isPending}
-              disabled={form.values.servicos.length === 0}
             >
               Salvar Alterações
             </Button>
