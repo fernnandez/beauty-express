@@ -1,0 +1,60 @@
+# Dependências (não copiar node_modules, será instalado no container)
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build (será gerado durante o build)
+dist
+*.tsbuildinfo
+
+# Testes
+coverage
+*.spec.ts
+*.spec.js
+test
+tests
+
+# Desenvolvimento
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentação
+README.md
+*.md
+docs
+CODE_REVIEW_IMPROVEMENTS.md
+RENDER_DEPLOY.md
+
+# Outros
+.DS_Store
+Thumbs.db
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Banco de dados local (não deve ir para produção)
+database.sqlite
+database.db
+
+# Frontend source (não precisa, apenas a pasta client buildada)
+../frontend
+
+# Docker alternativos
+Dockerfile.simple
+Dockerfile.render
