@@ -27,6 +27,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --production && npm cache clean --force
 
+RUN npm run seed
+
 # Copia arquivos buildados da API
 COPY --from=builder /app/dist ./dist
 
