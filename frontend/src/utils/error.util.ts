@@ -46,6 +46,6 @@ export function isNetworkError(error: unknown): boolean {
   return (
     !apiError.response ||
     apiError.message === 'Network Error' ||
-    apiError.code === 'ECONNABORTED'
+    apiError.response?.status === 500
   );
 }

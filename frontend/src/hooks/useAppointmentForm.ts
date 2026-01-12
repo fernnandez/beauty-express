@@ -120,15 +120,12 @@ export const useAppointmentForm = (
   const convertToUpdateDto = (): UpdateAppointmentDto => {
     const dateString = formatDateToString(form.values.data);
 
-    const servicos = convertServicesToDto(form.values.servicos, services);
-
     const dto: UpdateAppointmentDto = {
       clientName: form.values.clientName.trim(),
       clientPhone: form.values.clientPhone.trim(),
       date: dateString,
       startTime: form.values.startTime,
       endTime: form.values.endTime,
-      services: servicos,
       observations: form.values.observacoes?.trim() || undefined,
     };
 
