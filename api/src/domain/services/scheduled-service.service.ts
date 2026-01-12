@@ -75,8 +75,6 @@ export class ScheduledServiceService {
     id: string,
     updateDto: UpdateScheduledServiceDto,
   ): Promise<ScheduledService> {
-    console.log('updateDto', updateDto);
-
     const scheduledService = await this.scheduledServiceRepository.findById(id);
     if (!scheduledService) {
       throw new Error('ScheduledService not found');

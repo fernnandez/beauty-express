@@ -7,6 +7,7 @@ import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { ServiceRepository } from '../repositories/service.repository';
+import { CommissionService } from './commission.service';
 import { ScheduledServiceService } from './scheduled-service.service';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class AppointmentService {
     private scheduledServiceRepository: ScheduledServiceRepository,
     private scheduledServiceService: ScheduledServiceService,
     private serviceRepository: ServiceRepository,
+    private commissionService: CommissionService,
   ) {}
 
   async createAppointment(
@@ -244,7 +246,13 @@ export class AppointmentService {
     }
 
     appointment.status = AppointmentStatus.COMPLETED;
-    return await this.appointmentRepository.save(appointment);
+    const savedAppointment = await this.appointmentRepository.save(appointment);
+
+    await this.commissionService.calculateCommissionsForAppointment(
+      savedAppointment.id,
+    );
+
+    return savedAppointment;
   }
 
   async cancelAppointment(appointmentId: string): Promise<Appointment> {

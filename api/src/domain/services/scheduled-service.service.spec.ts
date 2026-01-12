@@ -329,6 +329,7 @@ describe('ScheduledServiceService', () => {
       expect(result).toEqual(updatedScheduledService);
       expect(mockRepository.update).toHaveBeenCalledWith('scheduled-1', {
         price: 70.0,
+        collaboratorId: null,
       });
     });
 
@@ -385,6 +386,7 @@ describe('ScheduledServiceService', () => {
       expect(mockRepository.update).toHaveBeenCalledWith('scheduled-1', {
         serviceId: 'service-2',
         price: 30.0,
+        collaboratorId: null,
       });
     });
 
@@ -610,13 +612,12 @@ describe('ScheduledServiceService', () => {
       status: ScheduledServiceStatus.CANCELLED,
     };
 
-    it('should cancel scheduled service', async () => {
-      mockRepository.findById.mockResolvedValueOnce(pendingScheduledService);
+    it('should allow canceling pending service', async () => {
+      mockRepository.findById.mockResolvedValue(pendingScheduledService);
       mockRepository.save.mockResolvedValue(cancelledScheduledService);
 
       const result = await service.cancelScheduledService('scheduled-1');
 
-      expect(result).toEqual(cancelledScheduledService);
       expect(result.status).toBe(ScheduledServiceStatus.CANCELLED);
       expect(mockRepository.save).toHaveBeenCalled();
     });
@@ -627,28 +628,48 @@ describe('ScheduledServiceService', () => {
       await expect(
         service.cancelScheduledService('non-existent-id'),
       ).rejects.toThrow('ScheduledService not found');
+
+      expect(mockRepository.save).not.toHaveBeenCalled();
     });
 
-    it('should throw error when trying to cancel completed service', async () => {
+    it('should allow canceling completed service', async () => {
       const completedService: ScheduledService = {
         ...pendingScheduledService,
         status: ScheduledServiceStatus.COMPLETED,
       };
 
-      mockRepository.findById.mockResolvedValue(completedService);
+      const cancelledService: ScheduledService = {
+        ...completedService,
+        status: ScheduledServiceStatus.CANCELLED,
+      };
 
-      await expect(
-        service.cancelScheduledService('scheduled-1'),
-      ).rejects.toThrow('Cannot cancel completed scheduled services');
+      mockRepository.findById.mockImplementationOnce(() =>
+        Promise.resolve(completedService),
+      );
+      mockRepository.save.mockImplementationOnce(() =>
+        Promise.resolve(cancelledService),
+      );
+
+      const result = await service.cancelScheduledService('scheduled-1');
+
+      expect(result.status).toBe(ScheduledServiceStatus.CANCELLED);
+      expect(mockRepository.save).toHaveBeenCalled();
     });
 
-    it('should allow canceling pending service', async () => {
-      mockRepository.findById.mockResolvedValueOnce(pendingScheduledService);
-      mockRepository.save.mockResolvedValue(cancelledScheduledService);
+    it('should return service without saving if already cancelled', async () => {
+      const alreadyCancelledService: ScheduledService = {
+        ...pendingScheduledService,
+        status: ScheduledServiceStatus.CANCELLED,
+      };
 
-      await service.cancelScheduledService('scheduled-1');
+      mockRepository.findById.mockImplementationOnce(() =>
+        Promise.resolve(alreadyCancelledService),
+      );
 
-      expect(mockRepository.save).toHaveBeenCalled();
+      const result = await service.cancelScheduledService('scheduled-1');
+
+      expect(result.status).toBe(ScheduledServiceStatus.CANCELLED);
+      expect(mockRepository.save).not.toHaveBeenCalled();
     });
   });
 });

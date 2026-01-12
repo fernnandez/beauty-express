@@ -1,16 +1,16 @@
+import { AppointmentController } from '@application/controllers/appointment.controller';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Appointment } from '../entities/appointment.entity';
+import { Collaborator } from '../entities/collaborator.entity';
 import { ScheduledService } from '../entities/scheduled-service.entity';
 import { Service } from '../entities/service.entity';
-import { Collaborator } from '../entities/collaborator.entity';
 import { AppointmentRepository } from '../repositories/appointment.repository';
+import { CollaboratorRepository } from '../repositories/collaborator.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { ServiceRepository } from '../repositories/service.repository';
-import { CollaboratorRepository } from '../repositories/collaborator.repository';
 import { AppointmentService } from '../services/appointment.service';
-import { ScheduledServiceService } from '../services/scheduled-service.service';
-import { AppointmentController } from '@application/controllers/appointment.controller';
+import { CommissionModule } from './commission.module';
 import { ScheduledServiceModule } from './scheduled-service.module';
 
 @Module({
@@ -22,6 +22,7 @@ import { ScheduledServiceModule } from './scheduled-service.module';
       Collaborator,
     ]),
     ScheduledServiceModule,
+    CommissionModule,
   ],
   controllers: [AppointmentController],
   providers: [
