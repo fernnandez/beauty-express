@@ -33,7 +33,8 @@ COPY --from=builder /app/dist ./dist
 # Copia frontend buildado (já deve estar no repositório)
 COPY client ./client
 
-# Cria diretório para banco de dados (SQLite)
+# Cria diretório para banco de dados (SQLite - apenas se não usar PostgreSQL)
+# Se usar PostgreSQL no Render, este diretório não será necessário
 RUN mkdir -p /app/data
 
 # Expõe a porta (Render define PORT automaticamente)
