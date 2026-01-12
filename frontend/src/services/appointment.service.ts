@@ -28,7 +28,6 @@ export const appointmentService = {
     id: string,
     data: UpdateAppointmentDto,
   ): Promise<Appointment> => {
-    console.log('update', id, data);
     const response = await api.put<Appointment>(`/appointments/${id}`, data);
     return response.data;
   },

@@ -7,9 +7,10 @@ import {
   TextInput,
   Textarea,
 } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
 import { useServiceForm } from "../../hooks/useServiceForm";
 import { useCreateService } from "../../hooks/useServices";
+import { useNotifications } from "../../hooks/useNotifications";
+import { MESSAGES } from "../../constants/messages.constants";
 import type { CreateServiceDto, UpdateServiceDto } from "../../types";
 
 interface ServiceCreateModalProps {
@@ -23,23 +24,16 @@ export function ServiceCreateModal({
 }: ServiceCreateModalProps) {
   const createMutation = useCreateService();
   const { form, resetForm } = useServiceForm();
+  const { showSuccess, showError } = useNotifications();
 
   const handleSubmit = async (values: CreateServiceDto) => {
     try {
       await createMutation.mutateAsync(values);
-      notifications.show({
-        title: "Sucesso",
-        message: "Serviço criado com sucesso!",
-        color: "green",
-      });
+      showSuccess(MESSAGES.SUCCESS.CREATE.SERVICE);
       resetForm();
       onClose();
-    } catch {
-      notifications.show({
-        title: "Erro",
-        message: "Erro ao criar serviço",
-        color: "red",
-      });
+    } catch (error) {
+      showError(error, MESSAGES.ERROR.CREATE.SERVICE);
     }
   };
 

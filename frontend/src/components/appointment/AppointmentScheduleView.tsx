@@ -88,8 +88,7 @@ const calculateAppointmentPosition = (
     const height = Math.max((duration / 30) * slotHeight, 30);
 
     return { top, height };
-  } catch (error) {
-    console.error("Erro ao calcular posição do agendamento:", error);
+  } catch {
     return { top: 0, height: 60 };
   }
 };

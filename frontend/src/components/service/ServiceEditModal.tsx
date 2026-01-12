@@ -7,10 +7,11 @@ import {
   TextInput,
   Textarea,
 } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
 import { useEffect } from "react";
 import { useServiceForm } from "../../hooks/useServiceForm";
 import { useUpdateService } from "../../hooks/useServices";
+import { useNotifications } from "../../hooks/useNotifications";
+import { MESSAGES } from "../../constants/messages.constants";
 import type { Service, UpdateServiceDto } from "../../types";
 
 interface ServiceEditModalProps {
@@ -26,6 +27,7 @@ export function ServiceEditModal({
 }: ServiceEditModalProps) {
   const updateMutation = useUpdateService();
   const { form } = useServiceForm();
+  const { showSuccess, showError } = useNotifications();
 
   // Atualiza o formulário quando o serviço muda ou o modal abre
   useEffect(() => {
@@ -47,18 +49,10 @@ export function ServiceEditModal({
         id: service.id,
         data: values,
       });
-      notifications.show({
-        title: "Sucesso",
-        message: "Serviço atualizado com sucesso!",
-        color: "green",
-      });
+      showSuccess(MESSAGES.SUCCESS.UPDATE.SERVICE);
       onClose();
-    } catch {
-      notifications.show({
-        title: "Erro",
-        message: "Erro ao atualizar serviço",
-        color: "red",
-      });
+    } catch (error) {
+      showError(error, MESSAGES.ERROR.UPDATE.SERVICE);
     }
   };
 

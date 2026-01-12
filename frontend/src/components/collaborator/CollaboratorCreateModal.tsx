@@ -7,9 +7,10 @@ import {
   Stack,
   TextInput,
 } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
 import { useCollaboratorForm } from "../../hooks/useCollaboratorForm";
 import { useCreateCollaborator } from "../../hooks/useCollaborators";
+import { useNotifications } from "../../hooks/useNotifications";
+import { MESSAGES } from "../../constants/messages.constants";
 import { COLLABORATOR_AREAS } from "../../utils/collaborator.utils";
 import type { CreateCollaboratorDto } from "../../types";
 
@@ -24,23 +25,16 @@ export function CollaboratorCreateModal({
 }: CollaboratorCreateModalProps) {
   const createMutation = useCreateCollaborator();
   const { form, resetForm } = useCollaboratorForm();
+  const { showSuccess, showError } = useNotifications();
 
   const handleSubmit = async (values: CreateCollaboratorDto) => {
     try {
       await createMutation.mutateAsync(values);
-      notifications.show({
-        title: "Sucesso",
-        message: "Colaborador criado com sucesso!",
-        color: "green",
-      });
+      showSuccess(MESSAGES.SUCCESS.CREATE.COLLABORATOR);
       resetForm();
       onClose();
-    } catch {
-      notifications.show({
-        title: "Erro",
-        message: "Erro ao criar colaborador",
-        color: "red",
-      });
+    } catch (error) {
+      showError(error, MESSAGES.ERROR.CREATE.COLLABORATOR);
     }
   };
 

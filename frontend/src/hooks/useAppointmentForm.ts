@@ -91,12 +91,10 @@ export const useAppointmentForm = (
   };
 
   const convertToCreateDto = (): CreateAppointmentDto => {
-    console.log(form.values.data);
     const dateString = formatDateToString(form.values.data);
     if (!dateString) {
       throw new Error("Data é obrigatória");
     }
-    console.log(dateString);
 
     const servicos = convertServicesToDto(form.values.servicos, services);
 
@@ -121,10 +119,6 @@ export const useAppointmentForm = (
 
   const convertToUpdateDto = (): UpdateAppointmentDto => {
     const dateString = formatDateToString(form.values.data);
-    console.log(dateString);
-    console.log(form.values.data);
-
-    console.log('servicos', form.values.servicos);
 
     const servicos = convertServicesToDto(form.values.servicos, services);
 

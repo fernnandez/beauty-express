@@ -13,7 +13,6 @@ import {
   Title,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { notifications } from "@mantine/notifications";
 import {
   IconEdit,
   IconInfoCircle,
@@ -31,6 +30,8 @@ import {
   useDeleteCollaborator,
   useUpdateCollaborator,
 } from "../hooks/useCollaborators";
+import { useNotifications } from "../hooks/useNotifications";
+import { MESSAGES } from "../constants/messages.constants";
 import type { Collaborator } from "../types";
 
 export function Collaborators() {
@@ -41,6 +42,7 @@ export function Collaborators() {
   );
   const deleteMutation = useDeleteCollaborator();
   const updateMutation = useUpdateCollaborator();
+  const { showSuccess, showError } = useNotifications();
 
   const [createModalOpened, setCreateModalOpened] = useState(false);
   const [editModalOpened, setEditModalOpened] = useState(false);
@@ -64,17 +66,9 @@ export function Collaborators() {
 
     try {
       await deleteMutation.mutateAsync(selectedCollaborator.id);
-      notifications.show({
-        title: "Sucesso",
-        message: "Colaborador excluído com sucesso!",
-        color: "green",
-      });
-    } catch {
-      notifications.show({
-        title: "Erro",
-        message: "Erro ao excluir colaborador",
-        color: "red",
-      });
+      showSuccess(MESSAGES.SUCCESS.DELETE.COLLABORATOR);
+    } catch (error) {
+      showError(error, MESSAGES.ERROR.DELETE.COLLABORATOR);
     }
   };
 
@@ -86,17 +80,9 @@ export function Collaborators() {
         id: selectedCollaborator.id,
         data: { isActive: false },
       });
-      notifications.show({
-        title: "Sucesso",
-        message: "Colaborador desativado com sucesso!",
-        color: "green",
-      });
-    } catch {
-      notifications.show({
-        title: "Erro",
-        message: "Erro ao desativar colaborador",
-        color: "red",
-      });
+      showSuccess(MESSAGES.SUCCESS.DEACTIVATE.COLLABORATOR);
+    } catch (error) {
+      showError(error, MESSAGES.ERROR.DEACTIVATE.COLLABORATOR);
     }
   };
 

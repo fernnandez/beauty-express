@@ -8,10 +8,11 @@ import {
   Switch,
   TextInput,
 } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
 import { useEffect } from "react";
 import { useCollaboratorForm } from "../../hooks/useCollaboratorForm";
 import { useUpdateCollaborator } from "../../hooks/useCollaborators";
+import { useNotifications } from "../../hooks/useNotifications";
+import { MESSAGES } from "../../constants/messages.constants";
 import { COLLABORATOR_AREAS } from "../../utils/collaborator.utils";
 import type { Collaborator, UpdateCollaboratorDto } from "../../types";
 
@@ -28,6 +29,7 @@ export function CollaboratorEditModal({
 }: CollaboratorEditModalProps) {
   const updateMutation = useUpdateCollaborator();
   const { form } = useCollaboratorForm();
+  const { showSuccess, showError } = useNotifications();
 
   // Atualiza o formulário quando o colaborador muda ou o modal abre
   useEffect(() => {
@@ -51,18 +53,10 @@ export function CollaboratorEditModal({
         id: collaborator.id,
         data: values,
       });
-      notifications.show({
-        title: "Sucesso",
-        message: "Colaborador atualizado com sucesso!",
-        color: "green",
-      });
+      showSuccess(MESSAGES.SUCCESS.UPDATE.COLLABORATOR);
       onClose();
-    } catch {
-      notifications.show({
-        title: "Erro",
-        message: "Erro ao atualizar colaborador",
-        color: "red",
-      });
+    } catch (error) {
+      showError(error, MESSAGES.ERROR.UPDATE.COLLABORATOR);
     }
   };
 

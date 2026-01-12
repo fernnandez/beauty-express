@@ -115,14 +115,16 @@ export class CommissionService {
       return await this.commissionRepository.findByFilters(filters);
     }
 
-    return await this.commissionRepository.find({
-      relations: [
-        'collaborator',
-        'scheduledService',
-        'scheduledService.service',
-        'scheduledService.appointment',
-      ],
-    });
+    // Usa QueryBuilder para ordenação correta por relação aninhada
+    return await this.commissionRepository
+      .createQueryBuilder('commission')
+      .leftJoinAndSelect('commission.collaborator', 'collaborator')
+      .leftJoinAndSelect('commission.scheduledService', 'scheduledService')
+      .leftJoinAndSelect('scheduledService.service', 'service')
+      .leftJoinAndSelect('scheduledService.appointment', 'appointment')
+      .orderBy('appointment.date', 'DESC')
+      .addOrderBy('appointment.startTime', 'DESC')
+      .getMany();
   }
 
   async findById(id: string): Promise<Commission | null> {
@@ -134,15 +136,17 @@ export class CommissionService {
   }
 
   async findPending(): Promise<Commission[]> {
-    return await this.commissionRepository.find({
-      where: { paid: false },
-      relations: [
-        'collaborator',
-        'scheduledService',
-        'scheduledService.service',
-        'scheduledService.appointment',
-      ],
-    });
+    // Usa QueryBuilder para ordenação correta por relação aninhada
+    return await this.commissionRepository
+      .createQueryBuilder('commission')
+      .leftJoinAndSelect('commission.collaborator', 'collaborator')
+      .leftJoinAndSelect('commission.scheduledService', 'scheduledService')
+      .leftJoinAndSelect('scheduledService.service', 'service')
+      .leftJoinAndSelect('scheduledService.appointment', 'appointment')
+      .where('commission.paid = :paid', { paid: false })
+      .orderBy('appointment.date', 'DESC')
+      .addOrderBy('appointment.startTime', 'DESC')
+      .getMany();
   }
 
   async markAsPaid(commissionIds: string[]): Promise<Commission[]> {

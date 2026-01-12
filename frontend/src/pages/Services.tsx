@@ -12,7 +12,6 @@ import {
   Title,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { notifications } from "@mantine/notifications";
 import {
   IconEdit,
   IconInfoCircle,
@@ -26,6 +25,8 @@ import { ConfirmModal } from "../components/ConfirmModal";
 import { ServiceCreateModal } from "../components/service/ServiceCreateModal";
 import { ServiceEditModal } from "../components/service/ServiceEditModal";
 import { useDeleteService, useServices } from "../hooks/useServices";
+import { useNotifications } from "../hooks/useNotifications";
+import { MESSAGES } from "../constants/messages.constants";
 import type { Service } from "../types";
 import { formatPrice } from "../utils/appointment.utils";
 
@@ -36,6 +37,7 @@ export function Services() {
     debouncedSearchTerm.trim() || undefined
   );
   const deleteMutation = useDeleteService();
+  const { showSuccess, showError } = useNotifications();
 
   const [createModalOpened, setCreateModalOpened] = useState(false);
   const [editModalOpened, setEditModalOpened] = useState(false);
@@ -57,23 +59,11 @@ export function Services() {
 
     try {
       await deleteMutation.mutateAsync(selectedService.id);
-      notifications.show({
-        title: "Sucesso",
-        message: "Serviço excluído com sucesso!",
-        color: "green",
-      });
+      showSuccess(MESSAGES.SUCCESS.DELETE.SERVICE);
       setDeleteModalOpened(false);
       setSelectedService(null);
-    } catch (error: any) {
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Erro ao excluir serviço";
-      notifications.show({
-        title: "Erro",
-        message: errorMessage,
-        color: "red",
-      });
+    } catch (error) {
+      showError(error, MESSAGES.ERROR.DELETE.SERVICE);
     }
   };
 

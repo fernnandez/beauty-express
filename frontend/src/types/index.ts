@@ -142,3 +142,6 @@ export interface Commission {
   percentage: number;
   paid: boolean;
 }
+
+// Re-export tipos da API
+export type { ApiError, ApiErrorResponse } from './api.types';

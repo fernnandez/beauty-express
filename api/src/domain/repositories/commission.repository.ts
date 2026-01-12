@@ -108,6 +108,11 @@ export class CommissionRepository extends Repository<Commission> {
       });
     }
 
+    // Ordena por data do agendamento (mais recentes primeiro)
+    queryBuilder
+      .orderBy('appointment.date', 'DESC')
+      .addOrderBy('appointment.startTime', 'DESC');
+
     return await queryBuilder.getMany();
   }
 }
