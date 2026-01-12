@@ -12,42 +12,18 @@ import { Service } from '@domain/entities/service.entity';
 import { DataSource } from 'typeorm';
 
 async function seed() {
-  // Detecta qual banco usar: PostgreSQL se DATABASE_URL estiver definido, senão SQLite
-  const hasDatabaseUrl = !!process.env.DATABASE_URL;
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  const dataSource = new DataSource(
-    hasDatabaseUrl || (isProduction && !process.env.DB_DATABASE)
-      ? {
-          type: 'postgres',
-          url: process.env.DATABASE_URL,
-          ssl: isProduction
-            ? {
-                rejectUnauthorized: false,
-              }
-            : false,
-          entities: [
-            Collaborator,
-            Service,
-            Appointment,
-            ScheduledService,
-            Commission,
-          ],
-          synchronize: false, // Não sincroniza no seed
-        }
-      : {
-          type: 'sqlite',
-          database: process.env.DB_DATABASE || 'database.sqlite',
-          entities: [
-            Collaborator,
-            Service,
-            Appointment,
-            ScheduledService,
-            Commission,
-          ],
-          synchronize: false, // Não sincroniza no seed
-        },
-  );
+  const dataSource = new DataSource({
+    type: 'sqlite',
+    database: process.env.DB_DATABASE || 'database.sqlite',
+    entities: [
+      Collaborator,
+      Service,
+      Appointment,
+      ScheduledService,
+      Commission,
+    ],
+    synchronize: false, // Não sincroniza no seed
+  });
   await dataSource.initialize();
 
   console.log('🌱 Iniciando seed do banco de dados...\n');
