@@ -34,7 +34,6 @@ interface AppointmentScheduleViewProps {
   onDateChange?: (date: string) => void;
 }
 
-// Gera slots de horário de 30 em 30 minutos
 const generateTimeSlots = () => {
   const slots = [];
   for (let hour = 8; hour <= 21; hour++) {
@@ -50,7 +49,6 @@ const generateTimeSlots = () => {
 
 const TIME_SLOTS = generateTimeSlots();
 
-// Calcula a posição e altura do card baseado no horário (formato HH:MM)
 const calculateAppointmentPosition = (
   inicio: string,
   fim: string
@@ -71,20 +69,17 @@ const calculateAppointmentPosition = (
 
     const startMinutes = inicioHour * 60 + inicioMin;
     const endMinutes = fimHour * 60 + fimMin;
-    const duration = Math.max(endMinutes - startMinutes, 30); // Mínimo de 30 minutos
+    const duration = Math.max(endMinutes - startMinutes, 30);
 
-    // Cada slot tem 30 minutos = 60px de altura
     const slotHeight = 60;
     const startTimeString = `${inicioHour
       .toString()
       .padStart(2, "0")}:${inicioMin.toString().padStart(2, "0")}`;
 
-    // Encontra o slot mais próximo ou igual ao horário de início
     let startSlotIndex = TIME_SLOTS.findIndex(
       (slot) => slot >= startTimeString
     );
 
-    // Se não encontrou, usa o primeiro slot
     if (startSlotIndex === -1) {
       startSlotIndex = 0;
     }
@@ -99,7 +94,6 @@ const calculateAppointmentPosition = (
   }
 };
 
-// Verifica se dois agendamentos se sobrepõem no tempo
 const appointmentsOverlap = (apt1: Appointment, apt2: Appointment): boolean => {
   const [start1Hour, start1Min] = apt1.startTime.split(":").map(Number);
   const [end1Hour, end1Min] = apt1.endTime.split(":").map(Number);
@@ -114,7 +108,6 @@ const appointmentsOverlap = (apt1: Appointment, apt2: Appointment): boolean => {
   return start1 < end2 && start2 < end1;
 };
 
-// Agrupa agendamentos sobrepostos e calcula posições
 const calculateOverlappingPositions = (
   appointments: Appointment[]
 ): Map<
@@ -206,11 +199,8 @@ export function AppointmentScheduleView({
     onDateChange?.(dateString);
   };
 
-  // Filtra apenas agendamentos com horário definido (o backend já retorna apenas do dia)
   const dayAppointments = useMemo(() => {
-    return appointments.filter(
-      (apt) => apt.startTime && apt.endTime
-    );
+    return appointments.filter((apt) => apt.startTime && apt.endTime);
   }, [appointments]);
 
   const navigateDay = (direction: "prev" | "next") => {
@@ -233,7 +223,6 @@ export function AppointmentScheduleView({
 
   return (
     <Stack gap="md">
-      {/* Controles de navegação */}
       <Group justify="space-between">
         <Group>
           <Button
@@ -268,13 +257,11 @@ export function AppointmentScheduleView({
         </Stack>
       </Group>
 
-      {/* Visualização diária */}
       <ScrollArea h={650} style={{ maxHeight: "650px" }}>
         <Paper withBorder p="md">
           <div
             style={{ position: "relative", minHeight: TIME_SLOTS.length * 60 }}
           >
-            {/* Grid de horários */}
             <div
               style={{
                 display: "grid",
@@ -282,7 +269,6 @@ export function AppointmentScheduleView({
                 gap: "8px",
               }}
             >
-              {/* Coluna de horários */}
               <div>
                 {TIME_SLOTS.map((time) => (
                   <div
@@ -299,15 +285,12 @@ export function AppointmentScheduleView({
                   </div>
                 ))}
               </div>
-
-              {/* Coluna de serviços agendados */}
               <div
                 style={{
                   position: "relative",
                   minHeight: TIME_SLOTS.length * 60,
                 }}
               >
-                {/* Linhas de horário */}
                 {TIME_SLOTS.map((time) => (
                   <div
                     key={time}
@@ -317,8 +300,6 @@ export function AppointmentScheduleView({
                     }}
                   />
                 ))}
-
-                {/* Cards de serviços agendados */}
                 {dayAppointments.length === 0 && (
                   <div
                     style={{
@@ -406,9 +387,8 @@ export function AppointmentScheduleView({
                         <Group justify="space-between" gap="xs">
                           <Group gap={4}>
                             <IconScissors size={12} />
-                            <Text size="xs" fw={600} lineClamp={1}>
-                              {appointment.scheduledServices?.[0]?.service
-                                ?.name || "-"}
+                            <Text size="sm" fw={600} lineClamp={1}>
+                              {`${appointment.clientName || "-"} | ${appointment.scheduledServices?.[0]?.service?.name || "-"}`}
                             </Text>
                           </Group>
                           <Badge
@@ -418,9 +398,7 @@ export function AppointmentScheduleView({
                             {appointmentStatus}
                           </Badge>
                         </Group>
-                        <Text size="xs" fw={500} lineClamp={1}>
-                          {appointment.clientName || "-"}
-                        </Text>
+
                         {appointment.scheduledServices?.[0]?.collaborator && (
                           <Group gap={4}>
                             <IconUser size={10} />

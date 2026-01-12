@@ -1,56 +1,32 @@
 import {
-  Badge,
   Button,
   Container,
   Group,
-  ScrollArea,
-  Stack,
-  Table,
   Tabs,
   Text,
   Title,
 } from "@mantine/core";
-import { DatePickerInput } from "@mantine/dates";
-import { useMediaQuery } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
   IconCalendar,
-  IconCheck,
-  IconEdit,
   IconPlus,
   IconTable,
-  IconX,
 } from "@tabler/icons-react";
-import { DateTime } from "luxon";
 import { useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { AppointmentCreateModal } from "../components/appointment/AppointmentCreateModal";
 import { AppointmentDetailModal } from "../components/appointment/AppointmentDetailModal";
 import { AppointmentEditModal } from "../components/appointment/AppointmentEditModal";
 import { AppointmentScheduleView } from "../components/appointment/AppointmentScheduleView";
+import { AppointmentListView } from "../components/appointment/AppointmentListView";
 import {
   useAppointments,
   useCancelAppointment,
   useCompleteAppointment,
 } from "../hooks/useAppointments";
 import type { Appointment } from "../types";
-import { AppointmentStatus } from "../types";
-import { formatDate, formatPrice } from "../utils/appointment.utils";
-
-const statusColors: Record<AppointmentStatus, string> = {
-  agendado: "blue",
-  concluido: "green",
-  cancelado: "red",
-};
-
-const statusLabels: Record<AppointmentStatus, string> = {
-  agendado: "Agendado",
-  concluido: "Concluído",
-  cancelado: "Cancelado",
-};
 
 export function Appointments() {
-  const isMobile = useMediaQuery("(max-width: 768px)");
   const [activeTab, setActiveTab] = useState<string>("schedule");
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
@@ -188,133 +164,21 @@ export function Appointments() {
           </Tabs.Panel>
 
           <Tabs.Panel value="table" pt="md">
-            <Group mb="md">
-              <DatePickerInput
-                label="Filtrar por data"
-                placeholder="Selecione uma data"
-                value={
-                  selectedDate
-                    ? DateTime.fromISO(selectedDate, {
-                        zone: "America/Sao_Paulo",
-                      }).toJSDate()
-                    : null
-                }
-                onChange={(value) => {
-                  if (value) {
-                    // Quando valueFormat está definido, o valor pode ser string ou Date
-                    // Converte para string usando Luxon
-                    let dateString: string;
-                    if (typeof value === "string") {
-                      // Se for string, converte de ISO para yyyy-MM-dd
-                      dateString = DateTime.fromISO(value, {
-                        zone: "America/Sao_Paulo",
-                      }).toFormat("yyyy-MM-dd");
-                    } else {
-                      // Se for Date, converte para string
-                      dateString = DateTime.fromJSDate(value, {
-                        zone: "America/Sao_Paulo",
-                      }).toFormat("yyyy-MM-dd");
-                    }
-                    setSelectedDate(dateString);
-                  } else {
-                    // Se limpar, volta para hoje
-                    const today = DateTime.now()
-                      .setZone("America/Sao_Paulo")
-                      .toFormat("yyyy-MM-dd");
-                    setSelectedDate(today);
-                  }
-                }}
-                leftSection={<IconCalendar size={16} />}
-                valueFormat="DD/MM/YYYY"
-                clearable
-                style={{ flex: 1, maxWidth: isMobile ? "100%" : 300 }}
-              />
-            </Group>
-            <ScrollArea>
-              <Table striped highlightOnHover>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Data/Hora</Table.Th>
-                    <Table.Th>Cliente</Table.Th>
-                    <Table.Th>Telefone</Table.Th>
-                    <Table.Th>Serviços</Table.Th>
-                    <Table.Th>Preço Total</Table.Th>
-                    <Table.Th>Status</Table.Th>
-                    <Table.Th>Ações</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {appointments?.map((appointment) => (
-                    <Table.Tr key={appointment.id}>
-                      <Table.Td>
-                        <Stack gap={2}>
-                          <Text size="sm" fw={500}>
-                            {formatDate(appointment.date)}
-                          </Text>
-                          {appointment.startTime && appointment.endTime && (
-                            <Text size="xs" c="pink" fw={500}>
-                              {appointment.startTime} - {appointment.endTime}
-                            </Text>
-                          )}
-                        </Stack>
-                      </Table.Td>
-                      <Table.Td>{appointment.clientName || "-"}</Table.Td>
-                      <Table.Td>{appointment.clientPhone || "-"}</Table.Td>
-                      <Table.Td>
-                        {appointment.scheduledServices &&
-                        appointment.scheduledServices.length > 0
-                          ? `${appointment.scheduledServices.length} serviço(s)`
-                          : "-"}
-                      </Table.Td>
-                      <Table.Td>
-                        {formatPrice(getTotalPrice(appointment))}
-                      </Table.Td>
-                      <Table.Td>
-                        <Badge color={statusColors[appointment.status]}>
-                          {statusLabels[appointment.status]}
-                        </Badge>
-                      </Table.Td>
-                      <Table.Td>
-                        <Group gap="xs">
-                          {appointment.status ===
-                            AppointmentStatus.SCHEDULED && (
-                            <>
-                              <Button
-                                variant="light"
-                                color="blue"
-                                size="xs"
-                                leftSection={<IconEdit size={14} />}
-                                onClick={() => handleEdit(appointment)}
-                              >
-                                Editar
-                              </Button>
-                              <Button
-                                variant="light"
-                                color="green"
-                                size="xs"
-                                leftSection={<IconCheck size={14} />}
-                                onClick={() => handleComplete(appointment)}
-                              >
-                                Concluir
-                              </Button>
-                              <Button
-                                variant="light"
-                                color="red"
-                                size="xs"
-                                leftSection={<IconX size={14} />}
-                                onClick={() => handleCancel(appointment)}
-                              >
-                                Cancelar
-                              </Button>
-                            </>
-                          )}
-                        </Group>
-                      </Table.Td>
-                    </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
-            </ScrollArea>
+            <AppointmentListView
+              appointments={appointments || []}
+              onComplete={handleComplete}
+              onCancel={handleCancel}
+              onEdit={handleEdit}
+              currentDate={selectedDate}
+              onDateChange={(date) => {
+                setSelectedDate(date);
+              }}
+              onAppointmentClick={(appointment) => {
+                setSelectedAppointment(appointment);
+                setDetailModalOpened(true);
+              }}
+              getTotalPrice={getTotalPrice}
+            />
           </Tabs.Panel>
         </Tabs>
       )}

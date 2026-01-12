@@ -2,11 +2,7 @@ import { CreateAppointmentDto } from '@application/dtos/appointment/create-appoi
 import { UpdateAppointmentDto } from '@application/dtos/appointment/update-appointment.dto';
 import { Injectable } from '@nestjs/common';
 import { Between } from 'typeorm';
-import {
-  endOfDay,
-  parseDateString,
-  startOfDay,
-} from '../../utils/date.util';
+import { endOfDay, parseDateString, startOfDay } from '../../utils/date.util';
 import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
@@ -105,7 +101,6 @@ export class AppointmentService {
   }
 
   async findByDate(date: Date): Promise<Appointment[]> {
-    // Usa funções utilitárias para garantir timezone correto
     const start = startOfDay(date);
     const end = endOfDay(date);
 
@@ -118,6 +113,9 @@ export class AppointmentService {
         'scheduledServices.service',
         'scheduledServices.collaborator',
       ],
+      order: {
+        startTime: 'ASC',
+      },
     });
   }
 
@@ -281,7 +279,6 @@ export class AppointmentService {
       throw new Error('Appointment not found');
     }
 
-    // Business rule: check if all scheduled services are completed AND have collaborator
     const scheduledServices =
       await this.scheduledServiceRepository.findByAppointmentId(appointmentId);
 
@@ -299,7 +296,6 @@ export class AppointmentService {
       );
     }
 
-    // Business rule: all non-cancelled services must have collaborator
     const nonCancelledServices = scheduledServices.filter(
       (s) => s.status !== 'cancelado',
     );
@@ -328,7 +324,6 @@ export class AppointmentService {
       throw new Error('Cannot cancel completed appointments');
     }
 
-    // Cancel all pending/started scheduled services
     const scheduledServices =
       await this.scheduledServiceRepository.findByAppointmentId(appointmentId);
 
