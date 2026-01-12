@@ -26,7 +26,7 @@ export class ServiceController {
   @ApiResponse({ status: 201, description: 'Service created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   async create(@Body() createDto: CreateServiceDto) {
-    return await this.serviceDomainService.createService({ ...createDto });
+    return await this.serviceDomainService.createService(createDto);
   }
 
   @Get()
@@ -49,7 +49,7 @@ export class ServiceController {
   @ApiResponse({ status: 200, description: 'Service updated successfully' })
   @ApiResponse({ status: 404, description: 'Service not found' })
   async update(@Param('id') id: string, @Body() updateDto: UpdateServiceDto) {
-    return await this.serviceDomainService.updateService(id, { ...updateDto });
+    return await this.serviceDomainService.updateService(id, updateDto);
   }
 
   @Delete(':id')

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
@@ -136,7 +137,6 @@ describe('AppointmentService', () => {
 
     it('should create appointment with valid data', async () => {
       mockAppointmentRepository.save.mockResolvedValue(savedAppointment);
-      mockServiceRepository.findById.mockResolvedValue(mockService);
       mockScheduledServiceService.createScheduledService.mockResolvedValue(
         appointmentWithServices.scheduledServices[0],
       );
@@ -146,7 +146,6 @@ describe('AppointmentService', () => {
 
       expect(result).toEqual(appointmentWithServices);
       expect(mockAppointmentRepository.save).toHaveBeenCalled();
-      expect(mockServiceRepository.findById).toHaveBeenCalledWith('service-1');
       expect(mockScheduledServiceService.createScheduledService).toHaveBeenCalled();
     });
 
@@ -203,10 +202,13 @@ describe('AppointmentService', () => {
     });
 
     it('should throw error when service not found', async () => {
-      mockServiceRepository.findById.mockResolvedValue(null);
+      mockAppointmentRepository.save.mockResolvedValue(savedAppointment);
+      mockScheduledServiceService.createScheduledService.mockRejectedValue(
+        new NotFoundException('Service not found'),
+      );
 
       await expect(service.createAppointment(createDto)).rejects.toThrow(
-        'Service service-1 not found',
+        NotFoundException,
       );
 
       expect(mockAppointmentRepository.save).toHaveBeenCalled();

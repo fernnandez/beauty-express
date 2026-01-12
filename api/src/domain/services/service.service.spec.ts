@@ -76,7 +76,7 @@ describe('ServiceService', () => {
       const invalidDto = { ...createDto, defaultPrice: 0 };
 
       await expect(service.createService(invalidDto)).rejects.toThrow(
-        'Default price must be greater than zero',
+        'Price must be greater than zero',
       );
       expect(repository.save).not.toHaveBeenCalled();
     });
@@ -85,7 +85,7 @@ describe('ServiceService', () => {
       const invalidDto = { ...createDto, defaultPrice: -10 };
 
       await expect(service.createService(invalidDto)).rejects.toThrow(
-        'Default price must be greater than zero',
+        'Price must be greater than zero',
       );
       expect(repository.save).not.toHaveBeenCalled();
     });
@@ -244,7 +244,7 @@ describe('ServiceService', () => {
 
       await expect(
         service.updateService(existingService.id, { defaultPrice: 0 }),
-      ).rejects.toThrow('Default price must be greater than zero');
+      ).rejects.toThrow('Price must be greater than zero');
 
       expect(repository.update).not.toHaveBeenCalled();
     });
@@ -254,7 +254,7 @@ describe('ServiceService', () => {
 
       await expect(
         service.updateService(existingService.id, { defaultPrice: -10 }),
-      ).rejects.toThrow('Default price must be greater than zero');
+      ).rejects.toThrow('Price must be greater than zero');
 
       expect(repository.update).not.toHaveBeenCalled();
     });

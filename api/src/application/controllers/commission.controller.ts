@@ -1,16 +1,17 @@
+import { CommissionService } from '@domain/services/commission.service';
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Put,
-  Param,
-  Body,
-  Query,
   HttpCode,
   HttpStatus,
+  Param,
+  Post,
+  Put,
+  Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CommissionService } from '@domain/services/commission.service';
+import { validateDateFormat } from '../../common/utils/date-validation.util';
 import { endOfDay, parseDateString } from '../../utils/date.util';
 import { MarkCommissionsDto } from '../dtos/commission/mark-commissions.dto';
 
@@ -100,18 +101,12 @@ export class CommissionController {
     }
 
     if (startDate) {
-      // Valida e converte string yyyy-mm-dd para Date às 00:00:00 usando Luxon
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
-        throw new Error('Invalid startDate format. Expected yyyy-mm-dd');
-      }
+      validateDateFormat(startDate);
       filters.startDate = parseDateString(startDate);
     }
 
     if (endDate) {
-      // Valida e converte string yyyy-mm-dd para Date às 23:59:59 usando Luxon
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
-        throw new Error('Invalid endDate format. Expected yyyy-mm-dd');
-      }
+      validateDateFormat(endDate);
       filters.endDate = endOfDay(endDate);
     }
 

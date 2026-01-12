@@ -1,6 +1,11 @@
 import { CreateCollaboratorDto } from '@application/dtos/collaborator/create-collaborator.dto';
 import { UpdateCollaboratorDto } from '@application/dtos/collaborator/update-collaborator.dto';
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { VALIDATION_CONSTANTS } from '../../common/constants/validation.constants';
 import { Collaborator } from '../entities/collaborator.entity';
 import { CollaboratorRepository } from '../repositories/collaborator.repository';
 
@@ -8,16 +13,21 @@ import { CollaboratorRepository } from '../repositories/collaborator.repository'
 export class CollaboratorService {
   constructor(private repository: CollaboratorRepository) {}
 
+  private validateCommissionPercentage(percentage: number): void {
+    if (
+      percentage < VALIDATION_CONSTANTS.COMMISSION_PERCENTAGE.MIN ||
+      percentage > VALIDATION_CONSTANTS.COMMISSION_PERCENTAGE.MAX
+    ) {
+      throw new BadRequestException(
+        VALIDATION_CONSTANTS.COMMISSION_PERCENTAGE.MESSAGE,
+      );
+    }
+  }
+
   async createCollaborator(
     createDto: CreateCollaboratorDto,
   ): Promise<Collaborator> {
-    // Business rule: commission percentage must be between 0 and 100
-    if (
-      createDto.commissionPercentage < 0 ||
-      createDto.commissionPercentage > 100
-    ) {
-      throw new Error('Commission percentage must be between 0 and 100');
-    }
+    this.validateCommissionPercentage(createDto.commissionPercentage);
 
     return await this.repository.save({ ...createDto, isActive: true });
   }
@@ -39,17 +49,11 @@ export class CollaboratorService {
   ): Promise<Collaborator> {
     const collaborator = await this.repository.findById(id);
     if (!collaborator) {
-      throw new Error('Collaborator not found');
+      throw new NotFoundException('Collaborator not found');
     }
 
     if (updateDto.commissionPercentage !== undefined) {
-      if (
-        updateDto.commissionPercentage < 0 ||
-        updateDto.commissionPercentage > 100
-      ) {
-        throw new Error('Commission percentage must be between 0 and 100');
-      }
-      collaborator.commissionPercentage = updateDto.commissionPercentage;
+      this.validateCommissionPercentage(updateDto.commissionPercentage);
     }
 
     await this.repository.update(id, updateDto);
@@ -60,7 +64,7 @@ export class CollaboratorService {
   async delete(id: string): Promise<void> {
     const collaborator = await this.repository.findById(id);
     if (!collaborator) {
-      throw new Error('Collaborator not found');
+      throw new NotFoundException('Collaborator not found');
     }
     await this.repository.delete(id);
   }

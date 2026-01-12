@@ -127,7 +127,7 @@ describe('CommissionController', () => {
       const invalidDate = '2024/12/01';
 
       await expect(controller.findAll(undefined, invalidDate)).rejects.toThrow(
-        'Invalid startDate format. Expected yyyy-mm-dd',
+        'Invalid date format. Expected yyyy-mm-dd, got: 2024/12/01',
       );
 
       expect(service.findAll).not.toHaveBeenCalled();
@@ -150,7 +150,7 @@ describe('CommissionController', () => {
 
       await expect(
         controller.findAll(undefined, undefined, invalidDate),
-      ).rejects.toThrow('Invalid endDate format. Expected yyyy-mm-dd');
+      ).rejects.toThrow('Invalid date format. Expected yyyy-mm-dd, got: 2024/12/31');
 
       expect(service.findAll).not.toHaveBeenCalled();
     });

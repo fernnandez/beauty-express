@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { In } from 'typeorm';
 import { Commission } from '../entities/commission.entity';
 import { ScheduledServiceStatus } from '../entities/scheduled-service.entity';
@@ -18,38 +22,36 @@ export class CommissionService {
     const scheduledService =
       await this.scheduledServiceRepository.findById(scheduledServiceId);
     if (!scheduledService) {
-      throw new Error('ScheduledService not found');
+      throw new NotFoundException('ScheduledService not found');
     }
 
     if (scheduledService.status !== ScheduledServiceStatus.COMPLETED) {
-      throw new Error(
+      throw new BadRequestException(
         'Can only calculate commission for completed scheduled services',
       );
     }
 
     if (!scheduledService.collaboratorId) {
-      throw new Error('ScheduledService has no assigned collaborator');
+      throw new BadRequestException(
+        'ScheduledService has no assigned collaborator',
+      );
     }
 
     const collaborator = await this.collaboratorRepository.findById(
       scheduledService.collaboratorId,
     );
     if (!collaborator) {
-      throw new Error('Collaborator not found');
+      throw new NotFoundException('Collaborator not found');
     }
 
-    // Business rule: calculate commission based on percentage
     const percentage = collaborator.commissionPercentage;
-    // Calculate commission based on scheduled service price
     const amount = (Number(scheduledService.price) * percentage) / 100;
 
-    // Check if commission already exists
     const existingCommission =
       await this.commissionRepository.findByScheduledServiceId(
         scheduledServiceId,
       );
     if (existingCommission) {
-      // Update existing commission using repository.update
       await this.commissionRepository.update(existingCommission.id, {
         amount,
         percentage,
@@ -57,7 +59,6 @@ export class CommissionService {
       return await this.commissionRepository.findById(existingCommission.id);
     }
 
-    // Create new commission using spread operator
     return await this.commissionRepository.save({
       collaboratorId: scheduledService.collaboratorId,
       scheduledServiceId,
@@ -149,16 +150,14 @@ export class CommissionService {
       await this.commissionRepository.findByIds(commissionIds);
 
     if (commissions.length !== commissionIds.length) {
-      throw new Error('Some commissions were not found');
+      throw new NotFoundException('Some commissions were not found');
     }
 
-    // Update all commissions using repository.update with In()
     await this.commissionRepository.update(
       { id: In(commissionIds) },
       { paid: true },
     );
 
-    // Return updated commissions
     return await this.commissionRepository.findByIds(commissionIds);
   }
 
@@ -167,16 +166,14 @@ export class CommissionService {
       await this.commissionRepository.findByIds(commissionIds);
 
     if (commissions.length !== commissionIds.length) {
-      throw new Error('Some commissions were not found');
+      throw new NotFoundException('Some commissions were not found');
     }
 
-    // Update all commissions using repository.update with In()
     await this.commissionRepository.update(
       { id: In(commissionIds) },
       { paid: false },
     );
 
-    // Return updated commissions
     return await this.commissionRepository.findByIds(commissionIds);
   }
 }

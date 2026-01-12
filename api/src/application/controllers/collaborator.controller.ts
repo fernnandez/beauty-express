@@ -31,9 +31,7 @@ export class CollaboratorController {
   })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   async create(@Body() createDto: CreateCollaboratorDto) {
-    return await this.collaboratorDomainService.createCollaborator({
-      ...createDto,
-    });
+    return await this.collaboratorDomainService.createCollaborator(createDto);
   }
 
   @Get()
@@ -62,9 +60,10 @@ export class CollaboratorController {
     @Param('id') id: string,
     @Body() updateDto: UpdateCollaboratorDto,
   ) {
-    return await this.collaboratorDomainService.updateCollaborator(id, {
-      ...updateDto,
-    });
+    return await this.collaboratorDomainService.updateCollaborator(
+      id,
+      updateDto,
+    );
   }
 
   @Delete(':id')

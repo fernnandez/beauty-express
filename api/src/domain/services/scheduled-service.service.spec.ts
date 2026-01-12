@@ -329,7 +329,6 @@ describe('ScheduledServiceService', () => {
       expect(result).toEqual(updatedScheduledService);
       expect(mockRepository.update).toHaveBeenCalledWith('scheduled-1', {
         price: 70.0,
-        collaboratorId: null,
       });
     });
 
@@ -386,7 +385,6 @@ describe('ScheduledServiceService', () => {
       expect(mockRepository.update).toHaveBeenCalledWith('scheduled-1', {
         serviceId: 'service-2',
         price: 30.0,
-        collaboratorId: null,
       });
     });
 
@@ -559,7 +557,7 @@ describe('ScheduledServiceService', () => {
 
       await expect(
         service.completeScheduledService('scheduled-1'),
-      ).rejects.toThrow('Can only complete pending  scheduled services');
+      ).rejects.toThrow('Can only complete pending scheduled services');
     });
 
     it('should throw error when scheduled service has no collaborator', async () => {

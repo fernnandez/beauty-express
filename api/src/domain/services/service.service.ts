@@ -1,6 +1,13 @@
 import { CreateServiceDto } from '@application/dtos/service/create-service.dto';
 import { UpdateServiceDto } from '@application/dtos/service/update-service.dto';
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { normalizeString } from '../../common/utils/string.util';
+import { VALIDATION_CONSTANTS } from '../../common/constants/validation.constants';
 import { Service } from '../entities/service.entity';
 import { ServiceRepository } from '../repositories/service.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
@@ -12,21 +19,18 @@ export class ServiceService {
     private scheduledServiceRepository: ScheduledServiceRepository,
   ) {}
 
-  async createService(createDto: CreateServiceDto): Promise<Service> {
-    // Business rule: price must be positive
-    if (createDto.defaultPrice <= 0) {
-      throw new Error('Default price must be greater than zero');
+  private validatePrice(price: number): void {
+    if (price <= VALIDATION_CONSTANTS.PRICE.MIN) {
+      throw new BadRequestException(VALIDATION_CONSTANTS.PRICE.MESSAGE);
     }
+  }
 
-    // Trata descrição: se for string vazia, converte para null
-    const description =
-      createDto.description && createDto.description.trim()
-        ? createDto.description.trim()
-        : null;
+  async createService(createDto: CreateServiceDto): Promise<Service> {
+    this.validatePrice(createDto.defaultPrice);
 
     return await this.repository.save({
       ...createDto,
-      description,
+      description: normalizeString(createDto.description),
     });
   }
 
@@ -47,16 +51,19 @@ export class ServiceService {
   ): Promise<Service> {
     const service = await this.repository.findById(id);
     if (!service) {
-      throw new Error('Service not found');
+      throw new NotFoundException('Service not found');
     }
 
     if (updateDto.defaultPrice !== undefined) {
-      if (updateDto.defaultPrice <= 0) {
-        throw new Error('Default price must be greater than zero');
-      }
+      this.validatePrice(updateDto.defaultPrice);
     }
 
-    await this.repository.update(id, updateDto);
+    const updatePayload: Partial<Service> = { ...updateDto };
+    if (updateDto.description !== undefined) {
+      updatePayload.description = normalizeString(updateDto.description);
+    }
+
+    await this.repository.update(id, updatePayload);
 
     return await this.repository.findById(id);
   }
@@ -64,7 +71,7 @@ export class ServiceService {
   async delete(id: string): Promise<void> {
     const service = await this.repository.findById(id);
     if (!service) {
-      throw new Error('Service not found');
+      throw new NotFoundException('Service not found');
     }
 
     // Business rule: cannot delete service if it's being used in scheduled services
@@ -73,7 +80,7 @@ export class ServiceService {
     });
 
     if (scheduledServices.length > 0) {
-      throw new Error(
+      throw new ConflictException(
         'Cannot delete service that is being used in scheduled services. Please cancel or complete the related appointments first.',
       );
     }

@@ -1,5 +1,6 @@
 import { FinancialReportService } from '@domain/services/financial-report.service';
 import {
+  BadRequestException,
   Controller,
   Get,
   HttpCode,
@@ -8,6 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { VALIDATION_CONSTANTS } from '../../common/constants/validation.constants';
 import { FinancialReportDto } from '../dtos/financial-report/financial-report.dto';
 
 @ApiTags('Financial Reports')
@@ -45,14 +47,18 @@ export class FinancialReportController {
     @Query('year', ParseIntPipe) year: number,
     @Query('month', ParseIntPipe) month: number,
   ): Promise<FinancialReportDto> {
-    // Valida o mês
-    if (month < 1 || month > 12) {
-      throw new Error('Month must be between 1 and 12');
+    if (
+      month < VALIDATION_CONSTANTS.MONTH.MIN ||
+      month > VALIDATION_CONSTANTS.MONTH.MAX
+    ) {
+      throw new BadRequestException(VALIDATION_CONSTANTS.MONTH.MESSAGE);
     }
 
-    // Valida o ano
-    if (year < 2000 || year > 2100) {
-      throw new Error('Year must be between 2000 and 2100');
+    if (
+      year < VALIDATION_CONSTANTS.YEAR.MIN ||
+      year > VALIDATION_CONSTANTS.YEAR.MAX
+    ) {
+      throw new BadRequestException(VALIDATION_CONSTANTS.YEAR.MESSAGE);
     }
 
     return await this.financialReportService.getMonthlyReport(year, month);

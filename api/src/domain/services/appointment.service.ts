@@ -1,8 +1,14 @@
 import { CreateAppointmentDto } from '@application/dtos/appointment/create-appointment.dto';
 import { UpdateAppointmentDto } from '@application/dtos/appointment/update-appointment.dto';
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Between } from 'typeorm';
 import { endOfDay, parseDateString, startOfDay } from '../../utils/date.util';
+import { validateTimeRange } from '../../common/utils/time.util';
+import { normalizeString } from '../../common/utils/string.util';
 import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
@@ -23,42 +29,16 @@ export class AppointmentService {
   async createAppointment(
     createDto: CreateAppointmentDto,
   ): Promise<Appointment> {
-    // Business rule: must have at least one service
     if (!createDto.servicos || createDto.servicos.length === 0) {
-      throw new Error('Appointment must have at least one service');
+      throw new BadRequestException(
+        'Appointment must have at least one service',
+      );
     }
 
-    // Business rule: validate time format (HH:MM)
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (
-      !timeRegex.test(createDto.startTime) ||
-      !timeRegex.test(createDto.endTime)
-    ) {
-      throw new Error('Invalid time format. Use HH:MM format');
-    }
+    validateTimeRange(createDto.startTime, createDto.endTime);
 
-    // Business rule: inicio must be before fim
-    const [startTimeHour, startTimeMin] = createDto.startTime
-      .split(':')
-      .map(Number);
-    const [endTimeHour, endTimeMin] = createDto.endTime.split(':').map(Number);
-    const startTimeMinutes = startTimeHour * 60 + startTimeMin;
-    const endTimeMinutes = endTimeHour * 60 + endTimeMin;
-
-    if (startTimeMinutes >= endTimeMinutes) {
-      throw new Error('Start time must be before end time');
-    }
-
-    // Garante que a data seja às 00:00:00 no timezone America/Sao_Paulo
     const normalizedDate = parseDateString(createDto.date);
 
-    // Trata observações: se for string vazia ou undefined, converte para null
-    const observations =
-      createDto.observations && createDto.observations.trim()
-        ? createDto.observations.trim()
-        : null;
-
-    // Create appointment using spread operator
     const savedAppointment = await this.appointmentRepository.save({
       clientName: createDto.clientName,
       clientPhone: createDto.clientPhone,
@@ -66,18 +46,10 @@ export class AppointmentService {
       startTime: createDto.startTime,
       endTime: createDto.endTime,
       status: AppointmentStatus.SCHEDULED,
-      observations: observations,
+      observations: normalizeString(createDto.observations),
     });
 
-    // Create scheduled services
     for (const servico of createDto.servicos) {
-      // Business rule: service must exist
-      const service = await this.serviceRepository.findById(servico.serviceId);
-      if (!service) {
-        throw new Error(`Service ${servico.serviceId} not found`);
-      }
-
-      // Create scheduled service
       await this.scheduledServiceService.createScheduledService(
         savedAppointment.id,
         {
@@ -88,7 +60,6 @@ export class AppointmentService {
       );
     }
 
-    // Return appointment with scheduled services
     return await this.findById(savedAppointment.id);
   }
 
@@ -139,35 +110,19 @@ export class AppointmentService {
     const appointment =
       await this.appointmentRepository.findById(appointmentId);
     if (!appointment) {
-      throw new Error('Appointment not found');
+      throw new NotFoundException('Appointment not found');
     }
 
     if (appointment.status !== AppointmentStatus.SCHEDULED) {
-      throw new Error('Can only update scheduled appointments');
+      throw new BadRequestException('Can only update scheduled appointments');
     }
 
-    // Business rule: validate time format if provided
     if (updateDto.startTime || updateDto.endTime) {
       const startTime = updateDto.startTime ?? appointment.startTime;
       const endTime = updateDto.endTime ?? appointment.endTime;
-
-      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-      if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
-        throw new Error('Invalid time format. Use HH:MM format');
-      }
-
-      // Business rule: inicio must be before fim
-      const [startTimeHour, startTimeMin] = startTime.split(':').map(Number);
-      const [endTimeHour, endTimeMin] = endTime.split(':').map(Number);
-      const startTimeMinutes = startTimeHour * 60 + startTimeMin;
-      const endTimeMinutes = endTimeHour * 60 + endTimeMin;
-
-      if (startTimeMinutes >= endTimeMinutes) {
-        throw new Error('Start time must be before end time');
-      }
+      validateTimeRange(startTime, endTime);
     }
 
-    // Prepare update payload
     const updatePayload: Partial<Appointment> = {};
 
     if (updateDto.clientName !== undefined) {
@@ -177,7 +132,6 @@ export class AppointmentService {
       updatePayload.clientPhone = updateDto.clientPhone;
     }
     if (updateDto.date !== undefined) {
-      // Garante que a data seja às 00:00:00 no timezone America/Sao_Paulo
       updatePayload.date = parseDateString(updateDto.date);
     }
     if (updateDto.startTime !== undefined) {
@@ -187,15 +141,9 @@ export class AppointmentService {
       updatePayload.endTime = updateDto.endTime;
     }
     if (updateDto.observations !== undefined) {
-      console.log(updateDto.observations);
-      // Trata observações: se for string vazia, converte para null
-      updatePayload.observations =
-        updateDto.observations && updateDto.observations.trim()
-          ? updateDto.observations.trim()
-          : null;
+      updatePayload.observations = normalizeString(updateDto.observations);
     }
 
-    // Update appointment using repository.update
     if (Object.keys(updatePayload).length > 0) {
       await this.appointmentRepository.update(appointmentId, updatePayload);
     }
@@ -206,39 +154,38 @@ export class AppointmentService {
   async completeAppointment(appointmentId: string): Promise<Appointment> {
     const appointment = await this.findById(appointmentId);
     if (!appointment) {
-      throw new Error('Appointment not found');
+      throw new NotFoundException('Appointment not found');
     }
 
     const scheduledServices =
       await this.scheduledServiceRepository.findByAppointmentId(appointmentId);
 
     if (scheduledServices.length === 0) {
-      throw new Error('Appointment must have at least one scheduled service');
+      throw new BadRequestException(
+        'Appointment must have at least one scheduled service',
+      );
     }
 
-    // Filtra apenas serviços não cancelados
     const nonCancelledServices = scheduledServices.filter(
       (s) => s.status !== 'cancelado',
     );
 
     if (nonCancelledServices.length === 0) {
-      throw new Error(
+      throw new BadRequestException(
         'Appointment must have at least one non-cancelled service',
       );
     }
 
-    // Verifica se todos os serviços não cancelados têm colaborador
     const allHaveCollaborator = nonCancelledServices.every(
       (s) => s.collaboratorId !== null && s.collaboratorId !== undefined,
     );
 
     if (!allHaveCollaborator) {
-      throw new Error(
+      throw new BadRequestException(
         'All scheduled services must have a collaborator assigned before completing the appointment',
       );
     }
 
-    // Conclui automaticamente todos os serviços pendentes
     for (const service of nonCancelledServices) {
       if (service.status === 'pendente') {
         await this.scheduledServiceService.completeScheduledService(service.id);
@@ -258,22 +205,20 @@ export class AppointmentService {
   async cancelAppointment(appointmentId: string): Promise<Appointment> {
     const appointment = await this.findById(appointmentId);
     if (!appointment) {
-      throw new Error('Appointment not found');
+      throw new NotFoundException('Appointment not found');
     }
 
     if (appointment.status === AppointmentStatus.COMPLETED) {
-      throw new Error('Cannot cancel completed appointments');
+      throw new BadRequestException('Cannot cancel completed appointments');
     }
 
     const scheduledServices =
       await this.scheduledServiceRepository.findByAppointmentId(appointmentId);
 
-    // Filtra apenas serviços não cancelados
     const nonCancelledServices = scheduledServices.filter(
       (s) => s.status !== 'cancelado',
     );
 
-    // Cancela automaticamente todos os serviços não cancelados
     for (const scheduledService of nonCancelledServices) {
       await this.scheduledServiceService.cancelScheduledService(
         scheduledService.id,
@@ -288,8 +233,6 @@ export class AppointmentService {
     const scheduledServices =
       await this.scheduledServiceRepository.findByAppointmentId(appointmentId);
 
-    // Soma os preços reais dos serviços agendados (não o preço padrão)
-    // Exclui serviços cancelados do cálculo do valor total
     return scheduledServices
       .filter((scheduledService) => scheduledService.status !== 'cancelado')
       .reduce(

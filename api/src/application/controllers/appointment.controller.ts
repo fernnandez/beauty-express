@@ -11,6 +11,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { validateDateFormat } from '../../common/utils/date-validation.util';
 import { parseDateString } from '../../utils/date.util';
 import { CreateAppointmentDto } from '../dtos/appointment/create-appointment.dto';
 import { UpdateAppointmentDto } from '../dtos/appointment/update-appointment.dto';
@@ -29,16 +30,13 @@ export class AppointmentController {
   })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   async create(@Body() createDto: CreateAppointmentDto) {
-    return await this.appointmentDomainService.createAppointment({
-      ...createDto,
-    });
+    return await this.appointmentDomainService.createAppointment(createDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get appointments by date (defaults to today)' })
   @ApiResponse({ status: 200, description: 'List of appointments' })
   async findAll(@Query('date') date?: string) {
-    // Se não houver parâmetro de data, usa o dia atual
     if (!date) {
       const today = new Date();
       const todayString = today.toISOString().split('T')[0];
@@ -46,10 +44,7 @@ export class AppointmentController {
       return await this.appointmentDomainService.findByDate(dateObj);
     }
 
-    // Valida e converte string yyyy-mm-dd para Date às 00:00:00 usando Luxon
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      throw new Error('Invalid date format. Expected yyyy-mm-dd');
-    }
+    validateDateFormat(date);
     const dateObj = parseDateString(date);
     return await this.appointmentDomainService.findByDate(dateObj);
   }
@@ -87,9 +82,7 @@ export class AppointmentController {
     @Param('id') id: string,
     @Body() updateDto: UpdateAppointmentDto,
   ) {
-    return await this.appointmentDomainService.updateAppointment(id, {
-      ...updateDto,
-    });
+    return await this.appointmentDomainService.updateAppointment(id, updateDto);
   }
 
   @Put(':id/complete')

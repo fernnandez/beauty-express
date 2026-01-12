@@ -1,6 +1,10 @@
 import { CreateScheduledServiceDto } from '@application/dtos/scheduled-service/create-scheduled-service.dto';
 import { UpdateScheduledServiceDto } from '@application/dtos/scheduled-service/update-scheduled-service.dto';
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Commission } from '../entities/commission.entity';
 import {
   ScheduledService,
@@ -20,35 +24,43 @@ export class ScheduledServiceService {
     private commissionRepository: CommissionRepository,
   ) {}
 
+  private async validateServiceExists(serviceId: string): Promise<void> {
+    const service = await this.serviceRepository.findById(serviceId);
+    if (!service) {
+      throw new NotFoundException('Service not found');
+    }
+  }
+
+  private async validateCollaboratorActive(
+    collaboratorId: string,
+  ): Promise<void> {
+    const collaborator =
+      await this.collaboratorRepository.findById(collaboratorId);
+    if (!collaborator) {
+      throw new NotFoundException('Collaborator not found');
+    }
+    if (!collaborator.isActive) {
+      throw new BadRequestException('Collaborator is not active');
+    }
+  }
+
   async createScheduledService(
     appointmentId: string,
     createDto: CreateScheduledServiceDto,
   ): Promise<ScheduledService> {
-    // Business rule: service must exist
-    const service = await this.serviceRepository.findById(createDto.serviceId);
-    if (!service) {
-      throw new Error('Service not found');
-    }
+    await this.validateServiceExists(createDto.serviceId);
 
-    // Business rule: if collaborator is provided, it must exist and be active
     if (createDto.collaboratorId) {
-      const collaborator = await this.collaboratorRepository.findById(
-        createDto.collaboratorId,
-      );
-      if (!collaborator) {
-        throw new Error('Collaborator not found');
-      }
-      if (!collaborator.isActive) {
-        throw new Error('Collaborator is not active');
-      }
+      await this.validateCollaboratorActive(createDto.collaboratorId);
     }
 
-    // Create scheduled service using spread operator
+    const service = await this.serviceRepository.findById(createDto.serviceId);
+
     return await this.scheduledServiceRepository.save({
       appointmentId,
       serviceId: createDto.serviceId,
       collaboratorId: createDto.collaboratorId,
-      price: createDto.price ?? service.defaultPrice,
+      price: createDto.price ?? service!.defaultPrice,
       status: ScheduledServiceStatus.PENDING,
     });
   }
@@ -77,57 +89,43 @@ export class ScheduledServiceService {
   ): Promise<ScheduledService> {
     const scheduledService = await this.scheduledServiceRepository.findById(id);
     if (!scheduledService) {
-      throw new Error('ScheduledService not found');
+      throw new NotFoundException('ScheduledService not found');
     }
 
     if (scheduledService.status !== ScheduledServiceStatus.PENDING) {
-      throw new Error('Can only update pending scheduled services');
+      throw new BadRequestException(
+        'Can only update pending scheduled services',
+      );
     }
 
     if (updateDto.serviceId) {
+      await this.validateServiceExists(updateDto.serviceId);
       const service = await this.serviceRepository.findById(
         updateDto.serviceId,
       );
-      if (!service) {
-        throw new Error('Service not found');
-      }
       if (updateDto.price === undefined) {
-        updateDto.price = service.defaultPrice;
+        updateDto.price = service!.defaultPrice;
       }
     }
 
-    if (updateDto.collaboratorId !== undefined) {
-      if (updateDto.collaboratorId) {
-        const collaborator = await this.collaboratorRepository.findById(
-          updateDto.collaboratorId,
-        );
-        if (!collaborator) {
-          throw new Error('Collaborator not found');
-        }
-        if (!collaborator.isActive) {
-          throw new Error('Collaborator is not active');
-        }
-      }
+    if (updateDto.collaboratorId !== undefined && updateDto.collaboratorId) {
+      await this.validateCollaboratorActive(updateDto.collaboratorId);
     }
 
-    // Prepare update payload
     const updatePayload: Partial<ScheduledService> = {};
 
     if (updateDto.serviceId !== undefined) {
       updatePayload.serviceId = updateDto.serviceId;
     }
     if (updateDto.collaboratorId !== undefined) {
-      updatePayload.collaboratorId = updateDto.collaboratorId || undefined;
+      updatePayload.collaboratorId = updateDto.collaboratorId || null;
     }
     if (updateDto.price !== undefined) {
       updatePayload.price = updateDto.price;
     }
 
     if (Object.keys(updatePayload).length > 0) {
-      await this.scheduledServiceRepository.update(id, {
-        ...updatePayload,
-        collaboratorId: updateDto.collaboratorId || null,
-      });
+      await this.scheduledServiceRepository.update(id, updatePayload);
     }
 
     return await this.scheduledServiceRepository.findById(id);
@@ -136,15 +134,17 @@ export class ScheduledServiceService {
   async completeScheduledService(id: string): Promise<ScheduledService> {
     const scheduledService = await this.scheduledServiceRepository.findById(id);
     if (!scheduledService) {
-      throw new Error('ScheduledService not found');
+      throw new NotFoundException('ScheduledService not found');
     }
 
     if (scheduledService.status !== ScheduledServiceStatus.PENDING) {
-      throw new Error('Can only complete pending  scheduled services');
+      throw new BadRequestException(
+        'Can only complete pending scheduled services',
+      );
     }
 
     if (!scheduledService.collaboratorId) {
-      throw new Error(
+      throw new BadRequestException(
         'ScheduledService must have a collaborator assigned to be completed',
       );
     }
@@ -153,7 +153,6 @@ export class ScheduledServiceService {
     const savedService =
       await this.scheduledServiceRepository.save(scheduledService);
 
-    // Criar comissão automaticamente ao concluir o serviço
     await this.createCommissionForService(savedService);
 
     return savedService;
@@ -162,7 +161,6 @@ export class ScheduledServiceService {
   private async createCommissionForService(
     scheduledService: ScheduledService,
   ): Promise<Commission> {
-    // Verificar se já existe comissão para este serviço
     const existingCommission =
       await this.commissionRepository.findByScheduledServiceId(
         scheduledService.id,
@@ -171,40 +169,35 @@ export class ScheduledServiceService {
       return existingCommission;
     }
 
-    // Buscar colaborador para obter o percentual
     const collaborator = await this.collaboratorRepository.findById(
       scheduledService.collaboratorId!,
     );
     if (!collaborator) {
-      throw new Error('Collaborator not found');
+      throw new NotFoundException('Collaborator not found');
     }
 
-    // Calcular comissão
     const percentage = collaborator.commissionPercentage;
     const amount = (Number(scheduledService.price) * percentage) / 100;
 
-    // Criar comissão com status "awaiting payment" (paid = false) usando spread operator
     return await this.commissionRepository.save({
       collaboratorId: scheduledService.collaboratorId!,
       scheduledServiceId: scheduledService.id,
       amount,
       percentage,
-      paid: false, // Aguardando pagamento
+      paid: false,
     });
   }
 
   async cancelScheduledService(id: string): Promise<ScheduledService> {
     const scheduledService = await this.scheduledServiceRepository.findById(id);
     if (!scheduledService) {
-      throw new Error('ScheduledService not found');
+      throw new NotFoundException('ScheduledService not found');
     }
 
-    // Se já estiver cancelado, retorna sem fazer nada
     if (scheduledService.status === ScheduledServiceStatus.CANCELLED) {
       return scheduledService;
     }
 
-    // Sempre marca como cancelado, nunca exclui fisicamente (mantém histórico)
     scheduledService.status = ScheduledServiceStatus.CANCELLED;
     return await this.scheduledServiceRepository.save(scheduledService);
   }
