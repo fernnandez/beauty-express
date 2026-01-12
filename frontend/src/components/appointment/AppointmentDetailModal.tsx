@@ -181,9 +181,7 @@ export function AppointmentDetailModal({
       notifications.show({
         title: "Erro",
         message:
-          error instanceof Error
-            ? error.message
-            : "Erro ao adicionar serviço",
+          error instanceof Error ? error.message : "Erro ao adicionar serviço",
         color: "red",
       });
     }
@@ -226,9 +224,7 @@ export function AppointmentDetailModal({
       notifications.show({
         title: "Erro",
         message:
-          error instanceof Error
-            ? error.message
-            : "Erro ao atualizar serviço",
+          error instanceof Error ? error.message : "Erro ao atualizar serviço",
         color: "red",
       });
     }
@@ -256,9 +252,7 @@ export function AppointmentDetailModal({
       notifications.show({
         title: "Erro",
         message:
-          error instanceof Error
-            ? error.message
-            : "Erro ao remover serviço",
+          error instanceof Error ? error.message : "Erro ao remover serviço",
         color: "red",
       });
     }
@@ -276,6 +270,7 @@ export function AppointmentDetailModal({
       onClose={onClose}
       title="Detalhes do Agendamento"
       size="lg"
+      zIndex={200}
     >
       <Stack gap="md">
         <Group justify="space-between">
@@ -358,80 +353,80 @@ export function AppointmentDetailModal({
         {/* Lista de Serviços Agendados */}
         <Stack gap="sm">
           {appointment.scheduledServices?.map((service: ScheduledService) => (
-              <Card key={service.id} withBorder padding="md" radius="md">
-                <Stack gap="sm">
-                  <Group justify="space-between">
-                    <Group gap="xs">
-                      <IconScissors size={18} />
-                      <div>
-                        <Text size="sm" fw={500}>
-                          {service.service?.name || "-"}
+            <Card key={service.id} withBorder padding="md" radius="md">
+              <Stack gap="sm">
+                <Group justify="space-between">
+                  <Group gap="xs">
+                    <IconScissors size={18} />
+                    <div>
+                      <Text size="sm" fw={500}>
+                        {service.service?.name || "-"}
+                      </Text>
+                      {service.service?.description && (
+                        <Text size="xs" c="dimmed">
+                          {service.service.description}
                         </Text>
-                        {service.service?.description && (
-                          <Text size="xs" c="dimmed">
-                            {service.service.description}
-                          </Text>
-                        )}
-                      </div>
-                    </Group>
-                    <Group gap="xs">
-                      <Badge
-                        color={serviceStatusColors[service.status]}
-                        size="sm"
-                      >
-                        {serviceStatusLabels[service.status]}
-                      </Badge>
-                      {appointment.status === AppointmentStatus.SCHEDULED &&
-                        service.status === ScheduledServiceStatus.PENDING && (
-                          <>
-                            <ActionIcon
-                              color="blue"
-                              variant="light"
-                              size="sm"
-                              onClick={() => handleEditService(service)}
-                              title="Editar serviço"
-                            >
-                              <IconEdit size={16} />
-                            </ActionIcon>
-                            <ActionIcon
-                              color="red"
-                              variant="light"
-                              size="sm"
-                              onClick={() => handleRemoveService(service.id)}
-                              disabled={!canRemoveService}
-                              title={
-                                canRemoveService
-                                  ? "Remover serviço"
-                                  : "Não é possível remover o último serviço"
-                              }
-                            >
-                              <IconTrash size={16} />
-                            </ActionIcon>
-                          </>
-                        )}
-                    </Group>
+                      )}
+                    </div>
                   </Group>
-
-                  <Group gap="md">
-                    <Group gap={4}>
-                      <IconCurrencyDollar size={14} />
-                      <Text size="xs" fw={500}>
-                        {formatPrice(service.price)}
-                      </Text>
-                    </Group>
+                  <Group gap="xs">
+                    <Badge
+                      color={serviceStatusColors[service.status]}
+                      size="sm"
+                    >
+                      {serviceStatusLabels[service.status]}
+                    </Badge>
+                    {appointment.status === AppointmentStatus.SCHEDULED &&
+                      service.status === ScheduledServiceStatus.PENDING && (
+                        <>
+                          <ActionIcon
+                            color="blue"
+                            variant="light"
+                            size="sm"
+                            onClick={() => handleEditService(service)}
+                            title="Editar serviço"
+                          >
+                            <IconEdit size={16} />
+                          </ActionIcon>
+                          <ActionIcon
+                            color="red"
+                            variant="light"
+                            size="sm"
+                            onClick={() => handleRemoveService(service.id)}
+                            disabled={!canRemoveService}
+                            title={
+                              canRemoveService
+                                ? "Remover serviço"
+                                : "Não é possível remover o último serviço"
+                            }
+                          >
+                            <IconTrash size={16} />
+                          </ActionIcon>
+                        </>
+                      )}
                   </Group>
+                </Group>
 
-                  {service.collaborator && (
-                    <Group gap="xs">
-                      <IconUser size={14} />
-                      <Text size="xs" c="dimmed">
-                        Colaborador: {service.collaborator.name}
-                      </Text>
-                    </Group>
-                  )}
-                </Stack>
-              </Card>
-            ))}
+                <Group gap="md">
+                  <Group gap={4}>
+                    <IconCurrencyDollar size={14} />
+                    <Text size="xs" fw={500}>
+                      {formatPrice(service.price)}
+                    </Text>
+                  </Group>
+                </Group>
+
+                {service.collaborator && (
+                  <Group gap="xs">
+                    <IconUser size={14} />
+                    <Text size="xs" c="dimmed">
+                      Colaborador: {service.collaborator.name}
+                    </Text>
+                  </Group>
+                )}
+              </Stack>
+            </Card>
+          ))}
 
           {appointment.status === AppointmentStatus.SCHEDULED && (
             <Button
@@ -522,6 +517,7 @@ export function AppointmentDetailModal({
         }}
         title="Adicionar Serviço"
         size="md"
+        zIndex={500}
       >
         <Stack gap="md">
           <Select
@@ -531,6 +527,7 @@ export function AppointmentDetailModal({
             leftSection={<IconScissors size={16} />}
             data={services?.map(formatServiceOption) || []}
             searchable
+            comboboxProps={{ zIndex: 600 }}
             value={newService.serviceId}
             onChange={(value) =>
               setNewService({ ...newService, serviceId: value || "" })
@@ -549,6 +546,7 @@ export function AppointmentDetailModal({
                 }))}
                 searchable
                 clearable
+                comboboxProps={{ zIndex: 600 }}
                 value={newService.collaboratorId || null}
                 onChange={(value) =>
                   setNewService({
@@ -620,6 +618,7 @@ export function AppointmentDetailModal({
         }}
         title="Editar Serviço"
         size="md"
+        zIndex={500}
       >
         {editingService && (
           <Stack gap="md">
@@ -637,6 +636,7 @@ export function AppointmentDetailModal({
               }))}
               searchable
               clearable
+              comboboxProps={{ zIndex: 600 }}
               value={editServiceData.collaboratorId || null}
               onChange={(value) =>
                 setEditServiceData({

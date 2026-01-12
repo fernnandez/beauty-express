@@ -1,17 +1,6 @@
-import {
-  Button,
-  Container,
-  Group,
-  Tabs,
-  Text,
-  Title,
-} from "@mantine/core";
+import { Button, Container, Group, Tabs, Text, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import {
-  IconCalendar,
-  IconPlus,
-  IconTable,
-} from "@tabler/icons-react";
+import { IconCalendar, IconPlus, IconTable } from "@tabler/icons-react";
 import { useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { AppointmentCreateModal } from "../components/appointment/AppointmentCreateModal";
@@ -24,6 +13,7 @@ import {
   useCancelAppointment,
   useCompleteAppointment,
 } from "../hooks/useAppointments";
+import { appointmentService } from "../services/appointment.service";
 import type { Appointment } from "../types";
 
 export function Appointments() {
@@ -32,7 +22,6 @@ export function Appointments() {
     new Date().toISOString().split("T")[0]
   );
 
-  // Busca apenas os agendamentos do dia selecionado (filtro no backend)
   const { data: appointments, isLoading } = useAppointments(selectedDate);
   const completeMutation = useCompleteAppointment();
   const cancelMutation = useCancelAppointment();
@@ -63,6 +52,61 @@ export function Appointments() {
   const confirmComplete = async () => {
     if (!selectedAppointment) return;
 
+    // Busca os dados atualizados do agendamento antes de validar
+    const updatedAppointment = await appointmentService.findById(
+      selectedAppointment.id
+    );
+
+    if (!updatedAppointment) {
+      notifications.show({
+        title: "Erro",
+        message: "Agendamento não encontrado",
+        color: "red",
+      });
+      setCompleteModalOpened(false);
+      setDetailModalOpened(true);
+      return;
+    }
+
+    // Atualiza o selectedAppointment com os dados atualizados
+    setSelectedAppointment(updatedAppointment);
+
+    // Validação: verificar se todos os serviços não cancelados têm colaborador
+    const nonCancelledServices =
+      updatedAppointment.scheduledServices?.filter(
+        (s) => s.status !== "cancelado"
+      ) || [];
+
+    if (nonCancelledServices.length === 0) {
+      notifications.show({
+        title: "Erro",
+        message: "O agendamento deve ter pelo menos um serviço não cancelado",
+        color: "red",
+      });
+      setCompleteModalOpened(false);
+      // Reabre o modal de detalhes mesmo em caso de erro
+      setDetailModalOpened(true);
+      return;
+    }
+
+    const servicesWithoutCollaborator = nonCancelledServices.filter(
+      (s) => !s.collaboratorId
+    );
+
+    if (servicesWithoutCollaborator.length > 0) {
+      notifications.show({
+        title: "Erro",
+        message: `Os seguintes serviços não têm colaborador associado: ${servicesWithoutCollaborator
+          .map((s) => s.service?.name || "Serviço")
+          .join(", ")}`,
+        color: "red",
+      });
+      setCompleteModalOpened(false);
+      // Reabre o modal de detalhes mesmo em caso de erro
+      setDetailModalOpened(true);
+      return;
+    }
+
     try {
       await completeMutation.mutateAsync(selectedAppointment.id);
       notifications.show({
@@ -71,7 +115,8 @@ export function Appointments() {
         color: "green",
       });
       setCompleteModalOpened(false);
-      setSelectedAppointment(null);
+      // Reabre o modal de detalhes após a conclusão
+      setDetailModalOpened(true);
     } catch (error: unknown) {
       notifications.show({
         title: "Erro",
@@ -81,6 +126,8 @@ export function Appointments() {
             : "Erro ao concluir agendamento",
         color: "red",
       });
+      // Reabre o modal de detalhes mesmo em caso de erro
+      setDetailModalOpened(true);
     }
   };
 
@@ -94,12 +141,20 @@ export function Appointments() {
         message: "Agendamento cancelado com sucesso!",
         color: "green",
       });
-    } catch {
+      setCancelModalOpened(false);
+      // Reabre o modal de detalhes após o cancelamento
+      setDetailModalOpened(true);
+    } catch (error: unknown) {
       notifications.show({
         title: "Erro",
-        message: "Erro ao cancelar agendamento",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Erro ao cancelar agendamento",
         color: "red",
       });
+      // Reabre o modal de detalhes mesmo em caso de erro
+      setDetailModalOpened(true);
     }
   };
 
@@ -196,15 +251,17 @@ export function Appointments() {
         }}
         appointment={selectedAppointment}
         onComplete={() => {
+          // Fecha o modal de detalhes e abre o modal de confirmação
           setDetailModalOpened(false);
           if (selectedAppointment) handleComplete(selectedAppointment);
         }}
         onCancel={() => {
+          // Fecha o modal de detalhes e abre o modal de confirmação
           setDetailModalOpened(false);
           if (selectedAppointment) handleCancel(selectedAppointment);
         }}
         onEdit={() => {
-          setDetailModalOpened(false);
+          // Não fecha o modal de detalhes, apenas abre o modal de edição
           if (selectedAppointment) handleEdit(selectedAppointment);
         }}
       />
@@ -213,7 +270,8 @@ export function Appointments() {
         opened={editModalOpened}
         onClose={() => {
           setEditModalOpened(false);
-          setSelectedAppointment(null);
+          // Não reseta o selectedAppointment para manter o modal de detalhes aberto
+          // O appointment será atualizado automaticamente via query invalidation
         }}
         appointment={selectedAppointment}
       />
@@ -222,7 +280,10 @@ export function Appointments() {
         opened={completeModalOpened}
         onClose={() => {
           setCompleteModalOpened(false);
-          setSelectedAppointment(null);
+          // Reabre o modal de detalhes ao cancelar a confirmação
+          if (selectedAppointment) {
+            setDetailModalOpened(true);
+          }
         }}
         onConfirm={confirmComplete}
         title="Concluir Agendamento"
@@ -236,7 +297,10 @@ export function Appointments() {
         opened={cancelModalOpened}
         onClose={() => {
           setCancelModalOpened(false);
-          setSelectedAppointment(null);
+          // Reabre o modal de detalhes ao cancelar a confirmação
+          if (selectedAppointment) {
+            setDetailModalOpened(true);
+          }
         }}
         onConfirm={confirmCancel}
         title="Cancelar Agendamento"

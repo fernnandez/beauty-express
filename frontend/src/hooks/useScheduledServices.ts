@@ -39,7 +39,7 @@ export const useCreateScheduledService = () => {
       appointmentId: string;
       data: CreateScheduledServiceDto;
     }) => scheduledServiceService.create(appointmentId, data),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-services"] });
       queryClient.invalidateQueries({
         queryKey: ["scheduled-services", "appointment", data.appointmentId],
@@ -47,6 +47,10 @@ export const useCreateScheduledService = () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       if (data.appointmentId) {
         queryClient.invalidateQueries({
+          queryKey: ["appointments", data.appointmentId],
+        });
+        // Força refetch imediato para garantir dados atualizados
+        await queryClient.refetchQueries({
           queryKey: ["appointments", data.appointmentId],
         });
       }
@@ -65,7 +69,7 @@ export const useUpdateScheduledService = () => {
       id: string;
       data: UpdateScheduledServiceDto;
     }) => scheduledServiceService.update(id, data),
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-services"] });
       queryClient.invalidateQueries({
         queryKey: ["scheduled-services", variables.id],
@@ -78,6 +82,10 @@ export const useUpdateScheduledService = () => {
         });
         queryClient.invalidateQueries({
           queryKey: ["scheduled-services", "appointment", data.appointmentId],
+        });
+        // Força refetch imediato para garantir dados atualizados
+        await queryClient.refetchQueries({
+          queryKey: ["appointments", data.appointmentId],
         });
       }
     },
@@ -107,13 +115,17 @@ export const useCancelScheduledService = () => {
 
   return useMutation({
     mutationFn: (id: string) => scheduledServiceService.cancel(id),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-services"] });
       queryClient.invalidateQueries({ queryKey: ["scheduled-services", data.id] });
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       // Invalida a query específica do appointment que contém este serviço
       if (data.appointmentId) {
         queryClient.invalidateQueries({ queryKey: ["appointments", data.appointmentId] });
+        // Força refetch imediato para garantir dados atualizados
+        await queryClient.refetchQueries({
+          queryKey: ["appointments", data.appointmentId],
+        });
       }
     },
   });

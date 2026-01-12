@@ -164,6 +164,7 @@ export function AppointmentEditModal({
       onClose={handleClose}
       title="Editar Agendamento"
       size="xl"
+      zIndex={300}
     >
       <form onSubmit={form.onSubmit(handleSubmit)}>
         <Stack gap="lg">

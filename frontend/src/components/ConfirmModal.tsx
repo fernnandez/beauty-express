@@ -35,6 +35,7 @@ export function ConfirmModal({
       title={title}
       size="sm"
       centered
+      zIndex={300}
     >
       <Text mb="lg">{message}</Text>
 
