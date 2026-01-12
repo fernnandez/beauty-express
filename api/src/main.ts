@@ -36,22 +36,6 @@ async function bootstrap() {
   // Configurar prefixo global para todas as rotas da API
   app.setGlobalPrefix('api');
 
-  // Enable CORS - deve ser antes do listen
-  // Permite todas as origens quando rodando dentro do Electron
-  const isElectron =
-    process.env.ELECTRON === 'true' || process.env.NODE_ENV === 'production';
-  app.enableCors({
-    origin: isElectron
-      ? true
-      : [
-          process.env.FRONTEND_URL || 'http://localhost:3000',
-          'http://localhost:5173',
-        ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    credentials: true,
-  });
-
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
