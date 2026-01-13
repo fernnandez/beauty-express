@@ -115,69 +115,41 @@ export class CommissionService {
       return await this.commissionRepository.findByFilters(filters);
     }
 
-    // Usa QueryBuilder para ordenação correta por relação aninhada
-    return await this.commissionRepository
+    return await this.createCommissionQueryBuilder().getMany();
+  }
+
+  private createCommissionQueryBuilder() {
+    return this.commissionRepository
       .createQueryBuilder('commission')
       .leftJoinAndSelect('commission.collaborator', 'collaborator')
       .leftJoinAndSelect('commission.scheduledService', 'scheduledService')
       .leftJoinAndSelect('scheduledService.service', 'service')
       .leftJoinAndSelect('scheduledService.appointment', 'appointment')
       .orderBy('appointment.date', 'DESC')
-      .addOrderBy('appointment.startTime', 'DESC')
-      .getMany();
+      .addOrderBy('appointment.startTime', 'DESC');
   }
 
-  async findById(id: string): Promise<Commission | null> {
-    return await this.commissionRepository.findById(id);
-  }
+  private async markCommissionsStatus(
+    commissionIds: string[],
+    paid: boolean,
+  ): Promise<Commission[]> {
+    const commissions =
+      await this.commissionRepository.findByIds(commissionIds);
 
-  async findByCollaboratorId(collaboratorId: string): Promise<Commission[]> {
-    return await this.commissionRepository.findByCollaboratorId(collaboratorId);
-  }
+    if (commissions.length !== commissionIds.length) {
+      throw new NotFoundException('Some commissions were not found');
+    }
 
-  async findPending(): Promise<Commission[]> {
-    // Usa QueryBuilder para ordenação correta por relação aninhada
-    return await this.commissionRepository
-      .createQueryBuilder('commission')
-      .leftJoinAndSelect('commission.collaborator', 'collaborator')
-      .leftJoinAndSelect('commission.scheduledService', 'scheduledService')
-      .leftJoinAndSelect('scheduledService.service', 'service')
-      .leftJoinAndSelect('scheduledService.appointment', 'appointment')
-      .where('commission.paid = :paid', { paid: false })
-      .orderBy('appointment.date', 'DESC')
-      .addOrderBy('appointment.startTime', 'DESC')
-      .getMany();
+    await this.commissionRepository.update({ id: In(commissionIds) }, { paid });
+
+    return await this.commissionRepository.findByIds(commissionIds);
   }
 
   async markAsPaid(commissionIds: string[]): Promise<Commission[]> {
-    const commissions =
-      await this.commissionRepository.findByIds(commissionIds);
-
-    if (commissions.length !== commissionIds.length) {
-      throw new NotFoundException('Some commissions were not found');
-    }
-
-    await this.commissionRepository.update(
-      { id: In(commissionIds) },
-      { paid: true },
-    );
-
-    return await this.commissionRepository.findByIds(commissionIds);
+    return this.markCommissionsStatus(commissionIds, true);
   }
 
   async markAsUnpaid(commissionIds: string[]): Promise<Commission[]> {
-    const commissions =
-      await this.commissionRepository.findByIds(commissionIds);
-
-    if (commissions.length !== commissionIds.length) {
-      throw new NotFoundException('Some commissions were not found');
-    }
-
-    await this.commissionRepository.update(
-      { id: In(commissionIds) },
-      { paid: false },
-    );
-
-    return await this.commissionRepository.findByIds(commissionIds);
+    return this.markCommissionsStatus(commissionIds, false);
   }
 }

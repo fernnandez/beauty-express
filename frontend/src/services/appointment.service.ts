@@ -41,11 +41,4 @@ export const appointmentService = {
     const response = await api.put<Appointment>(`/appointments/${id}/cancel`);
     return response.data;
   },
-
-  getTotalPrice: async (id: string): Promise<number> => {
-    const response = await api.get<{ totalPrice: number }>(
-      `/appointments/${id}/total-price`,
-    );
-    return response.data.totalPrice;
-  },
 };

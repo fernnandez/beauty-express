@@ -1,9 +1,7 @@
 import {
   Controller,
   Get,
-  Post,
   Put,
-  Param,
   Body,
   Query,
   HttpCode,
@@ -19,42 +17,6 @@ import { MarkCommissionsDto } from '../dtos/commission/mark-commissions.dto';
 @Controller('commissions')
 export class CommissionController {
   constructor(private readonly commissionDomainService: CommissionService) {}
-
-  @Post('calculate/scheduled-service/:scheduledServiceId')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({
-    summary: 'Calculate commission for a completed scheduled service',
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Commission calculated successfully',
-  })
-  @ApiResponse({ status: 400, description: 'Invalid service status' })
-  @ApiResponse({ status: 404, description: 'Scheduled service not found' })
-  async calculateForScheduledService(
-    @Param('scheduledServiceId') scheduledServiceId: string,
-  ) {
-    return await this.commissionDomainService.calculateCommission(
-      scheduledServiceId,
-    );
-  }
-
-  @Post('calculate/appointment/:appointmentId')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({
-    summary:
-      'Calculate commissions for all completed services in an appointment',
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Commissions calculated successfully',
-  })
-  @ApiResponse({ status: 404, description: 'Appointment not found' })
-  async calculateForAppointment(@Param('appointmentId') appointmentId: string) {
-    return await this.commissionDomainService.calculateCommissionsForAppointment(
-      appointmentId,
-    );
-  }
 
   @Get()
   @ApiOperation({ summary: 'Get all commissions with optional filters' })
@@ -117,30 +79,6 @@ export class CommissionController {
     return await this.commissionDomainService.findAll(
       Object.keys(filters).length > 0 ? filters : undefined,
     );
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get a commission by ID' })
-  @ApiResponse({ status: 200, description: 'Commission found' })
-  @ApiResponse({ status: 404, description: 'Commission not found' })
-  async findOne(@Param('id') id: string) {
-    return await this.commissionDomainService.findById(id);
-  }
-
-  @Get('collaborator/:collaboratorId')
-  @ApiOperation({ summary: 'Get all commissions for a collaborator' })
-  @ApiResponse({ status: 200, description: 'List of commissions' })
-  async findByCollaborator(@Param('collaboratorId') collaboratorId: string) {
-    return await this.commissionDomainService.findByCollaboratorId(
-      collaboratorId,
-    );
-  }
-
-  @Get('pending/all')
-  @ApiOperation({ summary: 'Get all pending commissions' })
-  @ApiResponse({ status: 200, description: 'List of pending commissions' })
-  async findPending() {
-    return await this.commissionDomainService.findPending();
   }
 
   @Put('mark-as-paid')

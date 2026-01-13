@@ -19,12 +19,7 @@ describe('CommissionController', () => {
   };
 
   const mockCommissionService = {
-    calculateCommission: jest.fn(),
-    calculateCommissionsForAppointment: jest.fn(),
     findAll: jest.fn(),
-    findById: jest.fn(),
-    findByCollaboratorId: jest.fn(),
-    findPending: jest.fn(),
     markAsPaid: jest.fn(),
     markAsUnpaid: jest.fn(),
   };
@@ -48,37 +43,6 @@ describe('CommissionController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('calculateForScheduledService', () => {
-    it('should calculate commission for a scheduled service', async () => {
-      mockCommissionService.calculateCommission.mockResolvedValue(
-        mockCommission,
-      );
-
-      const result =
-        await controller.calculateForScheduledService('scheduled-1');
-
-      expect(result).toEqual(mockCommission);
-      expect(service.calculateCommission).toHaveBeenCalledWith('scheduled-1');
-    });
-  });
-
-  describe('calculateForAppointment', () => {
-    const mockCommissions: Commission[] = [mockCommission];
-
-    it('should calculate commissions for an appointment', async () => {
-      mockCommissionService.calculateCommissionsForAppointment.mockResolvedValue(
-        mockCommissions,
-      );
-
-      const result = await controller.calculateForAppointment('appointment-1');
-
-      expect(result).toEqual(mockCommissions);
-      expect(service.calculateCommissionsForAppointment).toHaveBeenCalledWith(
-        'appointment-1',
-      );
-    });
   });
 
   describe('findAll', () => {
@@ -150,7 +114,9 @@ describe('CommissionController', () => {
 
       await expect(
         controller.findAll(undefined, undefined, invalidDate),
-      ).rejects.toThrow('Invalid date format. Expected yyyy-mm-dd, got: 2024/12/31');
+      ).rejects.toThrow(
+        'Invalid date format. Expected yyyy-mm-dd, got: 2024/12/31',
+      );
 
       expect(service.findAll).not.toHaveBeenCalled();
     });
@@ -190,55 +156,6 @@ describe('CommissionController', () => {
         endDate: endOfDay(endDate),
         collaboratorId,
       });
-    });
-  });
-
-  describe('findOne', () => {
-    it('should return a commission by id', async () => {
-      mockCommissionService.findById.mockResolvedValue(mockCommission);
-
-      const result = await controller.findOne(mockCommission.id);
-
-      expect(result).toEqual(mockCommission);
-      expect(service.findById).toHaveBeenCalledWith(mockCommission.id);
-    });
-
-    it('should return null when commission not found', async () => {
-      mockCommissionService.findById.mockResolvedValue(null);
-
-      const result = await controller.findOne('non-existent-id');
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('findByCollaborator', () => {
-    const mockCommissions: Commission[] = [mockCommission];
-
-    it('should return commissions for a collaborator', async () => {
-      mockCommissionService.findByCollaboratorId.mockResolvedValue(
-        mockCommissions,
-      );
-
-      const result = await controller.findByCollaborator('collaborator-1');
-
-      expect(result).toEqual(mockCommissions);
-      expect(service.findByCollaboratorId).toHaveBeenCalledWith(
-        'collaborator-1',
-      );
-    });
-  });
-
-  describe('findPending', () => {
-    const mockCommissions: Commission[] = [mockCommission];
-
-    it('should return pending commissions', async () => {
-      mockCommissionService.findPending.mockResolvedValue(mockCommissions);
-
-      const result = await controller.findPending();
-
-      expect(result).toEqual(mockCommissions);
-      expect(service.findPending).toHaveBeenCalled();
     });
   });
 

@@ -9,14 +9,6 @@ export const useCollaborators = (search?: string) => {
   });
 };
 
-export const useCollaborator = (id: string) => {
-  return useQuery({
-    queryKey: ["collaborators", id],
-    queryFn: () => collaboratorService.findById(id),
-    enabled: !!id,
-  });
-};
-
 export const useCreateCollaborator = () => {
   const queryClient = useQueryClient();
 

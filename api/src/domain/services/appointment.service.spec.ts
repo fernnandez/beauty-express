@@ -1,24 +1,22 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { CreateAppointmentDto } from '@application/dtos/appointment/create-appointment.dto';
 import { NotFoundException } from '@nestjs/common';
-import { AppointmentService } from './appointment.service';
+import { Test, TestingModule } from '@nestjs/testing';
+import { parseDateString } from '../../utils/date.util';
+import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
+import {
+  ScheduledService,
+  ScheduledServiceStatus,
+} from '../entities/scheduled-service.entity';
+import { Service } from '../entities/service.entity';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { ServiceRepository } from '../repositories/service.repository';
-import { ScheduledServiceService } from './scheduled-service.service';
+import { AppointmentService } from './appointment.service';
 import { CommissionService } from './commission.service';
-import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
-import { CreateAppointmentDto } from '@application/dtos/appointment/create-appointment.dto';
-import { Service } from '../entities/service.entity';
-import { ScheduledService, ScheduledServiceStatus } from '../entities/scheduled-service.entity';
-import { parseDateString } from '../../utils/date.util';
+import { ScheduledServiceService } from './scheduled-service.service';
 
 describe('AppointmentService', () => {
   let service: AppointmentService;
-  let appointmentRepository: jest.Mocked<AppointmentRepository>;
-  let scheduledServiceRepository: jest.Mocked<ScheduledServiceRepository>;
-  let serviceRepository: jest.Mocked<ServiceRepository>;
-  let scheduledServiceService: jest.Mocked<ScheduledServiceService>;
-  let commissionService: jest.Mocked<CommissionService>;
 
   const mockAppointmentRepository = {
     save: jest.fn(),
@@ -75,11 +73,6 @@ describe('AppointmentService', () => {
     }).compile();
 
     service = module.get<AppointmentService>(AppointmentService);
-    appointmentRepository = module.get(AppointmentRepository);
-    scheduledServiceRepository = module.get(ScheduledServiceRepository);
-    serviceRepository = module.get(ServiceRepository);
-    scheduledServiceService = module.get(ScheduledServiceService);
-    commissionService = module.get(CommissionService);
 
     jest.clearAllMocks();
   });
@@ -140,13 +133,17 @@ describe('AppointmentService', () => {
       mockScheduledServiceService.createScheduledService.mockResolvedValue(
         appointmentWithServices.scheduledServices[0],
       );
-      mockAppointmentRepository.findOne.mockResolvedValue(appointmentWithServices);
+      mockAppointmentRepository.findOne.mockResolvedValue(
+        appointmentWithServices,
+      );
 
       const result = await service.createAppointment(createDto);
 
       expect(result).toEqual(appointmentWithServices);
       expect(mockAppointmentRepository.save).toHaveBeenCalled();
-      expect(mockScheduledServiceService.createScheduledService).toHaveBeenCalled();
+      expect(
+        mockScheduledServiceService.createScheduledService,
+      ).toHaveBeenCalled();
     });
 
     it('should throw error when no services provided', async () => {
@@ -231,11 +228,15 @@ describe('AppointmentService', () => {
         ...appointmentWithServices.scheduledServices[0],
         price: 70.0,
       });
-      mockAppointmentRepository.findOne.mockResolvedValue(appointmentWithServices);
+      mockAppointmentRepository.findOne.mockResolvedValue(
+        appointmentWithServices,
+      );
 
       await service.createAppointment(dtoWithCustomPrice);
 
-      expect(mockScheduledServiceService.createScheduledService).toHaveBeenCalledWith(
+      expect(
+        mockScheduledServiceService.createScheduledService,
+      ).toHaveBeenCalledWith(
         savedAppointment.id,
         expect.objectContaining({ price: 70.0 }),
       );
@@ -257,11 +258,15 @@ describe('AppointmentService', () => {
       mockScheduledServiceService.createScheduledService.mockResolvedValue(
         appointmentWithServices.scheduledServices[0],
       );
-      mockAppointmentRepository.findOne.mockResolvedValue(appointmentWithServices);
+      mockAppointmentRepository.findOne.mockResolvedValue(
+        appointmentWithServices,
+      );
 
       await service.createAppointment(dtoWithCollaborator);
 
-      expect(mockScheduledServiceService.createScheduledService).toHaveBeenCalledWith(
+      expect(
+        mockScheduledServiceService.createScheduledService,
+      ).toHaveBeenCalledWith(
         savedAppointment.id,
         expect.objectContaining({ collaboratorId: 'collaborator-1' }),
       );
@@ -278,7 +283,9 @@ describe('AppointmentService', () => {
       mockScheduledServiceService.createScheduledService.mockResolvedValue(
         appointmentWithServices.scheduledServices[0],
       );
-      mockAppointmentRepository.findOne.mockResolvedValue(appointmentWithServices);
+      mockAppointmentRepository.findOne.mockResolvedValue(
+        appointmentWithServices,
+      );
 
       await service.createAppointment(dtoWithEmptyObservations);
 
@@ -298,7 +305,9 @@ describe('AppointmentService', () => {
       mockScheduledServiceService.createScheduledService.mockResolvedValue(
         appointmentWithServices.scheduledServices[0],
       );
-      mockAppointmentRepository.findOne.mockResolvedValue(appointmentWithServices);
+      mockAppointmentRepository.findOne.mockResolvedValue(
+        appointmentWithServices,
+      );
 
       await service.createAppointment(dtoWithTrimmedObservations);
 
@@ -407,23 +416,25 @@ describe('AppointmentService', () => {
         ...mockAppointment,
         status: AppointmentStatus.COMPLETED,
       });
-      mockCommissionService.calculateCommissionsForAppointment.mockResolvedValue([]);
+      mockCommissionService.calculateCommissionsForAppointment.mockResolvedValue(
+        [],
+      );
 
       const result = await service.completeAppointment(mockAppointment.id);
 
       expect(result.status).toBe(AppointmentStatus.COMPLETED);
       expect(mockAppointmentRepository.save).toHaveBeenCalled();
-      expect(mockCommissionService.calculateCommissionsForAppointment).toHaveBeenCalledWith(
-        mockAppointment.id,
-      );
+      expect(
+        mockCommissionService.calculateCommissionsForAppointment,
+      ).toHaveBeenCalledWith(mockAppointment.id);
     });
 
     it('should throw error when appointment not found', async () => {
       mockAppointmentRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.completeAppointment('non-existent-id')).rejects.toThrow(
-        'Appointment not found',
-      );
+      await expect(
+        service.completeAppointment('non-existent-id'),
+      ).rejects.toThrow('Appointment not found');
     });
 
     it('should complete pending services automatically before completing appointment', async () => {
@@ -453,17 +464,19 @@ describe('AppointmentService', () => {
         ...mockAppointment,
         status: AppointmentStatus.COMPLETED,
       });
-      mockCommissionService.calculateCommissionsForAppointment.mockResolvedValue([]);
+      mockCommissionService.calculateCommissionsForAppointment.mockResolvedValue(
+        [],
+      );
 
       const result = await service.completeAppointment(mockAppointment.id);
 
       expect(result.status).toBe(AppointmentStatus.COMPLETED);
-      expect(mockScheduledServiceService.completeScheduledService).toHaveBeenCalledWith(
-        incompleteServices[0].id,
-      );
-      expect(mockCommissionService.calculateCommissionsForAppointment).toHaveBeenCalledWith(
-        mockAppointment.id,
-      );
+      expect(
+        mockScheduledServiceService.completeScheduledService,
+      ).toHaveBeenCalledWith(incompleteServices[0].id);
+      expect(
+        mockCommissionService.calculateCommissionsForAppointment,
+      ).toHaveBeenCalledWith(mockAppointment.id);
     });
 
     it('should throw error when services do not have collaborators', async () => {
@@ -483,7 +496,9 @@ describe('AppointmentService', () => {
         servicesWithoutCollaborator,
       );
 
-      await expect(service.completeAppointment(mockAppointment.id)).rejects.toThrow(
+      await expect(
+        service.completeAppointment(mockAppointment.id),
+      ).rejects.toThrow(
         'All scheduled services must have a collaborator assigned before completing the appointment',
       );
     });
@@ -495,9 +510,9 @@ describe('AppointmentService', () => {
       });
       mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue([]);
 
-      await expect(service.completeAppointment(mockAppointment.id)).rejects.toThrow(
-        'Appointment must have at least one scheduled service',
-      );
+      await expect(
+        service.completeAppointment(mockAppointment.id),
+      ).rejects.toThrow('Appointment must have at least one scheduled service');
     });
 
     it('should throw error when all services are cancelled', async () => {
@@ -516,7 +531,9 @@ describe('AppointmentService', () => {
         cancelledServices,
       );
 
-      await expect(service.completeAppointment(mockAppointment.id)).rejects.toThrow(
+      await expect(
+        service.completeAppointment(mockAppointment.id),
+      ).rejects.toThrow(
         'Appointment must have at least one non-cancelled service',
       );
     });
@@ -548,14 +565,16 @@ describe('AppointmentService', () => {
         ...mockAppointment,
         status: AppointmentStatus.COMPLETED,
       });
-      mockCommissionService.calculateCommissionsForAppointment.mockResolvedValue([]);
+      mockCommissionService.calculateCommissionsForAppointment.mockResolvedValue(
+        [],
+      );
 
       const result = await service.completeAppointment(mockAppointment.id);
 
       expect(result.status).toBe(AppointmentStatus.COMPLETED);
-      expect(mockCommissionService.calculateCommissionsForAppointment).toHaveBeenCalledWith(
-        mockAppointment.id,
-      );
+      expect(
+        mockCommissionService.calculateCommissionsForAppointment,
+      ).toHaveBeenCalledWith(mockAppointment.id);
     });
   });
 
@@ -598,15 +617,17 @@ describe('AppointmentService', () => {
       const result = await service.cancelAppointment(mockAppointment.id);
 
       expect(result.status).toBe(AppointmentStatus.CANCELLED);
-      expect(mockScheduledServiceService.cancelScheduledService).toHaveBeenCalled();
+      expect(
+        mockScheduledServiceService.cancelScheduledService,
+      ).toHaveBeenCalled();
     });
 
     it('should throw error when appointment not found', async () => {
       mockAppointmentRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.cancelAppointment('non-existent-id')).rejects.toThrow(
-        'Appointment not found',
-      );
+      await expect(
+        service.cancelAppointment('non-existent-id'),
+      ).rejects.toThrow('Appointment not found');
     });
 
     it('should throw error when trying to cancel completed appointment', async () => {
@@ -617,74 +638,9 @@ describe('AppointmentService', () => {
 
       mockAppointmentRepository.findOne.mockResolvedValue(completedAppointment);
 
-      await expect(service.cancelAppointment(mockAppointment.id)).rejects.toThrow(
-        'Cannot cancel completed appointments',
-      );
-    });
-  });
-
-  describe('getAppointmentTotalPrice', () => {
-    const mockScheduledServices: ScheduledService[] = [
-      {
-        id: 'scheduled-1',
-        appointmentId: 'appointment-1',
-        serviceId: 'service-1',
-        price: 50.0,
-        status: ScheduledServiceStatus.PENDING,
-      } as ScheduledService,
-      {
-        id: 'scheduled-2',
-        appointmentId: 'appointment-1',
-        serviceId: 'service-2',
-        price: 30.0,
-        status: ScheduledServiceStatus.PENDING,
-      } as ScheduledService,
-    ];
-
-    it('should calculate total price correctly', async () => {
-      mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue(
-        mockScheduledServices,
-      );
-
-      const result = await service.getAppointmentTotalPrice('appointment-1');
-
-      expect(result).toBe(80.0);
-    });
-
-    it('should exclude cancelled services from total price', async () => {
-      const servicesWithCancelled: ScheduledService[] = [
-        {
-          id: 'scheduled-1',
-          appointmentId: 'appointment-1',
-          serviceId: 'service-1',
-          price: 50.0,
-          status: ScheduledServiceStatus.PENDING,
-        } as ScheduledService,
-        {
-          id: 'scheduled-2',
-          appointmentId: 'appointment-1',
-          serviceId: 'service-2',
-          price: 30.0,
-          status: ScheduledServiceStatus.CANCELLED,
-        } as ScheduledService,
-      ];
-
-      mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue(
-        servicesWithCancelled,
-      );
-
-      const result = await service.getAppointmentTotalPrice('appointment-1');
-
-      expect(result).toBe(50.0);
-    });
-
-    it('should return 0 when no services', async () => {
-      mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue([]);
-
-      const result = await service.getAppointmentTotalPrice('appointment-1');
-
-      expect(result).toBe(0);
+      await expect(
+        service.cancelAppointment(mockAppointment.id),
+      ).rejects.toThrow('Cannot cancel completed appointments');
     });
   });
 });
-

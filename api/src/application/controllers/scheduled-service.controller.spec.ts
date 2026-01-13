@@ -4,6 +4,7 @@ import {
 } from '@domain/entities/scheduled-service.entity';
 import { ScheduledServiceService } from '@domain/services/scheduled-service.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { CreateScheduledServiceDto } from '../dtos/scheduled-service/create-scheduled-service.dto';
 import { UpdateScheduledServiceDto } from '../dtos/scheduled-service/update-scheduled-service.dto';
 import { ScheduledServiceController } from './scheduled-service.controller';
 
@@ -21,11 +22,8 @@ describe('ScheduledServiceController', () => {
   } as ScheduledService;
 
   const mockScheduledServiceService = {
-    findAll: jest.fn(),
-    findById: jest.fn(),
-    findByAppointmentId: jest.fn(),
+    createScheduledService: jest.fn(),
     updateScheduledService: jest.fn(),
-    completeScheduledService: jest.fn(),
     cancelScheduledService: jest.fn(),
   };
 
@@ -52,54 +50,25 @@ describe('ScheduledServiceController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('findAll', () => {
-    const mockScheduledServices: ScheduledService[] = [mockScheduledService];
+  describe('create', () => {
+    const createDto: CreateScheduledServiceDto = {
+      serviceId: 'service-1',
+      collaboratorId: 'collaborator-1',
+      price: 50.0,
+    };
 
-    it('should return all scheduled services', async () => {
-      mockScheduledServiceService.findAll.mockResolvedValue(
-        mockScheduledServices,
-      );
-
-      const result = await controller.findAll();
-
-      expect(result).toEqual(mockScheduledServices);
-      expect(service.findAll).toHaveBeenCalled();
-    });
-  });
-
-  describe('findOne', () => {
-    it('should return a scheduled service by id', async () => {
-      mockScheduledServiceService.findById.mockResolvedValue(
+    it('should create a scheduled service', async () => {
+      mockScheduledServiceService.createScheduledService.mockResolvedValue(
         mockScheduledService,
       );
 
-      const result = await controller.findOne(mockScheduledService.id);
+      const result = await controller.create('appointment-1', createDto);
 
       expect(result).toEqual(mockScheduledService);
-      expect(service.findById).toHaveBeenCalledWith(mockScheduledService.id);
-    });
-
-    it('should return null when scheduled service not found', async () => {
-      mockScheduledServiceService.findById.mockResolvedValue(null);
-
-      const result = await controller.findOne('non-existent-id');
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('findByAppointmentId', () => {
-    const mockScheduledServices: ScheduledService[] = [mockScheduledService];
-
-    it('should return scheduled services for an appointment', async () => {
-      mockScheduledServiceService.findByAppointmentId.mockResolvedValue(
-        mockScheduledServices,
+      expect(service.createScheduledService).toHaveBeenCalledWith(
+        'appointment-1',
+        createDto,
       );
-
-      const result = await controller.findByAppointmentId('appointment-1');
-
-      expect(result).toEqual(mockScheduledServices);
-      expect(service.findByAppointmentId).toHaveBeenCalledWith('appointment-1');
     });
   });
 
@@ -128,26 +97,6 @@ describe('ScheduledServiceController', () => {
       expect(service.updateScheduledService).toHaveBeenCalledWith(
         mockScheduledService.id,
         updateDto,
-      );
-    });
-  });
-
-  describe('complete', () => {
-    const completedScheduledService: ScheduledService = {
-      ...mockScheduledService,
-      status: ScheduledServiceStatus.COMPLETED,
-    };
-
-    it('should complete a scheduled service', async () => {
-      mockScheduledServiceService.completeScheduledService.mockResolvedValue(
-        completedScheduledService,
-      );
-
-      const result = await controller.complete(mockScheduledService.id);
-
-      expect(result).toEqual(completedScheduledService);
-      expect(service.completeScheduledService).toHaveBeenCalledWith(
-        mockScheduledService.id,
       );
     });
   });

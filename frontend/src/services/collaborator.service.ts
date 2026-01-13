@@ -12,11 +12,6 @@ export const collaboratorService = {
     return response.data;
   },
 
-  findById: async (id: string): Promise<Collaborator> => {
-    const response = await api.get<Collaborator>(`/collaborators/${id}`);
-    return response.data;
-  },
-
   create: async (data: CreateCollaboratorDto): Promise<Collaborator> => {
     const response = await api.post<Collaborator>("/collaborators", data);
     return response.data;

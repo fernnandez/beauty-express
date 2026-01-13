@@ -1,27 +1,33 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CommissionService } from './commission.service';
+import { Collaborator } from '../entities/collaborator.entity';
+import { Commission } from '../entities/commission.entity';
+import {
+  ScheduledService,
+  ScheduledServiceStatus,
+} from '../entities/scheduled-service.entity';
+import { CollaboratorRepository } from '../repositories/collaborator.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
-import { CollaboratorRepository } from '../repositories/collaborator.repository';
-import { Commission } from '../entities/commission.entity';
-import { ScheduledService, ScheduledServiceStatus } from '../entities/scheduled-service.entity';
-import { Collaborator } from '../entities/collaborator.entity';
+import { CommissionService } from './commission.service';
 
 describe('CommissionService', () => {
   let service: CommissionService;
-  let commissionRepository: jest.Mocked<CommissionRepository>;
-  let scheduledServiceRepository: jest.Mocked<ScheduledServiceRepository>;
-  let collaboratorRepository: jest.Mocked<CollaboratorRepository>;
+  let mockQueryBuilder: {
+    leftJoinAndSelect: jest.Mock;
+    where: jest.Mock;
+    orderBy: jest.Mock;
+    addOrderBy: jest.Mock;
+    getMany: jest.Mock;
+  };
 
   const mockCommissionRepository = {
     save: jest.fn(),
-    find: jest.fn(),
     findById: jest.fn(),
     findByScheduledServiceId: jest.fn(),
-    findByCollaboratorId: jest.fn(),
     findByFilters: jest.fn(),
     findByIds: jest.fn(),
     update: jest.fn(),
+    createQueryBuilder: jest.fn(),
   };
 
   const mockScheduledServiceRepository = {
@@ -34,6 +40,19 @@ describe('CommissionService', () => {
   };
 
   beforeEach(async () => {
+    // Cria o mock do QueryBuilder antes de cada teste
+    mockQueryBuilder = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      getMany: jest.fn(),
+    };
+
+    mockCommissionRepository.createQueryBuilder.mockReturnValue(
+      mockQueryBuilder,
+    );
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CommissionService,
@@ -53,9 +72,6 @@ describe('CommissionService', () => {
     }).compile();
 
     service = module.get<CommissionService>(CommissionService);
-    commissionRepository = module.get(CommissionRepository);
-    scheduledServiceRepository = module.get(ScheduledServiceRepository);
-    collaboratorRepository = module.get(CollaboratorRepository);
 
     jest.clearAllMocks();
   });
@@ -94,7 +110,9 @@ describe('CommissionService', () => {
     };
 
     it('should calculate commission for completed scheduled service with collaborator', async () => {
-      mockScheduledServiceRepository.findById.mockResolvedValue(mockScheduledService);
+      mockScheduledServiceRepository.findById.mockResolvedValue(
+        mockScheduledService,
+      );
       mockCollaboratorRepository.findById.mockResolvedValue(mockCollaborator);
       mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(null);
       mockCommissionRepository.save.mockResolvedValue(expectedCommission);
@@ -118,9 +136,9 @@ describe('CommissionService', () => {
     it('should throw error when scheduled service not found', async () => {
       mockScheduledServiceRepository.findById.mockResolvedValue(null);
 
-      await expect(service.calculateCommission('non-existent-id')).rejects.toThrow(
-        'ScheduledService not found',
-      );
+      await expect(
+        service.calculateCommission('non-existent-id'),
+      ).rejects.toThrow('ScheduledService not found');
     });
 
     it('should throw error when scheduled service is not completed', async () => {
@@ -142,7 +160,9 @@ describe('CommissionService', () => {
         collaboratorId: undefined,
       };
 
-      mockScheduledServiceRepository.findById.mockResolvedValue(serviceWithoutCollaborator);
+      mockScheduledServiceRepository.findById.mockResolvedValue(
+        serviceWithoutCollaborator,
+      );
 
       await expect(service.calculateCommission('scheduled-1')).rejects.toThrow(
         'ScheduledService has no assigned collaborator',
@@ -150,7 +170,9 @@ describe('CommissionService', () => {
     });
 
     it('should throw error when collaborator not found', async () => {
-      mockScheduledServiceRepository.findById.mockResolvedValue(mockScheduledService);
+      mockScheduledServiceRepository.findById.mockResolvedValue(
+        mockScheduledService,
+      );
       mockCollaboratorRepository.findById.mockResolvedValue(null);
 
       await expect(service.calculateCommission('scheduled-1')).rejects.toThrow(
@@ -173,19 +195,26 @@ describe('CommissionService', () => {
         amount: 10.0, // novo valor
       };
 
-      mockScheduledServiceRepository.findById.mockResolvedValue(mockScheduledService);
+      mockScheduledServiceRepository.findById.mockResolvedValue(
+        mockScheduledService,
+      );
       mockCollaboratorRepository.findById.mockResolvedValue(mockCollaborator);
-      mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(existingCommission);
+      mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(
+        existingCommission,
+      );
       mockCommissionRepository.findById.mockResolvedValue(updatedCommission);
       mockCommissionRepository.update.mockResolvedValue(undefined);
 
       const result = await service.calculateCommission('scheduled-1');
 
       expect(result).toEqual(updatedCommission);
-      expect(mockCommissionRepository.update).toHaveBeenCalledWith(existingCommission.id, {
-        amount: 10.0,
-        percentage: 10,
-      });
+      expect(mockCommissionRepository.update).toHaveBeenCalledWith(
+        existingCommission.id,
+        {
+          amount: 10.0,
+          percentage: 10,
+        },
+      );
     });
 
     it('should calculate commission with different percentage', async () => {
@@ -203,8 +232,12 @@ describe('CommissionService', () => {
         paid: false,
       };
 
-      mockScheduledServiceRepository.findById.mockResolvedValue(mockScheduledService);
-      mockCollaboratorRepository.findById.mockResolvedValue(collaboratorWithDifferentPercentage);
+      mockScheduledServiceRepository.findById.mockResolvedValue(
+        mockScheduledService,
+      );
+      mockCollaboratorRepository.findById.mockResolvedValue(
+        collaboratorWithDifferentPercentage,
+      );
       mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(null);
       mockCommissionRepository.save.mockResolvedValue(expectedCommission);
 
@@ -255,18 +288,25 @@ describe('CommissionService', () => {
         paid: false,
       };
 
-      mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue(scheduledServices);
-      mockScheduledServiceRepository.findById.mockResolvedValue(completedService);
+      mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue(
+        scheduledServices,
+      );
+      mockScheduledServiceRepository.findById.mockResolvedValue(
+        completedService,
+      );
       mockCollaboratorRepository.findById.mockResolvedValue(mockCollaborator);
       mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(null);
       mockCommissionRepository.save.mockResolvedValue(expectedCommission);
 
-      const result = await service.calculateCommissionsForAppointment('appointment-1');
+      const result =
+        await service.calculateCommissionsForAppointment('appointment-1');
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual(expectedCommission);
       expect(mockScheduledServiceRepository.findById).toHaveBeenCalledTimes(1);
-      expect(mockScheduledServiceRepository.findById).toHaveBeenCalledWith('scheduled-1');
+      expect(mockScheduledServiceRepository.findById).toHaveBeenCalledWith(
+        'scheduled-1',
+      );
     });
 
     it('should skip services that already have commissions', async () => {
@@ -280,12 +320,19 @@ describe('CommissionService', () => {
         paid: false,
       };
 
-      mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue(scheduledServices);
-      mockScheduledServiceRepository.findById.mockResolvedValue(completedService);
+      mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue(
+        scheduledServices,
+      );
+      mockScheduledServiceRepository.findById.mockResolvedValue(
+        completedService,
+      );
       mockCollaboratorRepository.findById.mockResolvedValue(mockCollaborator);
-      mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(existingCommission);
+      mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(
+        existingCommission,
+      );
 
-      const result = await service.calculateCommissionsForAppointment('appointment-1');
+      const result =
+        await service.calculateCommissionsForAppointment('appointment-1');
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual(existingCommission);
@@ -313,19 +360,39 @@ describe('CommissionService', () => {
     ];
 
     it('should return all commissions when no filters', async () => {
-      mockCommissionRepository.find.mockResolvedValue(mockCommissions);
+      mockQueryBuilder.getMany.mockResolvedValue(mockCommissions);
 
       const result = await service.findAll();
 
       expect(result).toEqual(mockCommissions);
-      expect(mockCommissionRepository.find).toHaveBeenCalledWith({
-        relations: [
-          'collaborator',
-          'scheduledService',
-          'scheduledService.service',
-          'scheduledService.appointment',
-        ],
-      });
+      expect(mockCommissionRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'commission',
+      );
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'commission.collaborator',
+        'collaborator',
+      );
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'commission.scheduledService',
+        'scheduledService',
+      );
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'scheduledService.service',
+        'service',
+      );
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'scheduledService.appointment',
+        'appointment',
+      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'appointment.date',
+        'DESC',
+      );
+      expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith(
+        'appointment.startTime',
+        'DESC',
+      );
+      expect(mockQueryBuilder.getMany).toHaveBeenCalled();
     });
 
     it('should filter by paid status', async () => {
@@ -342,9 +409,13 @@ describe('CommissionService', () => {
 
     it('should filter by collaborator', async () => {
       const collaboratorCommissions = [mockCommissions[0]];
-      mockCommissionRepository.findByFilters.mockResolvedValue(collaboratorCommissions);
+      mockCommissionRepository.findByFilters.mockResolvedValue(
+        collaboratorCommissions,
+      );
 
-      const result = await service.findAll({ collaboratorId: 'collaborator-1' });
+      const result = await service.findAll({
+        collaboratorId: 'collaborator-1',
+      });
 
       expect(result).toEqual(collaboratorCommissions);
       expect(mockCommissionRepository.findByFilters).toHaveBeenCalledWith({
@@ -357,7 +428,9 @@ describe('CommissionService', () => {
       const endDate = new Date('2024-12-31');
       const filteredCommissions = [mockCommissions[0]];
 
-      mockCommissionRepository.findByFilters.mockResolvedValue(filteredCommissions);
+      mockCommissionRepository.findByFilters.mockResolvedValue(
+        filteredCommissions,
+      );
 
       const result = await service.findAll({ startDate, endDate });
 
@@ -365,87 +438,6 @@ describe('CommissionService', () => {
       expect(mockCommissionRepository.findByFilters).toHaveBeenCalledWith({
         startDate,
         endDate,
-      });
-    });
-  });
-
-  describe('findById', () => {
-    const mockCommission: Commission = {
-      id: 'commission-1',
-      collaboratorId: 'collaborator-1',
-      scheduledServiceId: 'scheduled-1',
-      amount: 10.0,
-      percentage: 10,
-      paid: false,
-    };
-
-    it('should return commission when found', async () => {
-      mockCommissionRepository.findById.mockResolvedValue(mockCommission);
-
-      const result = await service.findById('commission-1');
-
-      expect(result).toEqual(mockCommission);
-    });
-
-    it('should return null when commission not found', async () => {
-      mockCommissionRepository.findById.mockResolvedValue(null);
-
-      const result = await service.findById('non-existent-id');
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('findByCollaboratorId', () => {
-    const mockCommissions: Commission[] = [
-      {
-        id: 'commission-1',
-        collaboratorId: 'collaborator-1',
-        scheduledServiceId: 'scheduled-1',
-        amount: 10.0,
-        percentage: 10,
-        paid: false,
-      },
-    ];
-
-    it('should return commissions for collaborator', async () => {
-      mockCommissionRepository.findByCollaboratorId.mockResolvedValue(mockCommissions);
-
-      const result = await service.findByCollaboratorId('collaborator-1');
-
-      expect(result).toEqual(mockCommissions);
-      expect(mockCommissionRepository.findByCollaboratorId).toHaveBeenCalledWith(
-        'collaborator-1',
-      );
-    });
-  });
-
-  describe('findPending', () => {
-    const mockPendingCommissions: Commission[] = [
-      {
-        id: 'commission-1',
-        collaboratorId: 'collaborator-1',
-        scheduledServiceId: 'scheduled-1',
-        amount: 10.0,
-        percentage: 10,
-        paid: false,
-      },
-    ];
-
-    it('should return only pending commissions', async () => {
-      mockCommissionRepository.find.mockResolvedValue(mockPendingCommissions);
-
-      const result = await service.findPending();
-
-      expect(result).toEqual(mockPendingCommissions);
-      expect(mockCommissionRepository.find).toHaveBeenCalledWith({
-        where: { paid: false },
-        relations: [
-          'collaborator',
-          'scheduledService',
-          'scheduledService.service',
-          'scheduledService.appointment',
-        ],
       });
     });
   });
@@ -470,7 +462,10 @@ describe('CommissionService', () => {
       },
     ];
 
-    const paidCommissions: Commission[] = mockCommissions.map((c) => ({ ...c, paid: true }));
+    const paidCommissions: Commission[] = mockCommissions.map((c) => ({
+      ...c,
+      paid: true,
+    }));
 
     it('should mark multiple commissions as paid', async () => {
       const commissionIds = ['commission-1', 'commission-2'];
@@ -510,14 +505,19 @@ describe('CommissionService', () => {
       },
     ];
 
-    const unpaidCommissions: Commission[] = paidCommissions.map((c) => ({ ...c, paid: false }));
+    const unpaidCommissions: Commission[] = paidCommissions.map((c) => ({
+      ...c,
+      paid: false,
+    }));
 
     it('should mark commissions as unpaid', async () => {
       const commissionIds = ['commission-1'];
 
       mockCommissionRepository.findByIds.mockResolvedValueOnce(paidCommissions);
       mockCommissionRepository.update.mockResolvedValue(undefined);
-      mockCommissionRepository.findByIds.mockResolvedValueOnce(unpaidCommissions);
+      mockCommissionRepository.findByIds.mockResolvedValueOnce(
+        unpaidCommissions,
+      );
 
       const result = await service.markAsUnpaid(commissionIds);
 
@@ -526,4 +526,3 @@ describe('CommissionService', () => {
     });
   });
 });
-

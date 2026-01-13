@@ -229,18 +229,6 @@ export class AppointmentService {
     return await this.appointmentRepository.save(appointment);
   }
 
-  async getAppointmentTotalPrice(appointmentId: string): Promise<number> {
-    const scheduledServices =
-      await this.scheduledServiceRepository.findByAppointmentId(appointmentId);
-
-    return scheduledServices
-      .filter((scheduledService) => scheduledService.status !== 'cancelado')
-      .reduce(
-        (total, scheduledService) => total + Number(scheduledService.price),
-        0,
-      );
-  }
-
   async updateAppointmentStatus(): Promise<void> {
     // Business rule: update appointment status based on scheduled services
     const appointments = await this.findAll();

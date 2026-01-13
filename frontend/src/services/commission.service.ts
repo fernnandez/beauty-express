@@ -29,43 +29,6 @@ export const commissionService = {
     return response.data;
   },
 
-  findById: async (id: string): Promise<Commission> => {
-    const response = await api.get<Commission>(`/commissions/${id}`);
-    return response.data;
-  },
-
-  findByCollaborator: async (
-    collaboratorId: string,
-  ): Promise<Commission[]> => {
-    const response = await api.get<Commission[]>(
-      `/commissions/collaborator/${collaboratorId}`,
-    );
-    return response.data;
-  },
-
-  calculateForScheduledService: async (
-    scheduledServiceId: string,
-  ): Promise<Commission> => {
-    const response = await api.post<Commission>(
-      `/commissions/calculate/scheduled-service/${scheduledServiceId}`,
-    );
-    return response.data;
-  },
-
-  calculateForAppointment: async (
-    appointmentId: string,
-  ): Promise<Commission[]> => {
-    const response = await api.post<Commission[]>(
-      `/commissions/calculate/appointment/${appointmentId}`,
-    );
-    return response.data;
-  },
-
-  findPending: async (): Promise<Commission[]> => {
-    const response = await api.get<Commission[]>('/commissions/pending/all');
-    return response.data;
-  },
-
   markAsPaid: async (commissionIds: string[]): Promise<Commission[]> => {
     const response = await api.put<Commission[]>('/commissions/mark-as-paid', {
       commissionIds,

@@ -57,19 +57,6 @@ export class AppointmentController {
     return await this.appointmentDomainService.findById(id);
   }
 
-  @Get(':id/total-price')
-  @ApiOperation({ summary: 'Get total price of an appointment' })
-  @ApiResponse({
-    status: 200,
-    description: 'Total price calculated successfully',
-  })
-  @ApiResponse({ status: 404, description: 'Appointment not found' })
-  async getTotalPrice(@Param('id') id: string) {
-    const total =
-      await this.appointmentDomainService.getAppointmentTotalPrice(id);
-    return { totalPrice: total };
-  }
-
   @Put(':id')
   @ApiOperation({ summary: 'Update an appointment' })
   @ApiResponse({

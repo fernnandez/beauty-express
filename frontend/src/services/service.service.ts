@@ -8,11 +8,6 @@ export const serviceService = {
     return response.data;
   },
 
-  findById: async (id: string): Promise<Service> => {
-    const response = await api.get<Service>(`/services/${id}`);
-    return response.data;
-  },
-
   create: async (data: CreateServiceDto): Promise<Service> => {
     const response = await api.post<Service>('/services', data);
     return response.data;

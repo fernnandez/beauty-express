@@ -30,7 +30,6 @@ describe('AppointmentController', () => {
     findAll: jest.fn(),
     findByDate: jest.fn(),
     findById: jest.fn(),
-    getAppointmentTotalPrice: jest.fn(),
     updateAppointment: jest.fn(),
     completeAppointment: jest.fn(),
     cancelAppointment: jest.fn(),
@@ -136,22 +135,6 @@ describe('AppointmentController', () => {
       const result = await controller.findOne('non-existent-id');
 
       expect(result).toBeNull();
-    });
-  });
-
-  describe('getTotalPrice', () => {
-    it('should return total price of an appointment', async () => {
-      const totalPrice = 150.0;
-      mockAppointmentService.getAppointmentTotalPrice.mockResolvedValue(
-        totalPrice,
-      );
-
-      const result = await controller.getTotalPrice(mockAppointment.id);
-
-      expect(result).toEqual({ totalPrice });
-      expect(service.getAppointmentTotalPrice).toHaveBeenCalledWith(
-        mockAppointment.id,
-      );
     });
   });
 

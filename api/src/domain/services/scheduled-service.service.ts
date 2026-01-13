@@ -24,13 +24,6 @@ export class ScheduledServiceService {
     private commissionRepository: CommissionRepository,
   ) {}
 
-  private async validateServiceExists(serviceId: string): Promise<void> {
-    const service = await this.serviceRepository.findById(serviceId);
-    if (!service) {
-      throw new NotFoundException('Service not found');
-    }
-  }
-
   private async validateCollaboratorActive(
     collaboratorId: string,
   ): Promise<void> {
@@ -48,31 +41,22 @@ export class ScheduledServiceService {
     appointmentId: string,
     createDto: CreateScheduledServiceDto,
   ): Promise<ScheduledService> {
-    await this.validateServiceExists(createDto.serviceId);
+    const service = await this.serviceRepository.findById(createDto.serviceId);
+    if (!service) {
+      throw new NotFoundException('Service not found');
+    }
 
     if (createDto.collaboratorId) {
       await this.validateCollaboratorActive(createDto.collaboratorId);
     }
 
-    const service = await this.serviceRepository.findById(createDto.serviceId);
-
     return await this.scheduledServiceRepository.save({
       appointmentId,
       serviceId: createDto.serviceId,
       collaboratorId: createDto.collaboratorId,
-      price: createDto.price ?? service!.defaultPrice,
+      price: createDto.price ?? service.defaultPrice,
       status: ScheduledServiceStatus.PENDING,
     });
-  }
-
-  async findAll(): Promise<ScheduledService[]> {
-    return await this.scheduledServiceRepository.find({
-      relations: ['appointment', 'service', 'collaborator'],
-    });
-  }
-
-  async findById(id: string): Promise<ScheduledService | null> {
-    return await this.scheduledServiceRepository.findById(id);
   }
 
   async findByAppointmentId(
@@ -99,12 +83,14 @@ export class ScheduledServiceService {
     }
 
     if (updateDto.serviceId) {
-      await this.validateServiceExists(updateDto.serviceId);
       const service = await this.serviceRepository.findById(
         updateDto.serviceId,
       );
+      if (!service) {
+        throw new NotFoundException('Service not found');
+      }
       if (updateDto.price === undefined) {
-        updateDto.price = service!.defaultPrice;
+        updateDto.price = service.defaultPrice;
       }
     }
 

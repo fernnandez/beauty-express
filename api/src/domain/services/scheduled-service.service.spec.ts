@@ -212,56 +212,6 @@ describe('ScheduledServiceService', () => {
     });
   });
 
-  describe('findAll', () => {
-    const mockScheduledServices: ScheduledService[] = [
-      {
-        id: 'scheduled-1',
-        appointmentId: 'appointment-1',
-        serviceId: 'service-1',
-        price: 50.0,
-        status: ScheduledServiceStatus.PENDING,
-      } as ScheduledService,
-    ];
-
-    it('should return all scheduled services', async () => {
-      mockRepository.find.mockResolvedValue(mockScheduledServices);
-
-      const result = await service.findAll();
-
-      expect(result).toEqual(mockScheduledServices);
-      expect(mockRepository.find).toHaveBeenCalledWith({
-        relations: ['appointment', 'service', 'collaborator'],
-      });
-    });
-  });
-
-  describe('findById', () => {
-    const mockScheduledService: ScheduledService = {
-      id: 'scheduled-1',
-      appointmentId: 'appointment-1',
-      serviceId: 'service-1',
-      price: 50.0,
-      status: ScheduledServiceStatus.PENDING,
-    } as ScheduledService;
-
-    it('should return scheduled service when found', async () => {
-      mockRepository.findById.mockResolvedValue(mockScheduledService);
-
-      const result = await service.findById('scheduled-1');
-
-      expect(result).toEqual(mockScheduledService);
-      expect(mockRepository.findById).toHaveBeenCalledWith('scheduled-1');
-    });
-
-    it('should return null when scheduled service not found', async () => {
-      mockRepository.findById.mockResolvedValue(null);
-
-      const result = await service.findById('non-existent-id');
-
-      expect(result).toBeNull();
-    });
-  });
-
   describe('findByAppointmentId', () => {
     const mockScheduledServices: ScheduledService[] = [
       {

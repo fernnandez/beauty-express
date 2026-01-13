@@ -9,14 +9,6 @@ export const useServices = (search?: string) => {
   });
 };
 
-export const useService = (id: string) => {
-  return useQuery({
-    queryKey: ['services', id],
-    queryFn: () => serviceService.findById(id),
-    enabled: !!id,
-  });
-};
-
 export const useCreateService = () => {
   const queryClient = useQueryClient();
 

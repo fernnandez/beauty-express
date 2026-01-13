@@ -6,27 +6,6 @@ import type {
 } from '../types';
 
 export const scheduledServiceService = {
-  findAll: async (): Promise<ScheduledService[]> => {
-    const response = await api.get<ScheduledService[]>('/scheduled-services');
-    return response.data;
-  },
-
-  findById: async (id: string): Promise<ScheduledService> => {
-    const response = await api.get<ScheduledService>(
-      `/scheduled-services/${id}`,
-    );
-    return response.data;
-  },
-
-  findByAppointmentId: async (
-    appointmentId: string,
-  ): Promise<ScheduledService[]> => {
-    const response = await api.get<ScheduledService[]>(
-      `/scheduled-services/appointment/${appointmentId}`,
-    );
-    return response.data;
-  },
-
   create: async (
     appointmentId: string,
     data: CreateScheduledServiceDto,
@@ -45,13 +24,6 @@ export const scheduledServiceService = {
     const response = await api.put<ScheduledService>(
       `/scheduled-services/${id}`,
       data,
-    );
-    return response.data;
-  },
-
-  complete: async (id: string): Promise<ScheduledService> => {
-    const response = await api.put<ScheduledService>(
-      `/scheduled-services/${id}/complete`,
     );
     return response.data;
   },
