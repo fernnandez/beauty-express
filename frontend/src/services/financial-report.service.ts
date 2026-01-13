@@ -5,7 +5,9 @@ export interface FinancialReport {
   totalPaid: number;
   totalUnpaid: number;
   totalCommissionsPaid: number;
+  totalCommissionsExpected: number;
   netAmount: number;
+  netAmountExpected: number;
   period: {
     startDate: string;
     endDate: string;

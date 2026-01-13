@@ -88,6 +88,18 @@ describe('FinancialReportService', () => {
       },
     ];
 
+    const mockAllCommissions: Commission[] = [
+      ...mockPaidCommissions,
+      {
+        id: 'commission-3',
+        collaboratorId: 'collaborator-2',
+        scheduledServiceId: 'scheduled-1',
+        amount: 8.0,
+        percentage: 8,
+        paid: false,
+      },
+    ];
+
     const mockQueryBuilder = {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
@@ -99,7 +111,11 @@ describe('FinancialReportService', () => {
         mockQueryBuilder as any,
       );
       mockQueryBuilder.getMany.mockResolvedValue(mockScheduledServices);
-      mockCommissionRepository.findByFilters.mockResolvedValue(mockPaidCommissions);
+      // Primeira chamada: comissões pagas
+      // Segunda chamada: todas as comissões
+      mockCommissionRepository.findByFilters
+        .mockResolvedValueOnce(mockPaidCommissions)
+        .mockResolvedValueOnce(mockAllCommissions);
 
       const result = await service.getMonthlyReport(2024, 12);
 
@@ -107,7 +123,9 @@ describe('FinancialReportService', () => {
       expect(result.totalPaid).toBe(150.0); // 100 + 50 (apenas completed)
       expect(result.totalUnpaid).toBe(30.0); // 30 (pending)
       expect(result.totalCommissionsPaid).toBe(15.0); // 10 + 5
+      expect(result.totalCommissionsExpected).toBe(23.0); // 10 + 5 + 8
       expect(result.netAmount).toBe(135.0); // 150 - 15
+      expect(result.netAmountExpected).toBe(127.0); // 150 - 23
       expect(result.period.startDate).toBeDefined();
       expect(result.period.endDate).toBeDefined();
     });
@@ -117,7 +135,9 @@ describe('FinancialReportService', () => {
         mockQueryBuilder as any,
       );
       mockQueryBuilder.getMany.mockResolvedValue([]);
-      mockCommissionRepository.findByFilters.mockResolvedValue([]);
+      mockCommissionRepository.findByFilters
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
 
       const result = await service.getMonthlyReport(2024, 1);
 
@@ -125,7 +145,9 @@ describe('FinancialReportService', () => {
       expect(result.totalPaid).toBe(0);
       expect(result.totalUnpaid).toBe(0);
       expect(result.totalCommissionsPaid).toBe(0);
+      expect(result.totalCommissionsExpected).toBe(0);
       expect(result.netAmount).toBe(0);
+      expect(result.netAmountExpected).toBe(0);
     });
 
     it('should calculate net amount correctly when no commissions paid', async () => {
@@ -143,13 +165,17 @@ describe('FinancialReportService', () => {
         mockQueryBuilder as any,
       );
       mockQueryBuilder.getMany.mockResolvedValue(completedServices);
-      mockCommissionRepository.findByFilters.mockResolvedValue([]);
+      mockCommissionRepository.findByFilters
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
 
       const result = await service.getMonthlyReport(2024, 12);
 
       expect(result.totalPaid).toBe(100.0);
       expect(result.totalCommissionsPaid).toBe(0);
+      expect(result.totalCommissionsExpected).toBe(0);
       expect(result.netAmount).toBe(100.0);
+      expect(result.netAmountExpected).toBe(100.0);
     });
 
     it('should handle cancelled services correctly', async () => {
@@ -174,7 +200,9 @@ describe('FinancialReportService', () => {
         mockQueryBuilder as any,
       );
       mockQueryBuilder.getMany.mockResolvedValue(servicesWithCancelled);
-      mockCommissionRepository.findByFilters.mockResolvedValue([]);
+      mockCommissionRepository.findByFilters
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
 
       const result = await service.getMonthlyReport(2024, 12);
 
@@ -188,7 +216,9 @@ describe('FinancialReportService', () => {
         mockQueryBuilder as any,
       );
       mockQueryBuilder.getMany.mockResolvedValue(mockScheduledServices);
-      mockCommissionRepository.findByFilters.mockResolvedValue(mockPaidCommissions);
+      mockCommissionRepository.findByFilters
+        .mockResolvedValue(mockPaidCommissions)
+        .mockResolvedValue(mockAllCommissions);
 
       // Teste para janeiro (mês 1)
       await service.getMonthlyReport(2024, 1);
@@ -208,7 +238,9 @@ describe('FinancialReportService', () => {
         mockQueryBuilder as any,
       );
       mockQueryBuilder.getMany.mockResolvedValue([]);
-      mockCommissionRepository.findByFilters.mockResolvedValue([]);
+      mockCommissionRepository.findByFilters
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
 
       // Fevereiro de 2024 (ano bissexto)
       await service.getMonthlyReport(2024, 2);

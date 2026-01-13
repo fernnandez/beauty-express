@@ -11,7 +11,9 @@ describe('FinancialReportController', () => {
     totalPaid: 150.0,
     totalUnpaid: 30.0,
     totalCommissionsPaid: 15.0,
+    totalCommissionsExpected: 23.0,
     netAmount: 135.0,
+    netAmountExpected: 127.0,
     period: {
       startDate: '2024-12-01',
       endDate: '2024-12-31',

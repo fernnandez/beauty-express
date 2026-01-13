@@ -84,29 +84,65 @@ O projeto utiliza SQLite por padrão. O banco de dados será criado automaticame
 
 ### Collaborators
 - `POST /collaborators` - Criar colaborador
-- `GET /collaborators` - Listar todos
+- `GET /collaborators` - Listar todos (com busca opcional)
 - `GET /collaborators/:id` - Buscar por ID
 - `PUT /collaborators/:id` - Atualizar
 - `DELETE /collaborators/:id` - Deletar
 
 ### Services
 - `POST /services` - Criar serviço
-- `GET /services` - Listar todos
+- `GET /services` - Listar todos (com busca opcional)
 - `GET /services/:id` - Buscar por ID
 - `PUT /services/:id` - Atualizar
 - `DELETE /services/:id` - Deletar
 
 ### Appointments
 - `POST /appointments` - Criar agendamento
-- `GET /appointments` - Listar todos
+- `GET /appointments` - Listar todos (com filtro de data opcional)
 - `GET /appointments/:id` - Buscar por ID
-- `PUT /appointments/:id/assign-collaborator` - Atribuir colaborador
+- `PUT /appointments/:id` - Atualizar
 - `PUT /appointments/:id/complete` - Concluir agendamento
 - `PUT /appointments/:id/cancel` - Cancelar agendamento
 
+### Scheduled Services
+- `POST /scheduled-services/appointment/:appointmentId` - Criar serviço agendado
+- `PUT /scheduled-services/:id` - Atualizar serviço agendado
+- `PUT /scheduled-services/:id/cancel` - Cancelar serviço agendado
+
 ### Commissions
-- `POST /commissions/calculate/:appointmentId` - Calcular comissão
-- `GET /commissions` - Listar todas
-- `GET /commissions/:id` - Buscar por ID
-- `GET /commissions/collaborator/:collaboratorId` - Listar por colaborador
+- `GET /commissions` - Listar todas (com filtros opcionais: paid, startDate, endDate, collaboratorId)
+- `PUT /commissions/mark-as-paid` - Marcar comissões como pagas
+- `PUT /commissions/mark-as-unpaid` - Marcar comissões como não pagas
+
+### Financial Reports
+- `GET /financial-reports/monthly?year=2024&month=12` - Relatório mensal
+
+## 🚀 Deploy Local
+
+### Build Completo (Frontend + API)
+
+Para fazer o build completo e iniciar a aplicação:
+
+```bash
+# Build completo (instala dependências, builda frontend e API, copia frontend)
+npm run build:all
+
+# Iniciar em produção
+npm run start:prod
+```
+
+### Desenvolvimento Separado
+
+Para desenvolvimento com hot-reload:
+
+```bash
+# Terminal 1: API
+npm run start:dev
+
+# Terminal 2: Frontend (em outro terminal)
+cd ../frontend
+npm run dev
+```
+
+A API estará em `http://localhost:3000` e o frontend em `http://localhost:5173`
 

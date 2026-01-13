@@ -13,7 +13,9 @@ export interface FinancialReport {
   totalPaid: number; // Total de serviços pagos (completados)
   totalUnpaid: number; // Total de serviços não pagos (pendentes)
   totalCommissionsPaid: number; // Total de comissões pagas
+  totalCommissionsExpected: number; // Total de comissões previstas (pagas + não pagas)
   netAmount: number; // Valor líquido (total pago - comissões pagas)
+  netAmountExpected: number; // Valor líquido previsto (total pago - todas as comissões previstas)
   period: {
     startDate: string;
     endDate: string;
@@ -76,15 +78,31 @@ export class FinancialReportService {
       0,
     );
 
+    // Busca todas as comissões do período (pagas + não pagas)
+    const allCommissions = await this.commissionRepository.findByFilters({
+      startDate: start,
+      endDate: end,
+    });
+
+    const totalCommissionsExpected = allCommissions.reduce(
+      (sum, commission) => sum + Number(commission.amount),
+      0,
+    );
+
     // Valor líquido = total pago - comissões pagas
     const netAmount = totalPaid - totalCommissionsPaid;
+
+    // Valor líquido previsto = total pago - todas as comissões previstas
+    const netAmountExpected = totalPaid - totalCommissionsExpected;
 
     return {
       totalScheduled,
       totalPaid,
       totalUnpaid,
       totalCommissionsPaid,
+      totalCommissionsExpected,
       netAmount,
+      netAmountExpected,
       period: {
         startDate: formatDateToString(start),
         endDate: formatDateToString(end),

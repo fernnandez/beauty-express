@@ -97,11 +97,25 @@ export function FinancialReports() {
       description: "Total de comissões pagas",
     },
     {
+      title: "Comissões Previstas",
+      value: report?.totalCommissionsExpected ?? 0,
+      icon: IconCurrencyDollar,
+      color: "indigo",
+      description: "Total de comissões previstas (pagas + não pagas)",
+    },
+    {
       title: "Valor Líquido",
       value: report?.netAmount ?? 0,
       icon: IconTrendingUp,
       color: report?.netAmount && report.netAmount >= 0 ? "teal" : "red",
-      description: "Valor líquido (pagos - comissões)",
+      description: "Valor líquido (pagos - comissões pagas)",
+    },
+    {
+      title: "Valor Líquido Previsto",
+      value: report?.netAmountExpected ?? 0,
+      icon: IconTrendingUp,
+      color: report?.netAmountExpected && report.netAmountExpected >= 0 ? "cyan" : "red",
+      description: "Valor líquido previsto (pagos - todas as comissões)",
     },
   ];
 

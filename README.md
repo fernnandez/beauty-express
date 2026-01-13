@@ -170,7 +170,86 @@ O projeto segue uma arquitetura em camadas (Layered Architecture) com separaçã
 - Node.js 18+ 
 - npm ou yarn
 
-### Backend
+### Opção 1: Deploy Local (API + Frontend Unificados)
+
+Esta opção compila o frontend e o copia para a API, que serve tudo em uma única aplicação.
+
+#### Processo de Deploy Local
+
+O deploy local consiste em:
+
+1. **Build do Frontend**: Compilar o frontend React para arquivos estáticos
+2. **Copy Client**: Copiar os arquivos compilados do frontend para a pasta `api/client/`
+3. **Build da API**: Compilar o código TypeScript da API
+4. **Start**: Iniciar a aplicação que serve tanto a API quanto o frontend estático
+
+#### Windows
+
+No Windows, você pode criar um arquivo `.bat` com os seguintes comandos:
+
+```batch
+@echo off
+echo Building Frontend...
+cd frontend
+call npm ci --include=dev
+call npm run build
+cd ..
+
+echo Building API...
+cd api
+call npm ci --production
+call npm run build
+
+echo Copying frontend to API client folder...
+if exist client rmdir /s /q client
+mkdir client
+xcopy /E /I /Y ..\frontend\dist\* client\
+
+echo Starting application...
+call npm run start:prod
+```
+
+Ou execute manualmente:
+
+```bash
+# 1. Build do frontend
+cd frontend
+npm ci --include=dev
+npm run build
+
+# 2. Build da API e copiar frontend
+cd ../api
+npm ci --production
+npm run build
+npm run copy:client
+
+# 3. Iniciar aplicação
+npm run start:prod
+```
+
+#### Linux/Mac
+
+```bash
+cd api
+npm run build:all
+npm run start:prod
+```
+
+O comando `build:all` executa automaticamente:
+1. Build do frontend (`cd ../frontend && npm ci --include=dev && npm run build`)
+2. Build da API (`npm ci --production && npm run build`)
+3. Cópia do frontend para `api/client/` (`npm run copy:client`)
+
+A aplicação estará disponível em `http://localhost:3000`
+- Frontend: `http://localhost:3000`
+- API: `http://localhost:3000/api`
+- Swagger: `http://localhost:3000/api/docs`
+
+### Opção 2: Desenvolvimento Separado (API + Frontend)
+
+Para desenvolvimento, é recomendado rodar API e frontend separadamente para ter hot-reload.
+
+#### Backend
 
 1. **Instale as dependências:**
 ```bash
@@ -197,20 +276,15 @@ SWAGGER_PATH=api
 npm run seed
 ```
 
-4. **Inicie o servidor:**
+4. **Inicie o servidor de desenvolvimento:**
 ```bash
-# Desenvolvimento
 npm run start:dev
-
-# Produção
-npm run build
-npm run start:prod
 ```
 
 A API estará disponível em `http://localhost:3000`
-A documentação Swagger estará em `http://localhost:3000/api`
+A documentação Swagger estará em `http://localhost:3000/api/docs`
 
-### Frontend
+#### Frontend
 
 1. **Instale as dependências:**
 ```bash
@@ -229,7 +303,9 @@ VITE_API_URL=http://localhost:3000
 npm run dev
 ```
 
-O frontend estará disponível em `http://localhost:5173`
+O frontend estará disponível em `http://localhost:5173` e se conectará automaticamente à API em `http://localhost:3000`
+
+**Nota**: Certifique-se de que a API está rodando antes de iniciar o frontend.
 
 ## 🧪 Testes
 
@@ -254,7 +330,7 @@ npm run test:cov      # Com cobertura de código
 
 ### Estrutura de Testes
 
-- ✅ **179 testes** automatizados
+- ✅ **162 testes** automatizados
 - ✅ Testes unitários para todos os services
 - ✅ Testes de integração para todos os controllers
 - ✅ Validação de regras de negócio
@@ -288,20 +364,19 @@ http://localhost:3000/api
 - `POST /appointments` - Criar agendamento
 - `GET /appointments` - Listar todos (com filtro de data opcional)
 - `GET /appointments/:id` - Buscar por ID
-- `GET /appointments/:id/total-price` - Obter preço total
 - `PUT /appointments/:id` - Atualizar
 - `PUT /appointments/:id/complete` - Concluir agendamento
 - `PUT /appointments/:id/cancel` - Cancelar agendamento
 
+#### Serviços Agendados
+- `POST /scheduled-services/appointment/:appointmentId` - Criar serviço agendado
+- `PUT /scheduled-services/:id` - Atualizar serviço agendado
+- `PUT /scheduled-services/:id/cancel` - Cancelar serviço agendado
+
 #### Comissões
-- `POST /commissions/calculate/scheduled-service/:id` - Calcular comissão
-- `POST /commissions/calculate/appointment/:id` - Calcular comissões do agendamento
-- `GET /commissions` - Listar todas (com filtros opcionais)
-- `GET /commissions/:id` - Buscar por ID
-- `GET /commissions/collaborator/:id` - Listar por colaborador
-- `GET /commissions/pending/all` - Listar pendentes
-- `PUT /commissions/mark-as-paid` - Marcar como pago
-- `PUT /commissions/mark-as-unpaid` - Marcar como não pago
+- `GET /commissions` - Listar todas (com filtros opcionais: paid, startDate, endDate, collaboratorId)
+- `PUT /commissions/mark-as-paid` - Marcar comissões como pagas
+- `PUT /commissions/mark-as-unpaid` - Marcar comissões como não pagas
 
 #### Relatórios Financeiros
 - `GET /financial-reports/monthly?year=2024&month=12` - Relatório mensal
@@ -354,6 +429,188 @@ Para um guia detalhado de implantação, incluindo:
 - Troubleshooting
 
 Consulte o documento **[DEPLOY.md](./DEPLOY.md)**.
+
+## 🔮 Roadmap e Funcionalidades Futuras
+
+### Multi-Tenant e White Label
+
+O Beauty Express está sendo preparado para suportar arquitetura multi-tenant e white label, permitindo que múltiplos salões utilizem a mesma instalação com dados completamente isolados e personalização de marca.
+
+#### Visão Geral da Arquitetura Multi-Tenant
+
+A implementação seguirá o padrão **Tenant per Schema** ou **Tenant per Database**, onde cada salão terá seu próprio schema/banco de dados isolado, garantindo:
+
+- **Isolamento Total de Dados**: Cada tenant não acessa dados de outros tenants
+- **Segurança**: Separação completa entre organizações
+- **Escalabilidade**: Possibilidade de distribuir tenants em diferentes servidores
+- **Performance**: Otimizações específicas por tenant
+
+#### Estrutura Planejada
+
+```
+┌─────────────────────────────────────────┐
+│         Beauty Express Platform         │
+│                                         │
+│  ┌──────────────────────────────────┐ │
+│  │      Tenant Management Layer      │ │
+│  │  • Tenant Registration            │ │
+│  │  • Tenant Authentication          │ │
+│  │  • Tenant Context Resolution      │ │
+│  └──────────────────────────────────┘ │
+│                                         │
+│  ┌──────────────────────────────────┐ │
+│  │      Application Layer            │ │
+│  │  • Multi-tenant aware services   │ │
+│  │  • Tenant-scoped repositories    │ │
+│  │  • Tenant middleware             │ │
+│  └──────────────────────────────────┘ │
+│                                         │
+│  ┌──────────────────────────────────┐ │
+│  │      Data Layer                  │ │
+│  │  • Tenant Database 1             │ │
+│  │  • Tenant Database 2             │ │
+│  │  • Tenant Database N             │ │
+│  └──────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+```
+
+#### Componentes Principais
+
+1. **Tenant Entity**
+   - ID único do tenant
+   - Nome da organização
+   - Domínio/subdomínio
+   - Configurações de white label
+   - Status (ativo/inativo)
+
+2. **Tenant Context Middleware**
+   - Identificação do tenant via subdomínio ou header
+   - Injeção do contexto do tenant em todas as requisições
+   - Validação de acesso
+
+3. **Tenant-Aware Repositories**
+   - Filtragem automática por tenant
+   - Isolamento de queries
+   - Prevenção de vazamento de dados entre tenants
+
+4. **White Label Configuration**
+   - Logo personalizado
+   - Cores e tema
+   - Nome da marca
+   - Domínio customizado
+   - Email templates personalizados
+
+#### Implementação Técnica
+
+**Backend (NestJS)**:
+```typescript
+// Tenant Entity
+@Entity('tenants')
+export class Tenant {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  name: string;
+
+  @Column({ unique: true })
+  subdomain: string;
+
+  @Column('json')
+  whiteLabelConfig: {
+    logo: string;
+    primaryColor: string;
+    secondaryColor: string;
+    brandName: string;
+  };
+}
+
+// Tenant Context Decorator
+@Injectable()
+export class TenantContext {
+  currentTenantId: string;
+}
+
+// Tenant Middleware
+@Injectable()
+export class TenantMiddleware implements NestMiddleware {
+  async use(req: Request, res: Response, next: NextFunction) {
+    const tenantId = this.extractTenantId(req);
+    req['tenantId'] = tenantId;
+    next();
+  }
+}
+
+// Tenant-Aware Repository
+@Injectable()
+export class TenantAwareRepository<T> {
+  async find(tenantId: string, options?: FindOptions): Promise<T[]> {
+    return this.repository.find({
+      ...options,
+      where: { ...options?.where, tenantId },
+    });
+  }
+}
+```
+
+**Frontend**:
+- Detecção automática do tenant via subdomínio
+- Carregamento dinâmico de configurações de white label
+- Aplicação de tema personalizado por tenant
+- Context API para tenant atual
+
+#### Benefícios
+
+1. **Para o Negócio**:
+   - Uma única instalação serve múltiplos clientes
+   - Redução de custos de infraestrutura
+   - Facilidade de manutenção e atualizações
+   - Modelo SaaS escalável
+
+2. **Para os Clientes**:
+   - Experiência personalizada com sua marca
+   - Dados completamente isolados e seguros
+   - Domínio próprio (opcional)
+   - Preço reduzido comparado a instalação dedicada
+
+#### Fases de Implementação
+
+**Fase 1: Fundação** (Atual)
+- ✅ Arquitetura em camadas preparada
+- ✅ Separação de responsabilidades
+- ✅ Repository pattern implementado
+
+**Fase 2: Multi-Tenant Core** (Próxima)
+- [ ] Tenant entity e migrations
+- [ ] Tenant context middleware
+- [ ] Tenant-aware repositories
+- [ ] Tenant authentication
+- [ ] Testes de isolamento
+
+**Fase 3: White Label** (Futuro)
+- [ ] Sistema de configuração de marca
+- [ ] Upload e gerenciamento de logos
+- [ ] Sistema de temas personalizados
+- [ ] Domínios customizados
+- [ ] Email templates personalizados
+
+**Fase 4: Portal de Gestão** (Futuro)
+- [ ] Portal administrativo para gerenciar tenants
+- [ ] Dashboard de uso por tenant
+- [ ] Billing e assinaturas
+- [ ] Analytics multi-tenant
+
+#### Considerações de Segurança
+
+- **Isolamento Rigoroso**: Validação em múltiplas camadas
+- **SQL Injection Prevention**: Uso de query builders parametrizados
+- **Cross-Tenant Access**: Middleware bloqueia acesso não autorizado
+- **Audit Logs**: Registro de todas as ações por tenant
+- **Rate Limiting**: Limites por tenant para prevenir abuso
+
+#### Documentação Detalhada
+
+Uma documentação completa sobre a implementação de multi-tenant e white label será disponibilizada em `docs/MULTI_TENANT.md` quando a funcionalidade estiver em desenvolvimento.
 
 ## 📝 Licença
 
