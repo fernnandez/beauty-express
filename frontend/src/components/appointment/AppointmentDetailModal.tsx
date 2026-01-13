@@ -12,7 +12,6 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
 import {
   IconCalendar,
   IconCheck,
@@ -30,13 +29,14 @@ import {
 import { DateTime } from "luxon";
 import { useState } from "react";
 import { useAppointment } from "../../hooks/useAppointments";
+import { useCollaborators } from "../../hooks/useCollaborators";
+import { useNotifications } from "../../hooks/useNotifications";
 import {
   useCancelScheduledService,
   useCreateScheduledService,
   useUpdateScheduledService,
 } from "../../hooks/useScheduledServices";
 import { useServices } from "../../hooks/useServices";
-import { useCollaborators } from "../../hooks/useCollaborators";
 import type {
   Appointment,
   CreateScheduledServiceDto,
@@ -119,6 +119,7 @@ export function AppointmentDetailModal({
   const createServiceMutation = useCreateScheduledService();
   const updateServiceMutation = useUpdateScheduledService();
   const cancelServiceMutation = useCancelScheduledService();
+  const { showSuccess, showError } = useNotifications();
 
   // Busca os dados atualizados do agendamento quando o modal está aberto
   const { data: appointmentData } = useAppointment(
@@ -132,9 +133,8 @@ export function AppointmentDetailModal({
   if (!appointment) return null;
 
   const nonCancelledServices =
-    appointment.scheduledServices?.filter(
-      (s) => s.status !== "cancelado"
-    ) || [];
+    appointment.scheduledServices?.filter((s) => s.status !== "cancelado") ||
+    [];
 
   const canRemoveService = nonCancelledServices.length > 1;
 
@@ -146,11 +146,7 @@ export function AppointmentDetailModal({
         (s) => s.id === newService.serviceId
       );
       if (!selectedService) {
-        notifications.show({
-          title: "Erro",
-          message: "Serviço não encontrado",
-          color: "red",
-        });
+        showError("Serviço não encontrado");
         return;
       }
 
@@ -165,11 +161,7 @@ export function AppointmentDetailModal({
         data,
       });
 
-      notifications.show({
-        title: "Sucesso",
-        message: "Serviço adicionado com sucesso!",
-        color: "green",
-      });
+      showSuccess("Serviço adicionado com sucesso!");
 
       setNewService({
         serviceId: "",
@@ -178,12 +170,7 @@ export function AppointmentDetailModal({
       });
       setAddServiceModalOpened(false);
     } catch (error: unknown) {
-      notifications.show({
-        title: "Erro",
-        message:
-          error instanceof Error ? error.message : "Erro ao adicionar serviço",
-        color: "red",
-      });
+      showError(error, "Erro ao adicionar serviço");
     }
   };
 
@@ -208,11 +195,7 @@ export function AppointmentDetailModal({
         },
       });
 
-      notifications.show({
-        title: "Sucesso",
-        message: "Serviço atualizado com sucesso!",
-        color: "green",
-      });
+      showSuccess("Serviço atualizado com sucesso!");
 
       setEditServiceModalOpened(false);
       setEditingService(null);
@@ -221,40 +204,23 @@ export function AppointmentDetailModal({
         price: undefined,
       });
     } catch (error: unknown) {
-      notifications.show({
-        title: "Erro",
-        message:
-          error instanceof Error ? error.message : "Erro ao atualizar serviço",
-        color: "red",
-      });
+      showError(error, "Erro ao atualizar serviço");
     }
   };
 
   const handleRemoveService = async (serviceId: string) => {
     if (!canRemoveService) {
-      notifications.show({
-        title: "Erro",
-        message:
-          "Não é possível remover o último serviço. O agendamento deve ter pelo menos um serviço.",
-        color: "red",
-      });
+      showError(
+        "Não é possível remover o último serviço. O agendamento deve ter pelo menos um serviço."
+      );
       return;
     }
 
     try {
       await cancelServiceMutation.mutateAsync(serviceId);
-      notifications.show({
-        title: "Sucesso",
-        message: "Serviço removido com sucesso!",
-        color: "green",
-      });
+      showSuccess("Serviço removido com sucesso!");
     } catch (error: unknown) {
-      notifications.show({
-        title: "Erro",
-        message:
-          error instanceof Error ? error.message : "Erro ao remover serviço",
-        color: "red",
-      });
+      showError(error, "Erro ao remover serviço");
     }
   };
 

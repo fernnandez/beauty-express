@@ -16,7 +16,6 @@ import {
   Title,
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
-import { notifications } from "@mantine/notifications";
 import {
   IconCalendar,
   IconCheck,
@@ -35,6 +34,7 @@ import {
   useMarkCommissionsAsPaid,
   useMarkCommissionsAsUnpaid,
 } from "../hooks/useCommissions";
+import { useNotifications } from "../hooks/useNotifications";
 import { formatDate, formatPrice } from "../utils/appointment.utils";
 
 export function Commissions() {
@@ -110,6 +110,7 @@ export function Commissions() {
   const { data: collaborators } = useCollaborators();
   const markAsPaidMutation = useMarkCommissionsAsPaid();
   const markAsUnpaidMutation = useMarkCommissionsAsUnpaid();
+  const { showSuccess, showError } = useNotifications();
 
   // Os filtros de status, data e colaborador já vêm do backend
   // Apenas filtra por termo de busca localmente
@@ -179,19 +180,13 @@ export function Commissions() {
 
     try {
       await markAsPaidMutation.mutateAsync(Array.from(selectedCommissions));
-      notifications.show({
-        title: "Sucesso",
-        message: `${selectedCommissions.size} comissão(ões) marcada(s) como paga(s)!`,
-        color: "green",
-      });
+      showSuccess(
+        `${selectedCommissions.size} comissão(ões) marcada(s) como paga(s)!`
+      );
       setSelectedCommissions(new Set());
       setMarkAsPaidModalOpened(false);
     } catch {
-      notifications.show({
-        title: "Erro",
-        message: "Erro ao marcar comissões como pagas",
-        color: "red",
-      });
+      showError("Erro ao marcar comissões como pagas");
     }
   };
 
@@ -200,19 +195,13 @@ export function Commissions() {
 
     try {
       await markAsUnpaidMutation.mutateAsync(Array.from(selectedCommissions));
-      notifications.show({
-        title: "Sucesso",
-        message: `${selectedCommissions.size} comissão(ões) marcada(s) como não paga(s)!`,
-        color: "green",
-      });
+      showSuccess(
+        `${selectedCommissions.size} comissão(ões) marcada(s) como não paga(s)!`
+      );
       setSelectedCommissions(new Set());
       setMarkAsUnpaidModalOpened(false);
     } catch {
-      notifications.show({
-        title: "Erro",
-        message: "Erro ao marcar comissões como não pagas",
-        color: "red",
-      });
+      showError("Erro ao marcar comissões como não pagas");
     }
   };
 

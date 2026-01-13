@@ -1,13 +1,14 @@
 import { Button, Container, Group, Tabs, Text, Title } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { useNotifications } from "../hooks/useNotifications";
+
 import { IconCalendar, IconPlus, IconTable } from "@tabler/icons-react";
 import { useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { AppointmentCreateModal } from "../components/appointment/AppointmentCreateModal";
 import { AppointmentDetailModal } from "../components/appointment/AppointmentDetailModal";
 import { AppointmentEditModal } from "../components/appointment/AppointmentEditModal";
-import { AppointmentScheduleView } from "../components/appointment/AppointmentScheduleView";
 import { AppointmentListView } from "../components/appointment/AppointmentListView";
+import { AppointmentScheduleView } from "../components/appointment/AppointmentScheduleView";
 import {
   useAppointments,
   useCancelAppointment,
@@ -17,6 +18,7 @@ import { appointmentService } from "../services/appointment.service";
 import type { Appointment } from "../types";
 
 export function Appointments() {
+  const { showSuccess, showError } = useNotifications();
   const [activeTab, setActiveTab] = useState<string>("schedule");
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
@@ -58,11 +60,7 @@ export function Appointments() {
     );
 
     if (!updatedAppointment) {
-      notifications.show({
-        title: "Erro",
-        message: "Agendamento não encontrado",
-        color: "red",
-      });
+      showError("Agendamento não encontrado");
       setCompleteModalOpened(false);
       setDetailModalOpened(true);
       return;
@@ -78,11 +76,7 @@ export function Appointments() {
       ) || [];
 
     if (nonCancelledServices.length === 0) {
-      notifications.show({
-        title: "Erro",
-        message: "O agendamento deve ter pelo menos um serviço não cancelado",
-        color: "red",
-      });
+      showError("O agendamento deve ter pelo menos um serviço não cancelado");
       setCompleteModalOpened(false);
       // Reabre o modal de detalhes mesmo em caso de erro
       setDetailModalOpened(true);
@@ -94,13 +88,11 @@ export function Appointments() {
     );
 
     if (servicesWithoutCollaborator.length > 0) {
-      notifications.show({
-        title: "Erro",
-        message: `Os seguintes serviços não têm colaborador associado: ${servicesWithoutCollaborator
+      showError(
+        `Os seguintes serviços não têm colaborador associado: ${servicesWithoutCollaborator
           .map((s) => s.service?.name || "Serviço")
-          .join(", ")}`,
-        color: "red",
-      });
+          .join(", ")}`
+      );
       setCompleteModalOpened(false);
       // Reabre o modal de detalhes mesmo em caso de erro
       setDetailModalOpened(true);
@@ -109,23 +101,12 @@ export function Appointments() {
 
     try {
       await completeMutation.mutateAsync(selectedAppointment.id);
-      notifications.show({
-        title: "Sucesso",
-        message: "Agendamento concluído com sucesso!",
-        color: "green",
-      });
+      showSuccess("Agendamento concluído com sucesso!");
       setCompleteModalOpened(false);
       // Reabre o modal de detalhes após a conclusão
       setDetailModalOpened(true);
-    } catch (error: unknown) {
-      notifications.show({
-        title: "Erro",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Erro ao concluir agendamento",
-        color: "red",
-      });
+    } catch {
+      showError("Erro ao concluir agendamento");
       // Reabre o modal de detalhes mesmo em caso de erro
       setDetailModalOpened(true);
     }
@@ -136,23 +117,12 @@ export function Appointments() {
 
     try {
       await cancelMutation.mutateAsync(selectedAppointment.id);
-      notifications.show({
-        title: "Sucesso",
-        message: "Agendamento cancelado com sucesso!",
-        color: "green",
-      });
+      showSuccess("Agendamento cancelado com sucesso!");
       setCancelModalOpened(false);
       // Reabre o modal de detalhes após o cancelamento
       setDetailModalOpened(true);
-    } catch (error: unknown) {
-      notifications.show({
-        title: "Erro",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Erro ao cancelar agendamento",
-        color: "red",
-      });
+    } catch {
+      showError("Erro ao cancelar agendamento");
       // Reabre o modal de detalhes mesmo em caso de erro
       setDetailModalOpened(true);
     }

@@ -11,7 +11,6 @@ import {
   TextInput,
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
-import { notifications } from "@mantine/notifications";
 import {
   IconCalendar,
   IconClock,
@@ -21,8 +20,9 @@ import {
 } from "@tabler/icons-react";
 import { useAppointmentForm } from "../../hooks/useAppointmentForm";
 import { useCreateAppointment } from "../../hooks/useAppointments";
-import { ServiceFormItem } from "./ServiceFormItem";
+import { useNotifications } from "../../hooks/useNotifications";
 import { TIME_OPTIONS, formatPrice } from "../../utils/appointment.utils";
+import { ServiceFormItem } from "./ServiceFormItem";
 
 interface AppointmentCreateModalProps {
   opened: boolean;
@@ -34,6 +34,7 @@ export function AppointmentCreateModal({
   onClose,
 }: AppointmentCreateModalProps) {
   const createMutation = useCreateAppointment();
+  const { showSuccess, showError } = useNotifications();
   const {
     form,
     services,
@@ -49,34 +50,18 @@ export function AppointmentCreateModal({
     try {
       const validation = validateForm();
       if (!validation.valid) {
-        notifications.show({
-          title: "Erro",
-          message: validation.error || "Erro de validação",
-          color: "red",
-        });
+        showError(validation.error || "Erro de validação");
         return;
       }
 
       const data = convertToCreateDto();
       await createMutation.mutateAsync(data);
 
-      // Pequeno delay para garantir que o backend processou tudo
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      notifications.show({
-        title: "Sucesso",
-        message: "Agendamento criado com sucesso!",
-        color: "green",
-      });
+      showSuccess("Agendamento criado com sucesso!");
       form.reset();
       onClose();
     } catch (error: unknown) {
-      notifications.show({
-        title: "Erro",
-        message:
-          error instanceof Error ? error.message : "Erro ao criar agendamento",
-        color: "red",
-      });
+      showError(error, "Erro ao criar agendamento");
     }
   };
 

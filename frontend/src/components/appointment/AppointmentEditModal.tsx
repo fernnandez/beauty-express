@@ -8,7 +8,7 @@ import {
   TextInput,
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
-import { notifications } from "@mantine/notifications";
+import { useForm } from "@mantine/form";
 import {
   IconCalendar,
   IconClock,
@@ -17,10 +17,14 @@ import {
 } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import { useEffect } from "react";
-import { useForm } from "@mantine/form";
 import { useUpdateAppointment } from "../../hooks/useAppointments";
+import { useNotifications } from "../../hooks/useNotifications";
 import type { Appointment, UpdateAppointmentDto } from "../../types";
-import { TIME_OPTIONS, formatDateToString, validateTimeRange } from "../../utils/appointment.utils";
+import {
+  TIME_OPTIONS,
+  formatDateToString,
+  validateTimeRange,
+} from "../../utils/appointment.utils";
 
 interface AppointmentEditModalProps {
   opened: boolean;
@@ -34,7 +38,7 @@ export function AppointmentEditModal({
   appointment,
 }: AppointmentEditModalProps) {
   const updateMutation = useUpdateAppointment();
-
+  const { showSuccess, showError } = useNotifications();
   const form = useForm({
     initialValues: {
       clientName: "",
@@ -51,9 +55,12 @@ export function AppointmentEditModal({
           : null,
       clientPhone: (value: string) =>
         !value ? "Telefone do cliente é obrigatório" : null,
-      data: (value: Date | string | null) => (!value ? "Data é obrigatória" : null),
-      startTime: (value: string) => (!value ? "Horário de início é obrigatório" : null),
-      endTime: (value: string) => (!value ? "Horário de término é obrigatório" : null),
+      data: (value: Date | string | null) =>
+        !value ? "Data é obrigatória" : null,
+      startTime: (value: string) =>
+        !value ? "Horário de início é obrigatório" : null,
+      endTime: (value: string) =>
+        !value ? "Horário de término é obrigatório" : null,
     },
   });
 
@@ -101,21 +108,13 @@ export function AppointmentEditModal({
         form.values.endTime
       );
       if (!timeValidation.valid) {
-        notifications.show({
-          title: "Erro",
-          message: timeValidation.error || "Erro de validação",
-          color: "red",
-        });
+        showError(timeValidation.error || "Erro de validação");
         return;
       }
 
       const dateString = formatDateToString(form.values.data);
       if (!dateString) {
-        notifications.show({
-          title: "Erro",
-          message: "Data é obrigatória",
-          color: "red",
-        });
+        showError("Data é obrigatória");
         return;
       }
 
@@ -133,21 +132,10 @@ export function AppointmentEditModal({
         data,
       });
 
-      notifications.show({
-        title: "Sucesso",
-        message: "Agendamento atualizado com sucesso!",
-        color: "green",
-      });
+      showSuccess("Agendamento atualizado com sucesso!");
       onClose();
     } catch (error: unknown) {
-      notifications.show({
-        title: "Erro",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Erro ao atualizar agendamento",
-        color: "red",
-      });
+      showError(error, "Erro ao atualizar agendamento");
     }
   };
 
@@ -230,10 +218,7 @@ export function AppointmentEditModal({
             <Button variant="subtle" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              loading={updateMutation.isPending}
-            >
+            <Button type="submit" loading={updateMutation.isPending}>
               Salvar Alterações
             </Button>
           </Group>

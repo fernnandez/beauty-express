@@ -4,6 +4,7 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
@@ -39,7 +40,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     // Log do erro para debug (em produção, usar logger apropriado)
     if (status >= 500) {
-      console.error('Internal Server Error:', exception);
+      Logger.error('Internal Server Error:', exception);
     }
 
     response.status(status).json(errorResponse);
