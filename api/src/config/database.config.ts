@@ -58,8 +58,15 @@ const sharedConfig = (): Pick<
   logging: process.env.DB_LOGGING === 'true',
 });
 
+const getDatabaseUrl = () =>
+  (
+    process.env.DATABASE_URL ||
+    process.env.DATABASE_PRIVATE_URL ||
+    process.env.DATABASE_PUBLIC_URL
+  )?.trim();
+
 export const getDatabaseConfig = (): DataSourceOptions => {
-  const databaseUrl = process.env.DATABASE_URL?.trim();
+  const databaseUrl = getDatabaseUrl();
 
   if (databaseUrl) {
     return {

@@ -55,11 +55,15 @@ cd api && npm run db:up
    - Root Directory: `api`
    - Start Command: `npm run start:prod`
    - **Remova** Pre-deploy command (deixe vazio)
-4. No serviço da API → **Connect** (ou ícone de plug) → **Connect to PostgreSQL** → selecione o banco do projeto
+4. No serviço da API → **Variables** → **Raw Editor** → cole (ajuste `Postgres` se o nome do serviço for outro):
 
-   O Railway injeta `DATABASE_URL` automaticamente no serviço da API. Não precisa copiar host/senha manualmente.
+```env
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+```
 
-5. No serviço da API → **Variables**, adicione só o que falta:
+> A seta no diagrama **não** passa variáveis sozinha. Sem essa linha na aba Variables do serviço da API, o app tenta `localhost:5432` e quebra.
+
+5. Ainda em **Variables**, adicione:
 
 ```env
 NODE_ENV=production
