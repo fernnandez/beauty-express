@@ -29,13 +29,26 @@ const migrationsGlob = isCompiled
   ? __dirname + '/../migrations/*.js'
   : __dirname + '/../migrations/*.{ts,js}';
 
-export const getDatabaseConfig = (): DataSourceOptions => ({
-  type: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  username: process.env.DB_USERNAME || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-  database: process.env.DB_DATABASE || 'beauty_express',
+const resolveSsl = (databaseUrl?: string) => {
+  if (process.env.DB_SSL === 'false') {
+    return undefined;
+  }
+
+  if (
+    process.env.DB_SSL === 'true' ||
+    databaseUrl?.includes('sslmode=require') ||
+    databaseUrl?.includes('railway.app')
+  ) {
+    return { rejectUnauthorized: false };
+  }
+
+  return undefined;
+};
+
+const sharedConfig = (): Pick<
+  DataSourceOptions,
+  'entities' | 'migrations' | 'migrationsRun' | 'synchronize' | 'logging' | 'ssl'
+> => ({
   entities,
   migrations: [migrationsGlob],
   migrationsRun: process.env.DB_MIGRATIONS_RUN === 'true',
@@ -43,10 +56,30 @@ export const getDatabaseConfig = (): DataSourceOptions => ({
     process.env.DB_SYNCHRONIZE === 'true' ||
     (process.env.DB_SYNCHRONIZE !== 'false' && !isProduction),
   logging: process.env.DB_LOGGING === 'true',
-  ssl:
-    process.env.DB_SSL === 'true'
-      ? { rejectUnauthorized: false }
-      : undefined,
+  ssl: resolveSsl(),
 });
+
+export const getDatabaseConfig = (): DataSourceOptions => {
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+
+  if (databaseUrl) {
+    return {
+      type: 'postgres',
+      url: databaseUrl,
+      ...sharedConfig(),
+      ssl: resolveSsl(databaseUrl),
+    };
+  }
+
+  return {
+    type: 'postgres',
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432', 10),
+    username: process.env.DB_USERNAME || 'postgres',
+    password: process.env.DB_PASSWORD || 'postgres',
+    database: process.env.DB_DATABASE || 'beauty_express',
+    ...sharedConfig(),
+  };
+};
 
 export const databaseConfig = (): TypeOrmModuleOptions => getDatabaseConfig();

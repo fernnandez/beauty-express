@@ -56,11 +56,16 @@ PORT=3000
 NODE_ENV=production
 CORS_ORIGIN=https://app.seu-dominio.com.br,https://admin.seu-dominio.com.br
 
-DB_HOST=...
-DB_PORT=5432
-DB_USERNAME=...
-DB_PASSWORD=...
-DB_DATABASE=beauty_express
+# Opção recomendada no Railway (referência ao serviço Postgres):
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+
+# Ou variáveis separadas:
+# DB_HOST=...
+# DB_PORT=5432
+# DB_USERNAME=...
+# DB_PASSWORD=...
+# DB_DATABASE=railway
+
 DB_SYNCHRONIZE=false
 DB_LOGGING=false
 DB_SSL=true
