@@ -7,11 +7,14 @@ import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import "@mantine/notifications/styles.css";
 import { Layout } from "./components/Layout";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AuthProvider } from "./contexts/AuthContext";
 import { Appointments } from "./pages/Appointments";
 import { Collaborators } from "./pages/Collaborators";
 import { Commissions } from "./pages/Commissions";
 import { Dashboard } from "./pages/Dashboard";
 import { FinancialReports } from "./pages/FinancialReports";
+import { Login } from "./pages/Login";
 import { Services } from "./pages/Services";
 
 const queryClient = new QueryClient({
@@ -39,21 +42,42 @@ function App() {
           }}
         >
           <Notifications />
-          <BrowserRouter>
-            <Layout>
+          <AuthProvider>
+            <BrowserRouter>
               <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/collaborators" element={<Collaborators />} />
-                <Route path="/services" element={<Services />} />
-                <Route path="/appointments" element={<Appointments />} />
-                <Route path="/commissions" element={<Commissions />} />
+                <Route path="/login" element={<Login />} />
                 <Route
-                  path="/financial-reports"
-                  element={<FinancialReports />}
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <Routes>
+                          <Route path="/" element={<Dashboard />} />
+                          <Route
+                            path="/collaborators"
+                            element={<Collaborators />}
+                          />
+                          <Route path="/services" element={<Services />} />
+                          <Route
+                            path="/appointments"
+                            element={<Appointments />}
+                          />
+                          <Route
+                            path="/commissions"
+                            element={<Commissions />}
+                          />
+                          <Route
+                            path="/financial-reports"
+                            element={<FinancialReports />}
+                          />
+                        </Routes>
+                      </Layout>
+                    </ProtectedRoute>
+                  }
                 />
               </Routes>
-            </Layout>
-          </BrowserRouter>
+            </BrowserRouter>
+          </AuthProvider>
         </DatesProvider>
       </MantineProvider>
     </QueryClientProvider>

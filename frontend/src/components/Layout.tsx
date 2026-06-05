@@ -1,13 +1,25 @@
-import { Anchor, AppShell, Avatar, Center, Group, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import {
+  Anchor,
+  AppShell,
+  Avatar,
+  Center,
+  Group,
+  Stack,
+  Text,
+  Tooltip,
+  UnstyledButton,
+} from "@mantine/core";
 import {
   IconCalendar,
   IconChartBar,
   IconCurrencyDollar,
   IconHome,
+  IconLogout,
   IconScissors,
   IconUsers,
 } from "@tabler/icons-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,6 +37,12 @@ const navigationItems = [
 export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <AppShell
@@ -41,11 +59,11 @@ export function Layout({ children }: LayoutProps) {
           <Avatar src="/logo.png" size={48} radius="md" />
         </Center>
 
-        <Stack justify="center" gap={0}>
+        <Stack justify="center" gap={0} style={{ flex: 1 }}>
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
+
             return (
               <Tooltip
                 key={item.path}
@@ -63,13 +81,19 @@ export function Layout({ children }: LayoutProps) {
                     alignItems: "center",
                     justifyContent: "center",
                     borderRadius: "8px",
-                    backgroundColor: isActive ? "var(--mantine-color-pink-0)" : "transparent",
-                    color: isActive ? "var(--mantine-color-pink-6)" : "var(--mantine-color-gray-7)",
-                    transition: "background-color 150ms ease, color 150ms ease",
+                    backgroundColor: isActive
+                      ? "var(--mantine-color-pink-0)"
+                      : "transparent",
+                    color: isActive
+                      ? "var(--mantine-color-pink-6)"
+                      : "var(--mantine-color-gray-7)",
+                    transition:
+                      "background-color 150ms ease, color 150ms ease",
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) {
-                      e.currentTarget.style.backgroundColor = "var(--mantine-color-gray-1)";
+                      e.currentTarget.style.backgroundColor =
+                        "var(--mantine-color-gray-1)";
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -84,14 +108,31 @@ export function Layout({ children }: LayoutProps) {
             );
           })}
         </Stack>
+
+        <Tooltip label="Sair" position="right" withArrow>
+          <UnstyledButton
+            onClick={handleLogout}
+            style={{
+              width: "100%",
+              height: 50,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "8px",
+              color: "var(--mantine-color-gray-7)",
+            }}
+          >
+            <IconLogout size={22} stroke={1.5} />
+          </UnstyledButton>
+        </Tooltip>
       </AppShell.Navbar>
 
-      <AppShell.Main 
-        style={{ 
+      <AppShell.Main
+        style={{
           backgroundColor: "#fefefe",
           width: "100%",
           maxWidth: "100%",
-        }} 
+        }}
         pt="md"
       >
         {children}
@@ -101,7 +142,12 @@ export function Layout({ children }: LayoutProps) {
         py="xs"
         style={{ backgroundColor: "#fff", borderTop: "1px solid #e9ecef" }}
       >
-        <Group justify="center" align="center">
+        <Group justify="center" align="center" gap="md">
+          {user?.tenantName && (
+            <Text size="sm" c="dimmed">
+              {user.tenantName}
+            </Text>
+          )}
           <Text size="sm" c="dimmed">
             Made by{" "}
             <Anchor
