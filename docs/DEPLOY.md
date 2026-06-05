@@ -47,29 +47,42 @@ cd api && npm run db:up
 
 ## 2. Deploy da API
 
-### 2.1 Variáveis de ambiente
+### 2.1 Railway (passo a passo)
 
-Configure no painel do provedor (não commite `.env`):
+1. **New Project** → adicione **PostgreSQL**
+2. Adicione o repositório GitHub como novo serviço
+3. No serviço da API → **Settings**:
+   - Root Directory: `api`
+   - Start Command: `npm run start:prod`
+   - **Remova** Pre-deploy command (deixe vazio)
+4. No serviço da API → **Connect** (ou ícone de plug) → **Connect to PostgreSQL** → selecione o banco do projeto
+
+   O Railway injeta `DATABASE_URL` automaticamente no serviço da API. Não precisa copiar host/senha manualmente.
+
+5. No serviço da API → **Variables**, adicione só o que falta:
+
+```env
+NODE_ENV=production
+DB_SYNCHRONIZE=false
+JWT_ACCESS_SECRET=...
+JWT_REFRESH_SECRET=...
+CORS_ORIGIN=https://seu-frontend.up.railway.app
+```
+
+6. **Generate Domain** no serviço da API
+
+Pronto. Ao subir, a API conecta no banco via `DATABASE_URL`, roda as migrations e cria as tabelas automaticamente (`NODE_ENV=production`).
+
+### 2.2 Variáveis (outros provedores)
 
 ```env
 PORT=3000
 NODE_ENV=production
-CORS_ORIGIN=https://app.seu-dominio.com.br,https://admin.seu-dominio.com.br
+CORS_ORIGIN=https://app.seu-dominio.com.br
 
-# Opção recomendada no Railway (referência ao serviço Postgres):
-DATABASE_URL=${{Postgres.DATABASE_URL}}
-
-# Ou variáveis separadas:
-# DB_HOST=...
-# DB_PORT=5432
-# DB_USERNAME=...
-# DB_PASSWORD=...
-# DB_DATABASE=railway
-
+DATABASE_URL=postgresql://...
 DB_SYNCHRONIZE=false
 DB_LOGGING=false
-DB_SSL=true
-# DB_MIGRATIONS_RUN=true  # alternativa: aplica migrations ao subir a API
 
 JWT_ACCESS_SECRET=...
 JWT_REFRESH_SECRET=...
@@ -80,43 +93,17 @@ THROTTLE_LOGIN_LIMIT=10
 THROTTLE_LOGIN_TTL_MS=60000
 ```
 
-### 2.2 Migrations (primeiro deploy e atualizações)
+### 2.3 Migrations
 
-Com `DB_SYNCHRONIZE=false`, o schema é criado pelas **migrations** — não pelo `synchronize` do TypeORM.
+Em produção (`NODE_ENV=production`), as migrations rodam **automaticamente** ao iniciar a API. Não precisa de pre-deploy nem comando extra.
 
-**Opção A — comando separado (recomendado no primeiro deploy):**
-
-```bash
-cd api
-npm ci && npm run build
-npm run migration:run:prod
-npm run start:prod
-```
-
-No Railway/Render, use um **release command** ou job one-off:
-
-| Campo | Valor |
-|-------|-------|
-| Release / pre-deploy command | `npm run migration:run:prod` |
-
-**Opção B — automático no start (padrão com Docker/Railway):**
-
-O `start:prod` já roda `migration:run:prod` antes de subir a API. Não precisa de pre-deploy separado.
-
-Alternativa via TypeORM no Nest (sem o script acima):
-
-```env
-DB_MIGRATIONS_RUN=true
-```
-
-**Desenvolvimento local:**
+Local:
 
 ```bash
-cd api && npm run migration:run      # aplica migrations
-cd api && npm run migration:show     # lista status
+cd api && npm run migration:run
 ```
 
-### 2.3 Build e start
+### 2.4 Build e start
 
 No painel do serviço:
 
@@ -136,7 +123,7 @@ docker run -d -p 3000:3000 --env-file .env beauty-express-api
 
 > O `start:prod` carrega `bootstrap-paths` antes do `dist/main.js` (aliases `@common/*`).
 
-### 2.4 Verificar
+### 2.5 Verificar
 
 ```bash
 curl https://api.seu-dominio.com.br/docs
@@ -145,7 +132,7 @@ curl https://api.seu-dominio.com.br/docs
 
 Rotas operacionais exigem JWT — use login em `/auth/login` para testar com token.
 
-### 2.5 Seed (só primeira vez / staging)
+### 2.6 Seed (só primeira vez / staging)
 
 ```bash
 # Localmente, apontando para o banco de produção/staging
@@ -241,7 +228,7 @@ Push no repositório → rebuild automático no Vercel/Netlify.
 
 - [ ] PostgreSQL provisionado
 - [ ] `api/.env` configurado no provedor (`DB_SYNCHRONIZE=false`)
-- [ ] Migrations aplicadas (`npm run migration:run:prod` ou `DB_MIGRATIONS_RUN=true`)
+- [ ] Postgres conectado à API no Railway (ou `DATABASE_URL` configurada)
 - [ ] JWT secrets definidos (não use valores de dev)
 - [ ] API com build + `npm run start:prod`
 - [ ] `CORS_ORIGIN` com URLs do frontend (app e admin)

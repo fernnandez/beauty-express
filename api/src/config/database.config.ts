@@ -47,16 +47,15 @@ const resolveSsl = (databaseUrl?: string) => {
 
 const sharedConfig = (): Pick<
   DataSourceOptions,
-  'entities' | 'migrations' | 'migrationsRun' | 'synchronize' | 'logging' | 'ssl'
+  'entities' | 'migrations' | 'migrationsRun' | 'synchronize' | 'logging'
 > => ({
   entities,
   migrations: [migrationsGlob],
-  migrationsRun: process.env.DB_MIGRATIONS_RUN === 'true',
+  migrationsRun: isProduction || process.env.DB_MIGRATIONS_RUN === 'true',
   synchronize:
     process.env.DB_SYNCHRONIZE === 'true' ||
     (process.env.DB_SYNCHRONIZE !== 'false' && !isProduction),
   logging: process.env.DB_LOGGING === 'true',
-  ssl: resolveSsl(),
 });
 
 export const getDatabaseConfig = (): DataSourceOptions => {
@@ -73,12 +72,14 @@ export const getDatabaseConfig = (): DataSourceOptions => {
 
   return {
     type: 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-    username: process.env.DB_USERNAME || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_DATABASE || 'beauty_express',
+    host: process.env.DB_HOST || process.env.PGHOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || process.env.PGPORT || '5432', 10),
+    username: process.env.DB_USERNAME || process.env.PGUSER || 'postgres',
+    password: process.env.DB_PASSWORD || process.env.PGPASSWORD || 'postgres',
+    database:
+      process.env.DB_DATABASE || process.env.PGDATABASE || 'beauty_express',
     ...sharedConfig(),
+    ssl: resolveSsl(),
   };
 };
 
