@@ -4,7 +4,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-COPY tsconfig.json ./
+COPY tsconfig.json tsconfig.build.json ./
 COPY nest-cli.json ./
 
 RUN npm ci --include=dev
@@ -26,4 +26,4 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 
-CMD ["node", "dist/main.js"]
+CMD ["npm", "run", "start:prod"]
