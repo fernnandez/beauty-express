@@ -169,7 +169,9 @@ VITE_API_URL=https://api.seu-dominio.com.br
 
 ### 3.3 SPA / rotas
 
-Configure fallback para `index.html` (Vercel e Netlify fazem isso automaticamente para SPAs Vite).
+O projeto já inclui `frontend/vercel.json` (Vercel) e `frontend/public/_redirects` (Netlify) para redirecionar todas as rotas ao `index.html`. Sem isso, `/backoffice/login` retorna 404.
+
+Após alterar, **redeploy obrigatório** do frontend.
 
 Rotas principais:
 
