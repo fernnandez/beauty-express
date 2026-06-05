@@ -1,4 +1,5 @@
 import {
+  Alert,
   Badge,
   Button,
   Divider,
@@ -14,6 +15,7 @@ import { DatePickerInput } from "@mantine/dates";
 import {
   IconCalendar,
   IconClock,
+  IconInfoCircle,
   IconPhone,
   IconPlus,
   IconUserCircle,
@@ -44,6 +46,7 @@ export function AppointmentCreateModal({
     validateForm,
     convertToCreateDto,
     totalPrice,
+    isPastAppointment,
   } = useAppointmentForm();
 
   const handleSubmit = async () => {
@@ -57,7 +60,11 @@ export function AppointmentCreateModal({
       const data = convertToCreateDto();
       await createMutation.mutateAsync(data);
 
-      showSuccess("Agendamento criado com sucesso!");
+      showSuccess(
+        isPastAppointment
+          ? "Agendamento retroativo registrado e concluído com sucesso!"
+          : "Agendamento criado com sucesso!"
+      );
       form.reset();
       onClose();
     } catch (error: unknown) {
@@ -106,9 +113,20 @@ export function AppointmentCreateModal({
             required
             leftSection={<IconCalendar size={16} />}
             valueFormat="DD/MM/YYYY"
-            {...form.getInputProps("data")}
-            minDate={new Date()}
+            value={form.values.data}
+            onChange={(value) => form.setFieldValue("data", value)}
+            error={form.errors.data}
           />
+          {isPastAppointment && (
+            <Alert
+              icon={<IconInfoCircle size={16} />}
+              color="blue"
+              variant="light"
+            >
+              Agendamentos no passado exigem serviço e colaborador em cada item.
+              O registro será concluído automaticamente para gerar as comissões.
+            </Alert>
+          )}
           <Group grow>
             <Select
               label="Horário de Início"
@@ -146,6 +164,7 @@ export function AppointmentCreateModal({
                 services={services}
                 collaborators={activeCollaborators}
                 canRemove={form.values.servicos.length > 1}
+                collaboratorRequired={isPastAppointment}
                 onServiceChange={(idx, serviceId) =>
                   form.setFieldValue(`servicos.${idx}.serviceId`, serviceId)
                 }

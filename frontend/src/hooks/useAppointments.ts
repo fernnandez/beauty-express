@@ -53,6 +53,8 @@ export const useCreateAppointment = () => {
         queryKey: ["appointments"],
         exact: false,
       });
+
+      queryClient.invalidateQueries({ queryKey: ["commissions"] });
     },
   });
 };

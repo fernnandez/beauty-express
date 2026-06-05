@@ -54,6 +54,17 @@ export function startOfDay(date: string | Date): Date {
  * @param dateString String no formato yyyy-mm-dd ou Date object
  * @returns Date object representando o final do dia
  */
+/**
+ * Verifica se a data é anterior ao dia atual (timezone America/Sao_Paulo)
+ */
+export function isDateBeforeToday(date: Date): boolean {
+  const dateLuxon = DateTime.fromJSDate(date, {
+    zone: 'America/Sao_Paulo',
+  }).startOf('day');
+  const todayLuxon = DateTime.now().setZone('America/Sao_Paulo').startOf('day');
+  return dateLuxon < todayLuxon;
+}
+
 export function endOfDay(date: string | Date): Date {
   let luxonDate: DateTime;
   if (typeof date === 'string') {

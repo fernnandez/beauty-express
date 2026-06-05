@@ -9,6 +9,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
+        CORS_ORIGIN: 'http://localhost:5173',
       },
       error_file: './logs/err.log',
       out_file: './logs/out.log',

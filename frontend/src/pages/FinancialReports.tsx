@@ -142,7 +142,6 @@ export function FinancialReports() {
               }
             }}
             valueFormat="MMMM [de] YYYY"
-            locale="pt-BR"
             clearable={false}
             style={{ maxWidth: 300 }}
           />

@@ -1,100 +1,90 @@
-# Beauty Express - Frontend
+# Beauty Express — Frontend
 
-Frontend desenvolvido com React + Vite + Mantine para o sistema de gestão de salão de beleza.
+SPA em **React 19 + Vite + Mantine 8** para gestão de salão de beleza.
 
 ## Tecnologias
 
-- **React 19** - Biblioteca JavaScript para construção de interfaces
-- **Vite** - Build tool e dev server
-- **Mantine** - Biblioteca de componentes UI
-- **React Query** - Gerenciamento de estado do servidor
-- **React Router** - Roteamento
-- **Axios** - Cliente HTTP
-- **TypeScript** - Tipagem estática
+- React 19, TypeScript, Vite 7
+- Mantine 8 (UI, formulários, datas, notificações)
+- TanStack Query (estado do servidor)
+- React Router 7
+- Axios
+- Luxon + dayjs (locale `pt-br`)
 
-## Estrutura do Projeto
+## Estrutura
 
 ```
 src/
-├── components/       # Componentes reutilizáveis
-│   └── Layout.tsx   # Layout principal com navegação
-├── config/          # Configurações
-│   └── api.ts      # Configuração do Axios
-├── hooks/          # Custom hooks do React Query
-│   ├── useCollaborators.ts
-│   ├── useServices.ts
-│   ├── useAppointments.ts
-│   └── useCommissions.ts
-├── pages/          # Páginas da aplicação
-│   ├── Dashboard.tsx
-│   ├── Collaborators.tsx
-│   ├── Services.tsx
-│   ├── Appointments.tsx
-│   └── Commissions.tsx
-├── services/       # Services para comunicação com API
-│   ├── collaborator.service.ts
-│   ├── service.service.ts
-│   ├── appointment.service.ts
-│   └── commission.service.ts
-├── types/          # Definições de tipos TypeScript
-│   └── index.ts
-├── App.tsx        # Componente raiz
-└── main.tsx       # Entry point
+├── components/
+│   ├── appointment/     # Modais e views de agendamento
+│   ├── collaborator/
+│   ├── service/
+│   └── Layout.tsx
+├── config/
+│   ├── api.ts           # Cliente Axios
+│   └── dates.ts         # Locale pt-br (dayjs)
+├── hooks/               # React Query + formulários
+├── pages/               # Rotas da aplicação
+├── services/            # Chamadas à API
+├── utils/               # Datas, erros, formatação
+└── constants/           # Mensagens do sistema
 ```
 
-## Configuração
+## Instalação
 
-1. Instale as dependências:
 ```bash
 npm install
-```
-
-2. Configure a URL da API criando um arquivo `.env`:
-```
-VITE_API_URL=http://localhost:3000
-```
-
-3. Inicie o servidor de desenvolvimento:
-```bash
+cp .env.example .env
 npm run dev
 ```
 
-## Funcionalidades Implementadas
+App em `http://localhost:5173`.
 
-### ✅ Estrutura Base
-- [x] Configuração do projeto com Vite + React + TypeScript
-- [x] Integração com Mantine UI
-- [x] Configuração do React Query
-- [x] Estrutura de services para comunicação com API
-- [x] Custom hooks para cada módulo
-- [x] Layout principal com navegação lateral
-- [x] Dashboard inicial com cards de navegação
+## Configuração
 
-### ✅ Módulos Básicos
-- [x] Colaboradores - Listagem
-- [x] Serviços - Listagem
-- [x] Agendamentos - Listagem
-- [x] Comissões - Listagem
+```env
+# URL base da API (sem sufixo /api)
+VITE_API_URL=http://localhost:3000
+```
 
-## Próximos Passos
+A API deve estar rodando e com `CORS_ORIGIN` apontando para o frontend.
 
-- [ ] Formulários de criação/edição para Colaboradores
-- [ ] Formulários de criação/edição para Serviços
-- [ ] Formulário de criação de Agendamentos
-- [ ] Ações de agendamento (completar, cancelar, atribuir colaborador)
-- [ ] Cálculo de comissões
-- [ ] Filtros e busca nas listagens
-- [ ] Paginação
-- [ ] Validação de formulários
-- [ ] Tratamento de erros
-- [ ] Loading states
-- [ ] Notificações de sucesso/erro
+## Scripts
 
-## Padrões Adotados
+```bash
+npm run dev       # Desenvolvimento com hot-reload
+npm run build     # Build de produção (dist/)
+npm run preview   # Preview do build
+npm run lint      # ESLint
+```
 
-- **Componentização**: Componentes reutilizáveis e bem organizados
-- **Estilos**: Uso direto dos componentes do Mantine (sem CSS customizado)
-- **State Management**: React Query para estado do servidor
-- **Type Safety**: TypeScript em todo o projeto
-- **Service Layer**: Separação de lógica de API em services
-- **Custom Hooks**: Hooks personalizados para encapsular lógica do React Query
+## Páginas
+
+| Rota | Descrição |
+|------|-----------|
+| `/` | Dashboard com contadores |
+| `/collaborators` | CRUD de colaboradores |
+| `/services` | CRUD de serviços |
+| `/appointments` | Agenda e lista de agendamentos |
+| `/commissions` | Comissões com filtros |
+| `/financial-reports` | Relatório mensal |
+
+## Funcionalidades
+
+- CRUD completo de colaboradores, serviços e agendamentos
+- Agendamentos retroativos (data passada → serviço + colaborador obrigatórios)
+- Conclusão e cancelamento de agendamentos
+- Comissões com filtros e marcação de pagamento
+- Relatórios financeiros por mês
+- Notificações centralizadas e tratamento de erros padronizado
+- Interface em português (pt-BR)
+
+## Deploy
+
+O frontend é implantado **separadamente** da API:
+
+1. `npm run build` gera a pasta `dist/`
+2. Sirva os arquivos estáticos (Nginx, Vercel, Netlify, S3 + CDN, etc.)
+3. Configure `VITE_API_URL` com a URL pública da API no momento do build
+
+Guia completo: **[../docs/DEPLOY.md](../docs/DEPLOY.md)**

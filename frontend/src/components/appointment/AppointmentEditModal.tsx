@@ -43,7 +43,7 @@ export function AppointmentEditModal({
     initialValues: {
       clientName: "",
       clientPhone: "",
-      data: null as Date | string | null,
+      data: null as string | null,
       startTime: "",
       endTime: "",
       observacoes: "",
@@ -55,8 +55,7 @@ export function AppointmentEditModal({
           : null,
       clientPhone: (value: string) =>
         !value ? "Telefone do cliente é obrigatório" : null,
-      data: (value: Date | string | null) =>
-        !value ? "Data é obrigatória" : null,
+      data: (value: string | null) => (!value ? "Data é obrigatória" : null),
       startTime: (value: string) =>
         !value ? "Horário de início é obrigatório" : null,
       endTime: (value: string) =>
@@ -66,12 +65,11 @@ export function AppointmentEditModal({
 
   useEffect(() => {
     if (appointment && opened) {
-      // Converte a string ISO da data para Date usando Luxon
-      let appointmentDate: Date | string | null = null;
+      let appointmentDate: string | null = null;
       if (appointment.date) {
         const luxonDate = DateTime.fromISO(appointment.date, { zone: "local" });
         if (luxonDate.isValid) {
-          appointmentDate = luxonDate.toJSDate();
+          appointmentDate = luxonDate.toFormat("yyyy-MM-dd");
         } else {
           const parsedDate = DateTime.fromFormat(
             appointment.date,
@@ -79,7 +77,7 @@ export function AppointmentEditModal({
             { zone: "local" }
           );
           if (parsedDate.isValid) {
-            appointmentDate = parsedDate.toJSDate();
+            appointmentDate = parsedDate.toFormat("yyyy-MM-dd");
           }
         }
       }
@@ -183,8 +181,9 @@ export function AppointmentEditModal({
             required
             leftSection={<IconCalendar size={16} />}
             valueFormat="DD/MM/YYYY"
-            {...form.getInputProps("data")}
-            minDate={new Date()}
+            value={form.values.data}
+            onChange={(value) => form.setFieldValue("data", value)}
+            error={form.errors.data}
           />
           <Group grow>
             <Select

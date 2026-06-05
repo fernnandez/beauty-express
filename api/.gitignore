@@ -44,3 +44,6 @@ lerna-debug.log*
 *.sqlite3
 *.db
 
+# Frontend build (não servido pela API)
+/client
+

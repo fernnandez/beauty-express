@@ -1,148 +1,137 @@
 # Beauty Express API
 
-Backend API para sistema de gerenciamento de salão de beleza desenvolvido com NestJS.
+API REST para gestão de salão de beleza, desenvolvida com **NestJS 11** e **PostgreSQL**.
 
-## 🏗️ Arquitetura
-
-O projeto segue uma arquitetura em camadas:
+## Arquitetura
 
 ```
-/api/src
-  /application
-    /controllers    # Controllers REST
-    /dtos          # Data Transfer Objects
-  /domain
-    /entities      # Entidades TypeORM
-    /repositories  # Repositórios concretos (estendem Repository do TypeORM)
-    /services      # Serviços de domínio (regras de negócio)
-    /modules       # Módulos NestJS por contexto
-  /config
-    database.config.ts  # Configuração do TypeORM
+src/
+├── application/
+│   ├── controllers/     # Endpoints HTTP
+│   └── dtos/            # Validação (class-validator)
+├── domain/
+│   ├── entities/        # TypeORM
+│   ├── repositories/    # Acesso a dados
+│   ├── services/        # Regras de negócio
+│   └── modules/         # Módulos NestJS
+├── config/
+│   └── database.config.ts
+└── scripts/
+    └── seed.ts
 ```
 
-## 📦 Funcionalidades
+## Pré-requisitos
 
-- **Gerenciamento de Colaboradores**: CRUD de colaboradores com percentual de comissão
-- **Catálogo de Serviços**: CRUD de serviços com preços padrão
-- **Agendamentos**: Criação, atribuição de colaborador, conclusão e cancelamento
-- **Cálculo de Comissões**: Cálculo automático de comissões baseado em percentual do colaborador
+- Node.js 20+
+- PostgreSQL 16 (ou Docker)
 
-## 🚀 Instalação
+## Instalação
 
 ```bash
-cd api
 npm install
+cp .env.example .env
 ```
 
-## ⚙️ Configuração
+### PostgreSQL com Docker
 
-Crie um arquivo `.env` na raiz da pasta `api`:
+```bash
+npm run db:up      # sobe o container (docker-compose.yml nesta pasta)
+npm run db:down    # para o container
+```
+
+## Configuração (`.env`)
 
 ```env
-# Database
-DB_TYPE=sqlite
-DB_DATABASE=database.sqlite
-
-# Server
 PORT=3000
+NODE_ENV=development
+CORS_ORIGIN=http://localhost:5173
 
-# Swagger
-SWAGGER_PATH=api
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+DB_DATABASE=beauty_express
+DB_SYNCHRONIZE=true
+DB_LOGGING=false
 ```
 
-## 🏃 Executando
+| Variável | Descrição |
+|----------|-----------|
+| `CORS_ORIGIN` | URL(s) do frontend, separadas por vírgula |
+| `DB_SYNCHRONIZE` | `true` em dev; `false` em produção |
+| `DB_SSL` | `true` para Postgres gerenciado (Railway, Render, etc.) |
+
+## Executando
 
 ```bash
-# Desenvolvimento
+# Desenvolvimento (watch)
 npm run start:dev
 
 # Produção
 npm run build
 npm run start:prod
+
+# Dados de exemplo
+npm run seed
 ```
 
-## 📚 Documentação Swagger
+- API: `http://localhost:3000`
+- Swagger: `http://localhost:3000/docs`
 
-Após iniciar o servidor, acesse:
-
-```
-http://localhost:3000/api
-```
-
-## 🗄️ Banco de Dados
-
-O projeto utiliza SQLite por padrão. O banco de dados será criado automaticamente na primeira execução.
-
-### Entidades
-
-- **Collaborator**: Colaboradores do salão
-- **Service**: Serviços oferecidos
-- **Appointment**: Agendamentos
-- **Commission**: Comissões calculadas
-
-## 📝 Endpoints Principais
-
-### Collaborators
-- `POST /collaborators` - Criar colaborador
-- `GET /collaborators` - Listar todos (com busca opcional)
-- `GET /collaborators/:id` - Buscar por ID
-- `PUT /collaborators/:id` - Atualizar
-- `DELETE /collaborators/:id` - Deletar
-
-### Services
-- `POST /services` - Criar serviço
-- `GET /services` - Listar todos (com busca opcional)
-- `GET /services/:id` - Buscar por ID
-- `PUT /services/:id` - Atualizar
-- `DELETE /services/:id` - Deletar
-
-### Appointments
-- `POST /appointments` - Criar agendamento
-- `GET /appointments` - Listar todos (com filtro de data opcional)
-- `GET /appointments/:id` - Buscar por ID
-- `PUT /appointments/:id` - Atualizar
-- `PUT /appointments/:id/complete` - Concluir agendamento
-- `PUT /appointments/:id/cancel` - Cancelar agendamento
-
-### Scheduled Services
-- `POST /scheduled-services/appointment/:appointmentId` - Criar serviço agendado
-- `PUT /scheduled-services/:id` - Atualizar serviço agendado
-- `PUT /scheduled-services/:id/cancel` - Cancelar serviço agendado
-
-### Commissions
-- `GET /commissions` - Listar todas (com filtros opcionais: paid, startDate, endDate, collaboratorId)
-- `PUT /commissions/mark-as-paid` - Marcar comissões como pagas
-- `PUT /commissions/mark-as-unpaid` - Marcar comissões como não pagas
-
-### Financial Reports
-- `GET /financial-reports/monthly?year=2024&month=12` - Relatório mensal
-
-## 🚀 Deploy Local
-
-### Build Completo (Frontend + API)
-
-Para fazer o build completo e iniciar a aplicação:
+## Testes
 
 ```bash
-# Build completo (instala dependências, builda frontend e API, copia frontend)
-npm run build:all
-
-# Iniciar em produção
-npm run start:prod
+npm test
+npm run test:cov
 ```
 
-### Desenvolvimento Separado
+164 testes cobrindo services e controllers.
 
-Para desenvolvimento com hot-reload:
+## Endpoints
+
+### Colaboradores
+- `POST /collaborators` — criar
+- `GET /collaborators` — listar (busca opcional)
+- `GET /collaborators/:id` — buscar
+- `PUT /collaborators/:id` — atualizar
+- `DELETE /collaborators/:id` — remover
+
+### Serviços
+- `POST /services`
+- `GET /services`
+- `GET /services/:id`
+- `PUT /services/:id`
+- `DELETE /services/:id`
+
+### Agendamentos
+- `POST /appointments` — criar (retroativos concluem automaticamente)
+- `GET /appointments?date=YYYY-MM-DD` — listar por data
+- `GET /appointments/:id`
+- `PUT /appointments/:id`
+- `PUT /appointments/:id/complete`
+- `PUT /appointments/:id/cancel`
+
+### Serviços agendados
+- `POST /scheduled-services/appointment/:appointmentId`
+- `PUT /scheduled-services/:id`
+- `PUT /scheduled-services/:id/cancel`
+
+### Comissões
+- `GET /commissions` — filtros: `paid`, `startDate`, `endDate`, `collaboratorId`
+- `PUT /commissions/mark-as-paid`
+- `PUT /commissions/mark-as-unpaid`
+
+### Relatórios
+- `GET /financial-reports/monthly?year=2026&month=6`
+
+## Docker
+
+Build da imagem (apenas API):
 
 ```bash
-# Terminal 1: API
-npm run start:dev
-
-# Terminal 2: Frontend (em outro terminal)
-cd ../frontend
-npm run dev
+docker build -t beauty-express-api .
 ```
 
-A API estará em `http://localhost:3000` e o frontend em `http://localhost:5173`
+## Deploy
 
+Consulte **[../docs/DEPLOY.md](../docs/DEPLOY.md)**.

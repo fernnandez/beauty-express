@@ -93,7 +93,7 @@ describe('AppointmentService', () => {
     const createDto: CreateAppointmentDto = {
       clientName: 'João Silva',
       clientPhone: '11999999999',
-      date: '2024-12-28',
+      date: '2026-12-28',
       startTime: '09:00',
       endTime: '11:00',
       servicos: [
@@ -209,6 +209,85 @@ describe('AppointmentService', () => {
       );
 
       expect(mockAppointmentRepository.save).toHaveBeenCalled();
+    });
+
+    it('should throw error when past appointment has service without collaborator', async () => {
+      const pastDto = { ...createDto, date: '2024-12-28' };
+
+      await expect(service.createAppointment(pastDto)).rejects.toThrow(
+        'Past appointments require a collaborator assigned to each service',
+      );
+
+      expect(mockAppointmentRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should auto-complete past appointment when all services have collaborators', async () => {
+      const pastDto: CreateAppointmentDto = {
+        ...createDto,
+        date: '2024-12-28',
+        servicos: [
+          {
+            serviceId: 'service-1',
+            collaboratorId: 'collab-1',
+          },
+        ],
+      };
+
+      const pastSavedAppointment: Appointment = {
+        ...savedAppointment,
+        date: parseDateString('2024-12-28'),
+      };
+
+      const scheduledService: ScheduledService = {
+        id: 'scheduled-1',
+        appointmentId: pastSavedAppointment.id,
+        serviceId: 'service-1',
+        collaboratorId: 'collab-1',
+        price: 50.0,
+        status: ScheduledServiceStatus.PENDING,
+      };
+
+      const completedAppointment: Appointment = {
+        ...pastSavedAppointment,
+        status: AppointmentStatus.COMPLETED,
+        scheduledServices: [
+          {
+            ...scheduledService,
+            status: ScheduledServiceStatus.COMPLETED,
+          },
+        ],
+      };
+
+      mockAppointmentRepository.save
+        .mockResolvedValueOnce(pastSavedAppointment)
+        .mockResolvedValueOnce(completedAppointment);
+      mockScheduledServiceService.createScheduledService.mockResolvedValue(
+        scheduledService,
+      );
+      mockAppointmentRepository.findOne.mockResolvedValue({
+        ...pastSavedAppointment,
+        scheduledServices: [scheduledService],
+      });
+      mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue([
+        scheduledService,
+      ]);
+      mockScheduledServiceService.completeScheduledService.mockResolvedValue({
+        ...scheduledService,
+        status: ScheduledServiceStatus.COMPLETED,
+      });
+      mockCommissionService.calculateCommissionsForAppointment.mockResolvedValue(
+        [],
+      );
+
+      const result = await service.createAppointment(pastDto);
+
+      expect(result.status).toBe(AppointmentStatus.COMPLETED);
+      expect(
+        mockScheduledServiceService.completeScheduledService,
+      ).toHaveBeenCalledWith('scheduled-1');
+      expect(
+        mockCommissionService.calculateCommissionsForAppointment,
+      ).toHaveBeenCalledWith(pastSavedAppointment.id);
     });
 
     it('should create appointment with custom price', async () => {

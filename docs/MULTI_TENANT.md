@@ -33,9 +33,9 @@ O Beauty Express utilizará o modelo **Tenant per Schema** (ou Database per Tena
 ┌─────────────────────────────────────┐
 │      Beauty Express Platform        │
 ├─────────────────────────────────────┤
-│  Tenant 1 → database_tenant1.sqlite │
-│  Tenant 2 → database_tenant2.sqlite │
-│  Tenant 3 → database_tenant3.sqlite │
+│  Tenant 1 → database_tenant1 (PG)  │
+│  Tenant 2 → database_tenant2 (PG)  │
+│  Tenant 3 → database_tenant3 (PG)  │
 │  ...                                 │
 └─────────────────────────────────────┘
 ```
@@ -193,8 +193,9 @@ export class TenantContextService {
 
   private createTenantConnection(tenant: Tenant): DataSource {
     return new DataSource({
-      type: 'sqlite',
-      database: `database_${tenant.id}.sqlite`,
+      type: 'postgres',
+      host: process.env.DB_HOST,
+      database: `beauty_tenant_${tenant.id}`,
       // ... outras configurações
     });
   }
@@ -470,4 +471,4 @@ async function migrateToMultiTenant() {
 
 **Status**: Planejado para implementação futura
 
-**Última atualização**: 2024
+**Última atualização**: Junho 2026

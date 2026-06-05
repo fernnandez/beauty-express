@@ -18,7 +18,7 @@ export class Appointment {
   @Column()
   clientPhone: string;
 
-  @Column('datetime')
+  @Column({ type: 'timestamptz' })
   date: Date;
 
   @Column('varchar')

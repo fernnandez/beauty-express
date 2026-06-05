@@ -9,20 +9,14 @@ import {
   ScheduledServiceStatus,
 } from '@domain/entities/scheduled-service.entity';
 import { Service } from '@domain/entities/service.entity';
+import { randomUUID } from 'crypto';
 import { DataSource } from 'typeorm';
+import { getDatabaseConfig } from '../config/database.config';
 
 async function seed() {
   const dataSource = new DataSource({
-    type: 'sqlite',
-    database: process.env.DB_DATABASE || 'database.sqlite',
-    entities: [
-      Collaborator,
-      Service,
-      Appointment,
-      ScheduledService,
-      Commission,
-    ],
-    synchronize: false, // Não sincroniza no seed
+    ...getDatabaseConfig(),
+    synchronize: true,
   });
   await dataSource.initialize();
 
@@ -34,20 +28,18 @@ async function seed() {
   const scheduledServiceRepository = dataSource.getRepository(ScheduledService);
   const commissionRepository = dataSource.getRepository(Commission);
 
-  // Limpa dados existentes
+  // Limpa dados existentes (CASCADE para respeitar FKs no PostgreSQL)
   console.log('🧹 Limpando dados existentes...');
-  await commissionRepository.clear();
-  await scheduledServiceRepository.clear();
-  await appointmentRepository.clear();
-  await collaboratorRepository.clear();
-  await serviceRepository.clear();
+  await dataSource.query(
+    'TRUNCATE TABLE commissions, scheduled_services, appointments, collaborator_services, collaborators, services RESTART IDENTITY CASCADE',
+  );
   console.log('✅ Dados limpos\n');
 
   // Seed de Colaboradores
   console.log('👥 Criando colaboradores...');
   const collaborators = [
     {
-      id: 'collab-001',
+      id: 'a0000001-0001-4000-8000-000000000001',
       name: 'Maria Silva',
       phone: '(11) 98765-4321',
       area: 'Hairdresser',
@@ -55,7 +47,7 @@ async function seed() {
       isActive: true,
     },
     {
-      id: 'collab-002',
+      id: 'a0000001-0001-4000-8000-000000000002',
       name: 'Ana Paula Santos',
       phone: '(11) 98765-4322',
       area: 'Nail Designer',
@@ -63,7 +55,7 @@ async function seed() {
       isActive: true,
     },
     {
-      id: 'collab-003',
+      id: 'a0000001-0001-4000-8000-000000000003',
       name: 'Juliana Costa',
       phone: '(11) 98765-4323',
       area: 'Hairdresser',
@@ -71,7 +63,7 @@ async function seed() {
       isActive: true,
     },
     {
-      id: 'collab-004',
+      id: 'a0000001-0001-4000-8000-000000000004',
       name: 'Fernanda Oliveira',
       phone: '(11) 98765-4324',
       area: 'Esthetician',
@@ -79,7 +71,7 @@ async function seed() {
       isActive: true,
     },
     {
-      id: 'collab-005',
+      id: 'a0000001-0001-4000-8000-000000000005',
       name: 'Patricia Lima',
       phone: '(11) 98765-4325',
       area: 'Makeup Artist',
@@ -87,7 +79,7 @@ async function seed() {
       isActive: false, // Inativa
     },
     {
-      id: 'collab-006',
+      id: 'a0000001-0001-4000-8000-000000000006',
       name: 'Camila Rodrigues',
       phone: '(11) 98765-4326',
       area: 'Nail Designer',
@@ -95,7 +87,7 @@ async function seed() {
       isActive: true,
     },
     {
-      id: 'collab-007',
+      id: 'a0000001-0001-4000-8000-000000000007',
       name: 'Larissa Alves',
       phone: '(11) 98765-4327',
       area: 'Massage Therapist',
@@ -111,91 +103,91 @@ async function seed() {
   console.log('💇 Criando serviços...');
   const services = [
     {
-      id: 'serv-001',
+      id: 'b0000001-0001-4000-8000-000000000001',
       name: 'Corte Feminino',
       defaultPrice: 45.0,
       description: 'Corte de cabelo feminino com lavagem e finalização',
     },
     {
-      id: 'serv-002',
+      id: 'b0000001-0001-4000-8000-000000000002',
       name: 'Corte Masculino',
       defaultPrice: 30.0,
       description: 'Corte de cabelo masculino',
     },
     {
-      id: 'serv-003',
+      id: 'b0000001-0001-4000-8000-000000000003',
       name: 'Coloração Completa',
       defaultPrice: 180.0,
       description: 'Coloração completa com produtos profissionais',
     },
     {
-      id: 'serv-004',
+      id: 'b0000001-0001-4000-8000-000000000004',
       name: 'Mechas',
       defaultPrice: 250.0,
       description: 'Aplicação de mechas com técnicas modernas',
     },
     {
-      id: 'serv-005',
+      id: 'b0000001-0001-4000-8000-000000000005',
       name: 'Escova Progressiva',
       defaultPrice: 350.0,
       description: 'Alisamento com escova progressiva',
     },
     {
-      id: 'serv-006',
+      id: 'b0000001-0001-4000-8000-000000000006',
       name: 'Manicure',
       defaultPrice: 25.0,
       description: 'Manicure completa com esmaltação',
     },
     {
-      id: 'serv-007',
+      id: 'b0000001-0001-4000-8000-000000000007',
       name: 'Pedicure',
       defaultPrice: 35.0,
       description: 'Pedicure completa com esmaltação',
     },
     {
-      id: 'serv-008',
+      id: 'b0000001-0001-4000-8000-000000000008',
       name: 'Manicure + Pedicure',
       defaultPrice: 55.0,
       description: 'Pacote completo de unhas',
     },
     {
-      id: 'serv-009',
+      id: 'b0000001-0001-4000-8000-000000000009',
       name: 'Sobrancelha',
       defaultPrice: 20.0,
       description: 'Design de sobrancelhas',
     },
     {
-      id: 'serv-010',
+      id: 'b0000001-0001-4000-8000-000000000010',
       name: 'Penteado',
       defaultPrice: 80.0,
       description: 'Penteado para eventos',
     },
     {
-      id: 'serv-011',
+      id: 'b0000001-0001-4000-8000-000000000011',
       name: 'Tratamento Capilar',
       defaultPrice: 120.0,
       description: 'Tratamento para cabelos danificados',
     },
     {
-      id: 'serv-012',
+      id: 'b0000001-0001-4000-8000-000000000012',
       name: 'Corte + Escova',
       defaultPrice: 65.0,
       description: 'Pacote corte com escova',
     },
     {
-      id: 'serv-013',
+      id: 'b0000001-0001-4000-8000-000000000013',
       name: 'Hidratação',
       defaultPrice: 90.0,
       description: 'Hidratação profunda',
     },
     {
-      id: 'serv-014',
+      id: 'b0000001-0001-4000-8000-000000000014',
       name: 'Botox Capilar',
       defaultPrice: 200.0,
       description: 'Tratamento botox capilar',
     },
     {
-      id: 'serv-015',
+      id: 'b0000001-0001-4000-8000-000000000015',
       name: 'Depilação Facial',
       defaultPrice: 40.0,
       description: 'Depilação com cera',
@@ -207,26 +199,26 @@ async function seed() {
 
   // Associa colaboradores aos serviços
   console.log('🔗 Associando colaboradores aos serviços...');
-  const maria = savedCollaborators.find((c) => c.id === 'collab-001');
-  const ana = savedCollaborators.find((c) => c.id === 'collab-002');
-  const juliana = savedCollaborators.find((c) => c.id === 'collab-003');
-  const fernanda = savedCollaborators.find((c) => c.id === 'collab-004');
-  const camila = savedCollaborators.find((c) => c.id === 'collab-006');
-  const larissa = savedCollaborators.find((c) => c.id === 'collab-007');
+  const maria = savedCollaborators.find((c) => c.id === 'a0000001-0001-4000-8000-000000000001');
+  const ana = savedCollaborators.find((c) => c.id === 'a0000001-0001-4000-8000-000000000002');
+  const juliana = savedCollaborators.find((c) => c.id === 'a0000001-0001-4000-8000-000000000003');
+  const fernanda = savedCollaborators.find((c) => c.id === 'a0000001-0001-4000-8000-000000000004');
+  const camila = savedCollaborators.find((c) => c.id === 'a0000001-0001-4000-8000-000000000006');
+  const larissa = savedCollaborators.find((c) => c.id === 'a0000001-0001-4000-8000-000000000007');
 
-  const corteFeminino = savedServices.find((s) => s.id === 'serv-001');
-  const corteMasculino = savedServices.find((s) => s.id === 'serv-002');
-  const coloracao = savedServices.find((s) => s.id === 'serv-003');
-  const mechas = savedServices.find((s) => s.id === 'serv-004');
-  const manicure = savedServices.find((s) => s.id === 'serv-006');
-  const pedicure = savedServices.find((s) => s.id === 'serv-007');
-  const manicurePedicure = savedServices.find((s) => s.id === 'serv-008');
-  const sobrancelha = savedServices.find((s) => s.id === 'serv-009');
-  const penteado = savedServices.find((s) => s.id === 'serv-010');
-  const tratamento = savedServices.find((s) => s.id === 'serv-011');
-  const hidratacao = savedServices.find((s) => s.id === 'serv-013');
-  const botox = savedServices.find((s) => s.id === 'serv-014');
-  const depilacao = savedServices.find((s) => s.id === 'serv-015');
+  const corteFeminino = savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000001');
+  const corteMasculino = savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000002');
+  const coloracao = savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000003');
+  const mechas = savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000004');
+  const manicure = savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000006');
+  const pedicure = savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000007');
+  const manicurePedicure = savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000008');
+  const sobrancelha = savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000009');
+  const penteado = savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000010');
+  const tratamento = savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000011');
+  const hidratacao = savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000013');
+  const botox = savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000014');
+  const depilacao = savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000015');
 
   if (maria) {
     maria.services = [
@@ -292,12 +284,7 @@ async function seed() {
   console.log('📅 Criando agendamentos...');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  let appointmentCounter = 1;
-
-  // Função para gerar ID único
-  const generateId = () => {
-    return `${Date.now()}-${String(appointmentCounter++).padStart(3, '0')}`;
-  };
+  const generateId = () => randomUUID();
 
   // Função auxiliar para criar comissão manualmente (para seed)
   const createCommission = async (
@@ -409,8 +396,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-001',
-        collaboratorId: 'collab-001',
+        serviceId: 'b0000001-0001-4000-8000-000000000001',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000001',
       },
     ],
   );
@@ -426,8 +413,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-006',
-        collaboratorId: 'collab-003',
+        serviceId: 'b0000001-0001-4000-8000-000000000006',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000003',
       },
     ],
   );
@@ -443,8 +430,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-003',
-        collaboratorId: 'collab-002',
+        serviceId: 'b0000001-0001-4000-8000-000000000003',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000002',
         status: ScheduledServiceStatus.PENDING,
       },
     ],
@@ -461,8 +448,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-002',
-        collaboratorId: 'collab-002',
+        serviceId: 'b0000001-0001-4000-8000-000000000002',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000002',
       },
     ],
   );
@@ -478,8 +465,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-007',
-        collaboratorId: 'collab-004',
+        serviceId: 'b0000001-0001-4000-8000-000000000007',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000004',
       },
     ],
   );
@@ -496,12 +483,12 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-006',
-        collaboratorId: 'collab-003',
+        serviceId: 'b0000001-0001-4000-8000-000000000006',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000003',
       },
       {
-        serviceId: 'serv-007',
-        collaboratorId: 'collab-004',
+        serviceId: 'b0000001-0001-4000-8000-000000000007',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000004',
       },
     ],
   );
@@ -523,8 +510,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-001',
-        collaboratorId: 'collab-001',
+        serviceId: 'b0000001-0001-4000-8000-000000000001',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000001',
         status: ScheduledServiceStatus.COMPLETED,
         paid: true, // PAGA
       },
@@ -542,8 +529,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-004',
-        collaboratorId: 'collab-001',
+        serviceId: 'b0000001-0001-4000-8000-000000000004',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000001',
         status: ScheduledServiceStatus.COMPLETED,
         paid: true, // PAGA
       },
@@ -561,8 +548,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-008',
-        collaboratorId: 'collab-003',
+        serviceId: 'b0000001-0001-4000-8000-000000000008',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000003',
         status: ScheduledServiceStatus.COMPLETED,
         paid: true, // PAGA
       },
@@ -581,8 +568,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-003',
-        collaboratorId: 'collab-002',
+        serviceId: 'b0000001-0001-4000-8000-000000000003',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000002',
         status: ScheduledServiceStatus.COMPLETED,
         paid: false, // PENDENTE
       },
@@ -600,8 +587,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-011',
-        collaboratorId: 'collab-001',
+        serviceId: 'b0000001-0001-4000-8000-000000000011',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000001',
         status: ScheduledServiceStatus.COMPLETED,
         paid: false, // PENDENTE
       },
@@ -620,14 +607,14 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-001',
-        collaboratorId: 'collab-001',
+        serviceId: 'b0000001-0001-4000-8000-000000000001',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000001',
         status: ScheduledServiceStatus.COMPLETED,
         paid: true, // PAGA
       },
       {
-        serviceId: 'serv-009',
-        collaboratorId: 'collab-003',
+        serviceId: 'b0000001-0001-4000-8000-000000000009',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000003',
         status: ScheduledServiceStatus.COMPLETED,
         paid: false, // PENDENTE
       },
@@ -646,8 +633,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-002',
-        collaboratorId: 'collab-002',
+        serviceId: 'b0000001-0001-4000-8000-000000000002',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000002',
         status: ScheduledServiceStatus.CANCELLED,
       },
     ],
@@ -680,26 +667,26 @@ async function seed() {
 
     const servicesConfig = [
       {
-        serviceId: 'serv-001',
-        collaboratorId: 'collab-001',
+        serviceId: 'b0000001-0001-4000-8000-000000000001',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000001',
         status: ScheduledServiceStatus.COMPLETED,
         paid: i % 2 === 0, // Alterna entre pago e pendente
       },
       {
-        serviceId: 'serv-006',
-        collaboratorId: 'collab-003',
+        serviceId: 'b0000001-0001-4000-8000-000000000006',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000003',
         status: ScheduledServiceStatus.COMPLETED,
         paid: i % 3 === 0, // Alguns pagos
       },
       {
-        serviceId: 'serv-003',
-        collaboratorId: 'collab-002',
+        serviceId: 'b0000001-0001-4000-8000-000000000003',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000002',
         status: ScheduledServiceStatus.COMPLETED,
         paid: false, // Pendente
       },
       {
-        serviceId: 'serv-007',
-        collaboratorId: 'collab-004',
+        serviceId: 'b0000001-0001-4000-8000-000000000007',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000004',
         status: ScheduledServiceStatus.COMPLETED,
         paid: i % 4 === 0, // Poucos pagos
       },
@@ -745,8 +732,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-005',
-        collaboratorId: 'collab-001',
+        serviceId: 'b0000001-0001-4000-8000-000000000005',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000001',
       },
     ],
   );
@@ -762,8 +749,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-006',
-        collaboratorId: 'collab-003',
+        serviceId: 'b0000001-0001-4000-8000-000000000006',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000003',
       },
     ],
   );
@@ -779,8 +766,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-001',
-        collaboratorId: 'collab-002',
+        serviceId: 'b0000001-0001-4000-8000-000000000001',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000002',
       },
     ],
   );
@@ -796,8 +783,8 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-011',
-        collaboratorId: 'collab-001',
+        serviceId: 'b0000001-0001-4000-8000-000000000011',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000001',
       },
     ],
   );
@@ -814,16 +801,16 @@ async function seed() {
     },
     [
       {
-        serviceId: 'serv-001',
-        collaboratorId: 'collab-006',
+        serviceId: 'b0000001-0001-4000-8000-000000000001',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000006',
       },
       {
-        serviceId: 'serv-009',
-        collaboratorId: 'collab-003',
+        serviceId: 'b0000001-0001-4000-8000-000000000009',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000003',
       },
       {
-        serviceId: 'serv-006',
-        collaboratorId: 'collab-007',
+        serviceId: 'b0000001-0001-4000-8000-000000000006',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000007',
       },
     ],
   );
@@ -843,19 +830,19 @@ async function seed() {
     ];
 
     const serviceIds = [
-      'serv-001',
-      'serv-002',
-      'serv-006',
-      'serv-007',
-      'serv-009',
+      'b0000001-0001-4000-8000-000000000001',
+      'b0000001-0001-4000-8000-000000000002',
+      'b0000001-0001-4000-8000-000000000006',
+      'b0000001-0001-4000-8000-000000000007',
+      'b0000001-0001-4000-8000-000000000009',
     ];
     const collaboratorIds = [
-      'collab-001',
-      'collab-002',
-      'collab-003',
-      'collab-004',
-      'collab-006',
-      'collab-007',
+      'a0000001-0001-4000-8000-000000000001',
+      'a0000001-0001-4000-8000-000000000002',
+      'a0000001-0001-4000-8000-000000000003',
+      'a0000001-0001-4000-8000-000000000004',
+      'a0000001-0001-4000-8000-000000000006',
+      'a0000001-0001-4000-8000-000000000007',
     ];
 
     for (let index = 0; index < times.length; index++) {
@@ -896,26 +883,26 @@ async function seed() {
 
     const servicesConfig = [
       {
-        serviceId: 'serv-001',
-        collaboratorId: 'collab-001',
+        serviceId: 'b0000001-0001-4000-8000-000000000001',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000001',
         status: ScheduledServiceStatus.COMPLETED,
         paid: true,
       },
       {
-        serviceId: 'serv-004',
-        collaboratorId: 'collab-001',
+        serviceId: 'b0000001-0001-4000-8000-000000000004',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000001',
         status: ScheduledServiceStatus.COMPLETED,
         paid: true,
       },
       {
-        serviceId: 'serv-006',
-        collaboratorId: 'collab-003',
+        serviceId: 'b0000001-0001-4000-8000-000000000006',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000003',
         status: ScheduledServiceStatus.COMPLETED,
         paid: true,
       },
       {
-        serviceId: 'serv-003',
-        collaboratorId: 'collab-002',
+        serviceId: 'b0000001-0001-4000-8000-000000000003',
+        collaboratorId: 'a0000001-0001-4000-8000-000000000002',
         status: ScheduledServiceStatus.COMPLETED,
         paid: i % 2 === 0,
       },

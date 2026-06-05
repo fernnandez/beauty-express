@@ -50,6 +50,19 @@ export const validateTimeRange = (
   return { valid: true };
 };
 
+// Verifica se a data é anterior ao dia atual
+export const isDateInPast = (date: Date | string | null): boolean => {
+  const dateString = formatDateToString(date);
+  if (!dateString) return false;
+
+  const luxonDate = DateTime.fromFormat(dateString, "yyyy-MM-dd", {
+    zone: "local",
+  }).startOf("day");
+  const today = DateTime.now().setZone("local").startOf("day");
+
+  return luxonDate < today;
+};
+
 // Formata data para yyyy-MM-dd usando Luxon
 // Aceita Date ou string (do DatePickerInput do Mantine)
 // Usa os componentes da data (ano, mês, dia) para evitar problemas de fuso horário
@@ -61,11 +74,12 @@ export const formatDateToString = (
   let luxonDate: DateTime;
 
   if (typeof date === "string") {
-    // Se for string, tenta parsear com Luxon
-    // Pode vir no formato DD/MM/YYYY do DatePickerInput ou ISO
-    luxonDate = DateTime.fromFormat(date, "dd/MM/yyyy", { zone: "local" });
+    // Mantine 8 retorna YYYY-MM-DD; também aceita DD/MM/YYYY e ISO
+    luxonDate = DateTime.fromFormat(date, "yyyy-MM-dd", { zone: "local" });
     if (!luxonDate.isValid) {
-      // Tenta como ISO se não funcionar
+      luxonDate = DateTime.fromFormat(date, "dd/MM/yyyy", { zone: "local" });
+    }
+    if (!luxonDate.isValid) {
       luxonDate = DateTime.fromISO(date, { zone: "local" });
     }
     if (!luxonDate.isValid) {

@@ -27,6 +27,7 @@ interface ServiceFormItemProps {
   services?: Service[];
   collaborators?: Collaborator[];
   canRemove: boolean;
+  collaboratorRequired?: boolean;
   onServiceChange: (index: number, serviceId: string) => void;
   onCollaboratorChange: (index: number, collaboratorId?: string) => void;
   onPriceChange: (index: number, price: number) => void;
@@ -41,6 +42,7 @@ export function ServiceFormItem({
   services,
   collaborators,
   canRemove,
+  collaboratorRequired = false,
   onServiceChange,
   onCollaboratorChange,
   onPriceChange,
@@ -80,8 +82,11 @@ export function ServiceFormItem({
         {selectedService && (
           <>
             <Select
-              label="Colaborador (Opcional)"
+              label={
+                collaboratorRequired ? "Colaborador" : "Colaborador (Opcional)"
+              }
               placeholder="Selecione o colaborador"
+              required={collaboratorRequired}
               leftSection={<IconUser size={16} />}
               data={
                 collaborators?.map((collaborator) => ({
@@ -90,7 +95,7 @@ export function ServiceFormItem({
                 })) || []
               }
               searchable
-              clearable
+              clearable={!collaboratorRequired}
               value={collaboratorId || null}
               onChange={(value) =>
                 onCollaboratorChange(index, value || undefined)

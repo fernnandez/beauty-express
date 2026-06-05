@@ -4,11 +4,34 @@ import { Service } from '@domain/entities/service.entity';
 import { Appointment } from '@domain/entities/appointment.entity';
 import { Commission } from '@domain/entities/commission.entity';
 import { ScheduledService } from '@domain/entities/scheduled-service.entity';
+import { DataSourceOptions } from 'typeorm';
 
-export const databaseConfig = (): TypeOrmModuleOptions => ({
-  type: 'sqlite',
-  database: process.env.DB_DATABASE || 'database.sqlite',
-  entities: [Collaborator, Service, Appointment, Commission, ScheduledService],
-  synchronize: true,
-  logging: false,
+const entities = [
+  Collaborator,
+  Service,
+  Appointment,
+  Commission,
+  ScheduledService,
+];
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+export const getDatabaseConfig = (): DataSourceOptions => ({
+  type: 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+  username: process.env.DB_USERNAME || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres',
+  database: process.env.DB_DATABASE || 'beauty_express',
+  entities,
+  synchronize:
+    process.env.DB_SYNCHRONIZE === 'true' ||
+    (process.env.DB_SYNCHRONIZE !== 'false' && !isProduction),
+  logging: process.env.DB_LOGGING === 'true',
+  ssl:
+    process.env.DB_SSL === 'true'
+      ? { rejectUnauthorized: false }
+      : undefined,
 });
+
+export const databaseConfig = (): TypeOrmModuleOptions => getDatabaseConfig();

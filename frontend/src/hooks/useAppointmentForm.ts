@@ -5,6 +5,7 @@ import {
   calculateTotalPrice,
   convertServicesToDto,
   formatDateToString,
+  isDateInPast,
   validateTimeRange,
 } from "../utils/appointment.utils";
 import { useCollaborators } from "./useCollaborators";
@@ -19,7 +20,7 @@ export interface ServiceFormItem {
 export interface AppointmentFormValues {
   clientName: string;
   clientPhone: string;
-  data: Date | string | null; // DatePickerInput pode retornar string quando valueFormat está definido
+  data: string | null; // Mantine 8: formato YYYY-MM-DD
   startTime: string;
   endTime: string;
   observacoes?: string;
@@ -71,12 +72,28 @@ export const useAppointmentForm = (
     form.removeListItem("servicos", index);
   };
 
+  const isPastAppointment = isDateInPast(form.values.data);
+
   const validateForm = (): { valid: boolean; error?: string } => {
     if (form.values.servicos.length === 0) {
       return {
         valid: false,
         error: "Adicione pelo menos um serviço",
       };
+    }
+
+    if (isPastAppointment) {
+      const invalidService = form.values.servicos.find(
+        (servico) => !servico.serviceId || !servico.collaboratorId
+      );
+
+      if (invalidService) {
+        return {
+          valid: false,
+          error:
+            "Agendamentos no passado exigem serviço e colaborador em cada item",
+        };
+      }
     }
 
     const timeValidation = validateTimeRange(
@@ -150,5 +167,6 @@ export const useAppointmentForm = (
     convertToCreateDto,
     convertToUpdateDto,
     totalPrice,
+    isPastAppointment,
   };
 };

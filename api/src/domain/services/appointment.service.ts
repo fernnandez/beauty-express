@@ -1,4 +1,7 @@
-import { CreateAppointmentDto } from '@application/dtos/appointment/create-appointment.dto';
+import {
+  CreateAppointmentDto,
+  ScheduledServiceInputDto,
+} from '@application/dtos/appointment/create-appointment.dto';
 import { UpdateAppointmentDto } from '@application/dtos/appointment/update-appointment.dto';
 import {
   BadRequestException,
@@ -6,7 +9,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Between } from 'typeorm';
-import { endOfDay, parseDateString, startOfDay } from '../../utils/date.util';
+import {
+  endOfDay,
+  isDateBeforeToday,
+  parseDateString,
+  startOfDay,
+} from '../../utils/date.util';
 import { validateTimeRange } from '../../common/utils/time.util';
 import { normalizeString } from '../../common/utils/string.util';
 import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
@@ -26,6 +34,18 @@ export class AppointmentService {
     private commissionService: CommissionService,
   ) {}
 
+  private validatePastAppointmentServices(
+    servicos: ScheduledServiceInputDto[],
+  ): void {
+    for (const servico of servicos) {
+      if (!servico.collaboratorId) {
+        throw new BadRequestException(
+          'Past appointments require a collaborator assigned to each service',
+        );
+      }
+    }
+  }
+
   async createAppointment(
     createDto: CreateAppointmentDto,
   ): Promise<Appointment> {
@@ -38,6 +58,11 @@ export class AppointmentService {
     validateTimeRange(createDto.startTime, createDto.endTime);
 
     const normalizedDate = parseDateString(createDto.date);
+    const isPastDate = isDateBeforeToday(normalizedDate);
+
+    if (isPastDate) {
+      this.validatePastAppointmentServices(createDto.servicos);
+    }
 
     const savedAppointment = await this.appointmentRepository.save({
       clientName: createDto.clientName,
@@ -58,6 +83,10 @@ export class AppointmentService {
           price: servico.price,
         },
       );
+    }
+
+    if (isPastDate) {
+      return await this.completeAppointment(savedAppointment.id);
     }
 
     return await this.findById(savedAppointment.id);
