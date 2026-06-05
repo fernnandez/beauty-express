@@ -13,9 +13,9 @@ export class AppointmentRepository extends Repository<Appointment> {
     super(repository.target, repository.manager, repository.queryRunner);
   }
 
-  async findById(id: string): Promise<Appointment | null> {
+  async findById(id: string, tenantId: string): Promise<Appointment | null> {
     return await this.findOne({
-      where: { id },
+      where: { id, tenantId },
       relations: [
         'scheduledServices',
         'scheduledServices.service',
@@ -27,10 +27,12 @@ export class AppointmentRepository extends Repository<Appointment> {
   async findByDateRange(
     startDate: Date,
     endDate: Date,
+    tenantId: string,
   ): Promise<Appointment[]> {
     return await this.find({
       where: {
         date: Between(startDate, endDate),
+        tenantId,
       },
       relations: [
         'scheduledServices',
@@ -40,14 +42,14 @@ export class AppointmentRepository extends Repository<Appointment> {
     });
   }
 
-  async findByDate(date: Date): Promise<Appointment[]> {
-    // Usa funções utilitárias para garantir timezone correto
+  async findByDate(date: Date, tenantId: string): Promise<Appointment[]> {
     const start = startOfDay(date);
     const end = endOfDay(date);
 
     return await this.find({
       where: {
         date: Between(start, end),
+        tenantId,
       },
       relations: [
         'scheduledServices',

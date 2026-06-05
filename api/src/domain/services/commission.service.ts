@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Scope,
 } from '@nestjs/common';
 import { In } from 'typeorm';
 import { Commission } from '../entities/commission.entity';
@@ -9,18 +10,27 @@ import { ScheduledServiceStatus } from '../entities/scheduled-service.entity';
 import { CollaboratorRepository } from '../repositories/collaborator.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
+import { TenantContextService } from './tenant-context.service';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class CommissionService {
   constructor(
     private commissionRepository: CommissionRepository,
     private scheduledServiceRepository: ScheduledServiceRepository,
     private collaboratorRepository: CollaboratorRepository,
+    private tenantContext: TenantContextService,
   ) {}
 
+  private getTenantId(): string {
+    return this.tenantContext.requireTenantId();
+  }
+
   async calculateCommission(scheduledServiceId: string): Promise<Commission> {
-    const scheduledService =
-      await this.scheduledServiceRepository.findById(scheduledServiceId);
+    const tenantId = this.getTenantId();
+    const scheduledService = await this.scheduledServiceRepository.findById(
+      scheduledServiceId,
+      tenantId,
+    );
     if (!scheduledService) {
       throw new NotFoundException('ScheduledService not found');
     }
@@ -39,6 +49,7 @@ export class CommissionService {
 
     const collaborator = await this.collaboratorRepository.findById(
       scheduledService.collaboratorId,
+      tenantId,
     );
     if (!collaborator) {
       throw new NotFoundException('Collaborator not found');
@@ -50,16 +61,21 @@ export class CommissionService {
     const existingCommission =
       await this.commissionRepository.findByScheduledServiceId(
         scheduledServiceId,
+        tenantId,
       );
     if (existingCommission) {
-      await this.commissionRepository.update(existingCommission.id, {
-        amount,
-        percentage,
-      });
-      return await this.commissionRepository.findById(existingCommission.id);
+      await this.commissionRepository.update(
+        { id: existingCommission.id, tenantId },
+        { amount, percentage },
+      );
+      return await this.commissionRepository.findById(
+        existingCommission.id,
+        tenantId,
+      );
     }
 
     return await this.commissionRepository.save({
+      tenantId,
       collaboratorId: scheduledService.collaboratorId,
       scheduledServiceId,
       amount,
@@ -71,8 +87,12 @@ export class CommissionService {
   async calculateCommissionsForAppointment(
     appointmentId: string,
   ): Promise<Commission[]> {
+    const tenantId = this.getTenantId();
     const scheduledServices =
-      await this.scheduledServiceRepository.findByAppointmentId(appointmentId);
+      await this.scheduledServiceRepository.findByAppointmentId(
+        appointmentId,
+        tenantId,
+      );
 
     const commissions: Commission[] = [];
 
@@ -83,11 +103,11 @@ export class CommissionService {
             scheduledService.id,
           );
           commissions.push(commission);
-        } catch (error) {
-          // Skip if commission already exists or other error
+        } catch {
           const existing =
             await this.commissionRepository.findByScheduledServiceId(
               scheduledService.id,
+              tenantId,
             );
           if (existing) {
             commissions.push(existing);
@@ -105,6 +125,8 @@ export class CommissionService {
     endDate?: Date;
     collaboratorId?: string;
   }): Promise<Commission[]> {
+    const tenantId = this.getTenantId();
+
     if (
       filters &&
       (filters.paid !== undefined ||
@@ -112,19 +134,20 @@ export class CommissionService {
         filters.endDate ||
         filters.collaboratorId)
     ) {
-      return await this.commissionRepository.findByFilters(filters);
+      return await this.commissionRepository.findByFilters(tenantId, filters);
     }
 
-    return await this.createCommissionQueryBuilder().getMany();
+    return await this.createCommissionQueryBuilder(tenantId).getMany();
   }
 
-  private createCommissionQueryBuilder() {
+  private createCommissionQueryBuilder(tenantId: string) {
     return this.commissionRepository
       .createQueryBuilder('commission')
       .leftJoinAndSelect('commission.collaborator', 'collaborator')
       .leftJoinAndSelect('commission.scheduledService', 'scheduledService')
       .leftJoinAndSelect('scheduledService.service', 'service')
       .leftJoinAndSelect('scheduledService.appointment', 'appointment')
+      .where('commission.tenantId = :tenantId', { tenantId })
       .orderBy('appointment.date', 'DESC')
       .addOrderBy('appointment.startTime', 'DESC');
   }
@@ -133,16 +156,25 @@ export class CommissionService {
     commissionIds: string[],
     paid: boolean,
   ): Promise<Commission[]> {
-    const commissions =
-      await this.commissionRepository.findByIds(commissionIds);
+    const tenantId = this.getTenantId();
+    const commissions = await this.commissionRepository.findManyByIds(
+      commissionIds,
+      tenantId,
+    );
 
     if (commissions.length !== commissionIds.length) {
       throw new NotFoundException('Some commissions were not found');
     }
 
-    await this.commissionRepository.update({ id: In(commissionIds) }, { paid });
+    await this.commissionRepository.update(
+      { id: In(commissionIds), tenantId },
+      { paid },
+    );
 
-    return await this.commissionRepository.findByIds(commissionIds);
+    return await this.commissionRepository.findManyByIds(
+      commissionIds,
+      tenantId,
+    );
   }
 
   async markAsPaid(commissionIds: string[]): Promise<Commission[]> {

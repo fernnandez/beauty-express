@@ -4,6 +4,9 @@ import { CollaboratorRepository } from '../repositories/collaborator.repository'
 import { Collaborator } from '../entities/collaborator.entity';
 import { CreateCollaboratorDto } from '@application/dtos/collaborator/create-collaborator.dto';
 import { UpdateCollaboratorDto } from '@application/dtos/collaborator/update-collaborator.dto';
+import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
+import { TenantContextService } from './tenant-context.service';
+import { mockTenantContextService } from '../../test/tenant-context.mock';
 
 describe('CollaboratorService', () => {
   let service: CollaboratorService;
@@ -23,13 +26,17 @@ describe('CollaboratorService', () => {
       providers: [
         CollaboratorService,
         {
+          provide: TenantContextService,
+          useValue: mockTenantContextService,
+        },
+        {
           provide: CollaboratorRepository,
           useValue: mockRepository,
         },
       ],
     }).compile();
 
-    service = module.get<CollaboratorService>(CollaboratorService);
+    service = await module.resolve<CollaboratorService>(CollaboratorService);
     repository = module.get(CollaboratorRepository);
 
     // Reset mocks
@@ -50,6 +57,7 @@ describe('CollaboratorService', () => {
 
     const expectedCollaborator: Collaborator = {
       id: '123e4567-e89b-12d3-a456-426614174000',
+      tenantId: TENANT_ID_MOCK,
       ...createDto,
       isActive: true,
       services: [],
@@ -63,6 +71,7 @@ describe('CollaboratorService', () => {
       expect(result).toEqual(expectedCollaborator);
       expect(repository.save).toHaveBeenCalledWith({
         ...createDto,
+        tenantId: TENANT_ID_MOCK,
         isActive: true,
       });
     });
@@ -114,6 +123,7 @@ describe('CollaboratorService', () => {
     const mockCollaborators: Collaborator[] = [
       {
         id: '1',
+        tenantId: TENANT_ID_MOCK,
         name: 'João Silva',
         phone: '11999999999',
         area: 'Cabeleireiro',
@@ -123,6 +133,7 @@ describe('CollaboratorService', () => {
       },
       {
         id: '2',
+        tenantId: TENANT_ID_MOCK,
         name: 'Maria Santos',
         phone: '11888888888',
         area: 'Manicure',
@@ -138,7 +149,7 @@ describe('CollaboratorService', () => {
       const result = await service.findAll();
 
       expect(result).toEqual(mockCollaborators);
-      expect(repository.find).toHaveBeenCalledWith({ relations: ['services'] });
+      expect(repository.find).toHaveBeenCalledWith({ where: { tenantId: TENANT_ID_MOCK }, relations: ['services'] });
     });
 
     it('should search collaborators by name when search term is provided', async () => {
@@ -148,7 +159,7 @@ describe('CollaboratorService', () => {
       const result = await service.findAll(searchTerm);
 
       expect(result).toEqual([mockCollaborators[0]]);
-      expect(repository.searchByName).toHaveBeenCalledWith(searchTerm.trim());
+      expect(repository.searchByName).toHaveBeenCalledWith(searchTerm.trim(), TENANT_ID_MOCK);
       expect(repository.find).not.toHaveBeenCalled();
     });
 
@@ -174,6 +185,7 @@ describe('CollaboratorService', () => {
   describe('findById', () => {
     const mockCollaborator: Collaborator = {
       id: '123e4567-e89b-12d3-a456-426614174000',
+      tenantId: TENANT_ID_MOCK,
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
@@ -188,7 +200,7 @@ describe('CollaboratorService', () => {
       const result = await service.findById(mockCollaborator.id);
 
       expect(result).toEqual(mockCollaborator);
-      expect(repository.findById).toHaveBeenCalledWith(mockCollaborator.id);
+      expect(repository.findById).toHaveBeenCalledWith(mockCollaborator.id, TENANT_ID_MOCK);
     });
 
     it('should return null when collaborator not found', async () => {
@@ -203,6 +215,7 @@ describe('CollaboratorService', () => {
   describe('updateCollaborator', () => {
     const existingCollaborator: Collaborator = {
       id: '123e4567-e89b-12d3-a456-426614174000',
+      tenantId: TENANT_ID_MOCK,
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
@@ -212,6 +225,7 @@ describe('CollaboratorService', () => {
     };
 
     const updatedCollaborator: Collaborator = {
+      tenantId: TENANT_ID_MOCK,
       ...existingCollaborator,
       name: 'João Silva Santos',
       phone: '11988888888',
@@ -233,9 +247,7 @@ describe('CollaboratorService', () => {
       );
 
       expect(result).toEqual(updatedCollaborator);
-      expect(repository.update).toHaveBeenCalledWith(
-        existingCollaborator.id,
-        updateDto,
+      expect(repository.update).toHaveBeenCalledWith({ id: existingCollaborator.id, tenantId: TENANT_ID_MOCK }, updateDto,
       );
     });
 
@@ -276,6 +288,7 @@ describe('CollaboratorService', () => {
     it('should update isActive status', async () => {
       const updateDto: UpdateCollaboratorDto = { isActive: false };
       const deactivatedCollaborator: Collaborator = {
+      tenantId: TENANT_ID_MOCK,
         ...existingCollaborator,
         isActive: false,
       };
@@ -290,15 +303,14 @@ describe('CollaboratorService', () => {
       );
 
       expect(result.isActive).toBe(false);
-      expect(repository.update).toHaveBeenCalledWith(
-        existingCollaborator.id,
-        updateDto,
+      expect(repository.update).toHaveBeenCalledWith({ id: existingCollaborator.id, tenantId: TENANT_ID_MOCK }, updateDto,
       );
     });
 
     it('should accept valid commission percentage update', async () => {
       const updateDto: UpdateCollaboratorDto = { commissionPercentage: 20 };
       const updatedCollaborator: Collaborator = {
+      tenantId: TENANT_ID_MOCK,
         ...existingCollaborator,
         commissionPercentage: 20,
       };
@@ -316,6 +328,7 @@ describe('CollaboratorService', () => {
   describe('delete', () => {
     const existingCollaborator: Collaborator = {
       id: '123e4567-e89b-12d3-a456-426614174000',
+      tenantId: TENANT_ID_MOCK,
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
@@ -330,8 +343,8 @@ describe('CollaboratorService', () => {
 
       await service.delete(existingCollaborator.id);
 
-      expect(repository.findById).toHaveBeenCalledWith(existingCollaborator.id);
-      expect(repository.delete).toHaveBeenCalledWith(existingCollaborator.id);
+      expect(repository.findById).toHaveBeenCalledWith(existingCollaborator.id, TENANT_ID_MOCK);
+      expect(repository.delete).toHaveBeenCalledWith({ id: existingCollaborator.id, tenantId: TENANT_ID_MOCK });
     });
 
     it('should throw error when collaborator not found', async () => {

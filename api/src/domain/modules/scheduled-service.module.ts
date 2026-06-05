@@ -9,9 +9,11 @@ import { ServiceRepository } from '../repositories/service.repository';
 import { CollaboratorRepository } from '../repositories/collaborator.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceService } from '../services/scheduled-service.service';
+import { AuthModule } from './auth.module';
 
 @Module({
   imports: [
+    AuthModule,
     TypeOrmModule.forFeature([ScheduledService, Service, Collaborator, Commission]),
   ],
   providers: [

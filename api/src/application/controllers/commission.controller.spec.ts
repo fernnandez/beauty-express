@@ -4,6 +4,7 @@ import { CommissionService } from '@domain/services/commission.service';
 import { Commission } from '@domain/entities/commission.entity';
 import { MarkCommissionsDto } from '../dtos/commission/mark-commissions.dto';
 import { parseDateString, endOfDay } from '../../utils/date.util';
+import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
 
 describe('CommissionController', () => {
   let controller: CommissionController;
@@ -11,6 +12,7 @@ describe('CommissionController', () => {
 
   const mockCommission: Commission = {
     id: 'commission-1',
+      tenantId: TENANT_ID_MOCK,
     collaboratorId: 'collaborator-1',
     scheduledServiceId: 'scheduled-1',
     amount: 10.0,

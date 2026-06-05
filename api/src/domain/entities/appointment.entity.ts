@@ -1,5 +1,13 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { ScheduledService } from './scheduled-service.entity';
+import { Tenant } from './tenant.entity';
 
 export enum AppointmentStatus {
   SCHEDULED = 'agendado',
@@ -11,6 +19,13 @@ export enum AppointmentStatus {
 export class Appointment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ type: 'uuid' })
+  tenantId: string;
+
+  @ManyToOne(() => Tenant)
+  @JoinColumn({ name: 'tenantId' })
+  tenant?: Tenant;
 
   @Column()
   clientName: string;

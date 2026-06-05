@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Scope,
 } from '@nestjs/common';
 import { Commission } from '../entities/commission.entity';
 import {
@@ -14,21 +15,30 @@ import { CollaboratorRepository } from '../repositories/collaborator.repository'
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { ServiceRepository } from '../repositories/service.repository';
+import { TenantContextService } from './tenant-context.service';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class ScheduledServiceService {
   constructor(
     private scheduledServiceRepository: ScheduledServiceRepository,
     private serviceRepository: ServiceRepository,
     private collaboratorRepository: CollaboratorRepository,
     private commissionRepository: CommissionRepository,
+    private tenantContext: TenantContextService,
   ) {}
+
+  private getTenantId(): string {
+    return this.tenantContext.requireTenantId();
+  }
 
   private async validateCollaboratorActive(
     collaboratorId: string,
   ): Promise<void> {
-    const collaborator =
-      await this.collaboratorRepository.findById(collaboratorId);
+    const tenantId = this.getTenantId();
+    const collaborator = await this.collaboratorRepository.findById(
+      collaboratorId,
+      tenantId,
+    );
     if (!collaborator) {
       throw new NotFoundException('Collaborator not found');
     }
@@ -41,7 +51,11 @@ export class ScheduledServiceService {
     appointmentId: string,
     createDto: CreateScheduledServiceDto,
   ): Promise<ScheduledService> {
-    const service = await this.serviceRepository.findById(createDto.serviceId);
+    const tenantId = this.getTenantId();
+    const service = await this.serviceRepository.findById(
+      createDto.serviceId,
+      tenantId,
+    );
     if (!service) {
       throw new NotFoundException('Service not found');
     }
@@ -52,6 +66,7 @@ export class ScheduledServiceService {
 
     return await this.scheduledServiceRepository.save({
       appointmentId,
+      tenantId,
       serviceId: createDto.serviceId,
       collaboratorId: createDto.collaboratorId,
       price: createDto.price ?? service.defaultPrice,
@@ -64,6 +79,7 @@ export class ScheduledServiceService {
   ): Promise<ScheduledService[]> {
     return await this.scheduledServiceRepository.findByAppointmentId(
       appointmentId,
+      this.getTenantId(),
     );
   }
 
@@ -71,7 +87,11 @@ export class ScheduledServiceService {
     id: string,
     updateDto: UpdateScheduledServiceDto,
   ): Promise<ScheduledService> {
-    const scheduledService = await this.scheduledServiceRepository.findById(id);
+    const tenantId = this.getTenantId();
+    const scheduledService = await this.scheduledServiceRepository.findById(
+      id,
+      tenantId,
+    );
     if (!scheduledService) {
       throw new NotFoundException('ScheduledService not found');
     }
@@ -85,6 +105,7 @@ export class ScheduledServiceService {
     if (updateDto.serviceId) {
       const service = await this.serviceRepository.findById(
         updateDto.serviceId,
+        tenantId,
       );
       if (!service) {
         throw new NotFoundException('Service not found');
@@ -111,14 +132,21 @@ export class ScheduledServiceService {
     }
 
     if (Object.keys(updatePayload).length > 0) {
-      await this.scheduledServiceRepository.update(id, updatePayload);
+      await this.scheduledServiceRepository.update(
+        { id, tenantId },
+        updatePayload,
+      );
     }
 
-    return await this.scheduledServiceRepository.findById(id);
+    return await this.scheduledServiceRepository.findById(id, tenantId);
   }
 
   async completeScheduledService(id: string): Promise<ScheduledService> {
-    const scheduledService = await this.scheduledServiceRepository.findById(id);
+    const tenantId = this.getTenantId();
+    const scheduledService = await this.scheduledServiceRepository.findById(
+      id,
+      tenantId,
+    );
     if (!scheduledService) {
       throw new NotFoundException('ScheduledService not found');
     }
@@ -147,9 +175,11 @@ export class ScheduledServiceService {
   private async createCommissionForService(
     scheduledService: ScheduledService,
   ): Promise<Commission> {
+    const tenantId = this.getTenantId();
     const existingCommission =
       await this.commissionRepository.findByScheduledServiceId(
         scheduledService.id,
+        tenantId,
       );
     if (existingCommission) {
       return existingCommission;
@@ -157,6 +187,7 @@ export class ScheduledServiceService {
 
     const collaborator = await this.collaboratorRepository.findById(
       scheduledService.collaboratorId!,
+      tenantId,
     );
     if (!collaborator) {
       throw new NotFoundException('Collaborator not found');
@@ -166,6 +197,7 @@ export class ScheduledServiceService {
     const amount = (Number(scheduledService.price) * percentage) / 100;
 
     return await this.commissionRepository.save({
+      tenantId,
       collaboratorId: scheduledService.collaboratorId!,
       scheduledServiceId: scheduledService.id,
       amount,
@@ -175,7 +207,11 @@ export class ScheduledServiceService {
   }
 
   async cancelScheduledService(id: string): Promise<ScheduledService> {
-    const scheduledService = await this.scheduledServiceRepository.findById(id);
+    const tenantId = this.getTenantId();
+    const scheduledService = await this.scheduledServiceRepository.findById(
+      id,
+      tenantId,
+    );
     if (!scheduledService) {
       throw new NotFoundException('ScheduledService not found');
     }

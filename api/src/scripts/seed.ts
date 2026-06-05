@@ -9,9 +9,18 @@ import {
   ScheduledServiceStatus,
 } from '@domain/entities/scheduled-service.entity';
 import { Service } from '@domain/entities/service.entity';
+import { Tenant } from '@domain/entities/tenant.entity';
+import { User } from '@domain/entities/user.entity';
+import { UserRole } from '@domain/entities/user-role.enum';
+import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { DataSource } from 'typeorm';
 import { getDatabaseConfig } from '../config/database.config';
+
+const TENANT_PAULISTA_ID = 'c1000001-0001-4000-8000-000000000001';
+const TENANT_RECIFE_ID = 'c1000001-0001-4000-8000-000000000002';
+const TENANT_BOAVIAGEM_ID = 'c1000001-0001-4000-8000-000000000003';
+const DEMO_TENANT_ID = TENANT_PAULISTA_ID;
 
 async function seed() {
   const dataSource = new DataSource({
@@ -22,6 +31,8 @@ async function seed() {
 
   console.log('🌱 Iniciando seed do banco de dados...\n');
 
+  const tenantRepository = dataSource.getRepository(Tenant);
+  const userRepository = dataSource.getRepository(User);
   const collaboratorRepository = dataSource.getRepository(Collaborator);
   const serviceRepository = dataSource.getRepository(Service);
   const appointmentRepository = dataSource.getRepository(Appointment);
@@ -31,9 +42,72 @@ async function seed() {
   // Limpa dados existentes (CASCADE para respeitar FKs no PostgreSQL)
   console.log('🧹 Limpando dados existentes...');
   await dataSource.query(
-    'TRUNCATE TABLE commissions, scheduled_services, appointments, collaborator_services, collaborators, services RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE refresh_tokens, users, tenants, commissions, scheduled_services, appointments, collaborator_services, collaborators, services RESTART IDENTITY CASCADE',
   );
   console.log('✅ Dados limpos\n');
+
+  console.log('🏢 Criando filiais...');
+  const tenants = await tenantRepository.save([
+    {
+      id: TENANT_PAULISTA_ID,
+      slug: 'paulista',
+      name: 'Maria Borboleta - Paulista',
+      isActive: true,
+    },
+    {
+      id: TENANT_RECIFE_ID,
+      slug: 'recife',
+      name: 'Maria Borboleta - Recife',
+      isActive: true,
+    },
+    {
+      id: TENANT_BOAVIAGEM_ID,
+      slug: 'boaviagem',
+      name: 'Maria Borboleta - Boa Viagem',
+      isActive: true,
+    },
+  ]);
+  console.log(`✅ ${tenants.length} filiais criadas\n`);
+
+  console.log('🔐 Criando usuários...');
+  const adminPassword = await bcrypt.hash('Senha123!', 10);
+  const superAdminPassword = await bcrypt.hash('SenhaAdmin123!', 10);
+
+  await userRepository.save([
+    {
+      id: 'd1000001-0001-4000-8000-000000000001',
+      email: 'owner@beautyexpress.com',
+      passwordHash: superAdminPassword,
+      role: UserRole.SUPER_ADMIN,
+      tenantId: null,
+      isActive: true,
+    },
+    {
+      id: 'd1000001-0001-4000-8000-000000000002',
+      email: 'admin@paulista.mariaborboleta.com',
+      passwordHash: adminPassword,
+      role: UserRole.ADMIN,
+      tenantId: TENANT_PAULISTA_ID,
+      isActive: true,
+    },
+    {
+      id: 'd1000001-0001-4000-8000-000000000003',
+      email: 'admin@recife.mariaborboleta.com',
+      passwordHash: adminPassword,
+      role: UserRole.ADMIN,
+      tenantId: TENANT_RECIFE_ID,
+      isActive: true,
+    },
+    {
+      id: 'd1000001-0001-4000-8000-000000000004',
+      email: 'admin@boaviagem.mariaborboleta.com',
+      passwordHash: adminPassword,
+      role: UserRole.ADMIN,
+      tenantId: TENANT_BOAVIAGEM_ID,
+      isActive: true,
+    },
+  ]);
+  console.log('✅ Usuários criados\n');
 
   // Seed de Colaboradores
   console.log('👥 Criando colaboradores...');
@@ -96,7 +170,12 @@ async function seed() {
     },
   ];
 
-  const savedCollaborators = await collaboratorRepository.save(collaborators);
+  const savedCollaborators = await collaboratorRepository.save(
+    collaborators.map((collaborator) => ({
+      ...collaborator,
+      tenantId: DEMO_TENANT_ID,
+    })),
+  );
   console.log(`✅ ${savedCollaborators.length} colaboradores criados\n`);
 
   // Seed de Serviços
@@ -194,7 +273,12 @@ async function seed() {
     },
   ];
 
-  const savedServices = await serviceRepository.save(services);
+  const savedServices = await serviceRepository.save(
+    services.map((service) => ({
+      ...service,
+      tenantId: DEMO_TENANT_ID,
+    })),
+  );
   console.log(`✅ ${savedServices.length} serviços criados\n`);
 
   // Associa colaboradores aos serviços
@@ -302,6 +386,7 @@ async function seed() {
 
     const commission = new Commission();
     commission.id = generateId();
+    commission.tenantId = DEMO_TENANT_ID;
     commission.collaboratorId = collaborator.id;
     commission.scheduledServiceId = scheduledService.id;
     commission.amount =
@@ -332,6 +417,7 @@ async function seed() {
   ) => {
     const appointment = new Appointment();
     appointment.id = generateId();
+    appointment.tenantId = DEMO_TENANT_ID;
     appointment.clientName = appointmentData.clientName;
     appointment.clientPhone = appointmentData.clientPhone;
     appointment.date = appointmentData.date;
@@ -349,6 +435,7 @@ async function seed() {
 
       const scheduledService = new ScheduledService();
       scheduledService.id = generateId();
+      scheduledService.tenantId = DEMO_TENANT_ID;
       scheduledService.appointmentId = savedAppointment.id;
       scheduledService.serviceId = servico.serviceId;
       scheduledService.collaboratorId = servico.collaboratorId;
@@ -944,6 +1031,12 @@ async function seed() {
   console.log(`   Total de comissões: ${totalCommissions}`);
   console.log(`   Comissões pagas: ${paidCommissions}`);
   console.log(`   Comissões pendentes: ${pendingCommissions}\n`);
+
+  console.log('🔑 Credenciais de acesso:');
+  console.log('   Backoffice: owner@beautyexpress.com / SenhaAdmin123!');
+  console.log('   Paulista:   admin@paulista.mariaborboleta.com / Senha123! (slug: paulista)');
+  console.log('   Recife:     admin@recife.mariaborboleta.com / Senha123! (slug: recife)');
+  console.log('   Boa Viagem: admin@boaviagem.mariaborboleta.com / Senha123! (slug: boaviagem)\n');
 
   await dataSource.destroy();
   console.log('🎉 Seed concluído com sucesso!');

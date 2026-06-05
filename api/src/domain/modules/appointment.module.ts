@@ -12,9 +12,11 @@ import { ServiceRepository } from '../repositories/service.repository';
 import { AppointmentService } from '../services/appointment.service';
 import { CommissionModule } from './commission.module';
 import { ScheduledServiceModule } from './scheduled-service.module';
+import { AuthModule } from './auth.module';
 
 @Module({
   imports: [
+    AuthModule,
     TypeOrmModule.forFeature([
       Appointment,
       ScheduledService,

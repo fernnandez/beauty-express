@@ -4,14 +4,23 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Scope,
 } from '@nestjs/common';
 import { VALIDATION_CONSTANTS } from '../../common/constants/validation.constants';
 import { Collaborator } from '../entities/collaborator.entity';
 import { CollaboratorRepository } from '../repositories/collaborator.repository';
+import { TenantContextService } from './tenant-context.service';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class CollaboratorService {
-  constructor(private repository: CollaboratorRepository) {}
+  constructor(
+    private repository: CollaboratorRepository,
+    private tenantContext: TenantContextService,
+  ) {}
+
+  private getTenantId(): string {
+    return this.tenantContext.requireTenantId();
+  }
 
   private validateCommissionPercentage(percentage: number): void {
     if (
@@ -29,25 +38,34 @@ export class CollaboratorService {
   ): Promise<Collaborator> {
     this.validateCommissionPercentage(createDto.commissionPercentage);
 
-    return await this.repository.save({ ...createDto, isActive: true });
+    return await this.repository.save({
+      ...createDto,
+      tenantId: this.getTenantId(),
+      isActive: true,
+    });
   }
 
   async findAll(search?: string): Promise<Collaborator[]> {
+    const tenantId = this.getTenantId();
+
     if (search && search.trim()) {
-      return await this.repository.searchByName(search.trim());
+      return await this.repository.searchByName(search.trim(), tenantId);
     }
-    return await this.repository.find({ relations: ['services'] });
+    return await this.repository.find({
+      where: { tenantId },
+      relations: ['services'],
+    });
   }
 
   async findById(id: string): Promise<Collaborator | null> {
-    return await this.repository.findById(id);
+    return await this.repository.findById(id, this.getTenantId());
   }
 
   async updateCollaborator(
     id: string,
     updateDto: UpdateCollaboratorDto,
   ): Promise<Collaborator> {
-    const collaborator = await this.repository.findById(id);
+    const collaborator = await this.repository.findById(id, this.getTenantId());
     if (!collaborator) {
       throw new NotFoundException('Collaborator not found');
     }
@@ -56,16 +74,16 @@ export class CollaboratorService {
       this.validateCommissionPercentage(updateDto.commissionPercentage);
     }
 
-    await this.repository.update(id, updateDto);
+    await this.repository.update({ id, tenantId: this.getTenantId() }, updateDto);
 
-    return await this.repository.findById(id);
+    return await this.repository.findById(id, this.getTenantId());
   }
 
   async delete(id: string): Promise<void> {
-    const collaborator = await this.repository.findById(id);
+    const collaborator = await this.repository.findById(id, this.getTenantId());
     if (!collaborator) {
       throw new NotFoundException('Collaborator not found');
     }
-    await this.repository.delete(id);
+    await this.repository.delete({ id, tenantId: this.getTenantId() });
   }
 }

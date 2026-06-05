@@ -5,6 +5,9 @@ import { ScheduledServiceRepository } from '../repositories/scheduled-service.re
 import { Service } from '../entities/service.entity';
 import { CreateServiceDto } from '@application/dtos/service/create-service.dto';
 import { UpdateServiceDto } from '@application/dtos/service/update-service.dto';
+import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
+import { TenantContextService } from './tenant-context.service';
+import { mockTenantContextService } from '../../test/tenant-context.mock';
 
 describe('ServiceService', () => {
   let service: ServiceService;
@@ -29,6 +32,10 @@ describe('ServiceService', () => {
       providers: [
         ServiceService,
         {
+          provide: TenantContextService,
+          useValue: mockTenantContextService,
+        },
+        {
           provide: ServiceRepository,
           useValue: mockRepository,
         },
@@ -39,7 +46,7 @@ describe('ServiceService', () => {
       ],
     }).compile();
 
-    service = module.get<ServiceService>(ServiceService);
+    service = await module.resolve<ServiceService>(ServiceService);
     repository = module.get(ServiceRepository);
     scheduledServiceRepository = module.get(ScheduledServiceRepository);
 
@@ -59,6 +66,7 @@ describe('ServiceService', () => {
 
     const expectedService: Service = {
       id: '123e4567-e89b-12d3-a456-426614174000',
+      tenantId: TENANT_ID_MOCK,
       ...createDto,
       collaborators: [],
     };
@@ -69,7 +77,11 @@ describe('ServiceService', () => {
       const result = await service.createService(createDto);
 
       expect(result).toEqual(expectedService);
-      expect(repository.save).toHaveBeenCalledWith(createDto);
+      expect(repository.save).toHaveBeenCalledWith({
+        ...createDto,
+        tenantId: TENANT_ID_MOCK,
+        description: createDto.description,
+      });
     });
 
     it('should throw error when price is zero', async () => {
@@ -122,6 +134,7 @@ describe('ServiceService', () => {
     const mockServices: Service[] = [
       {
         id: '1',
+        tenantId: TENANT_ID_MOCK,
         name: 'Corte de Cabelo',
         defaultPrice: 50.0,
         description: 'Corte profissional',
@@ -129,6 +142,7 @@ describe('ServiceService', () => {
       },
       {
         id: '2',
+        tenantId: TENANT_ID_MOCK,
         name: 'Manicure',
         defaultPrice: 30.0,
         description: 'Manicure completa',
@@ -143,6 +157,7 @@ describe('ServiceService', () => {
 
       expect(result).toEqual(mockServices);
       expect(repository.find).toHaveBeenCalledWith({
+        where: { tenantId: TENANT_ID_MOCK },
         relations: ['collaborators'],
       });
     });
@@ -154,7 +169,7 @@ describe('ServiceService', () => {
       const result = await service.findAll(searchTerm);
 
       expect(result).toEqual([mockServices[0]]);
-      expect(repository.searchByName).toHaveBeenCalledWith(searchTerm.trim());
+      expect(repository.searchByName).toHaveBeenCalledWith(searchTerm.trim(), TENANT_ID_MOCK);
       expect(repository.find).not.toHaveBeenCalled();
     });
 
@@ -171,6 +186,7 @@ describe('ServiceService', () => {
   describe('findById', () => {
     const mockService: Service = {
       id: '123e4567-e89b-12d3-a456-426614174000',
+      tenantId: TENANT_ID_MOCK,
       name: 'Corte de Cabelo',
       defaultPrice: 50.0,
       description: 'Corte profissional',
@@ -183,7 +199,7 @@ describe('ServiceService', () => {
       const result = await service.findById(mockService.id);
 
       expect(result).toEqual(mockService);
-      expect(repository.findById).toHaveBeenCalledWith(mockService.id);
+      expect(repository.findById).toHaveBeenCalledWith(mockService.id, TENANT_ID_MOCK);
     });
 
     it('should return null when service not found', async () => {
@@ -198,6 +214,7 @@ describe('ServiceService', () => {
   describe('updateService', () => {
     const existingService: Service = {
       id: '123e4567-e89b-12d3-a456-426614174000',
+      tenantId: TENANT_ID_MOCK,
       name: 'Corte de Cabelo',
       defaultPrice: 50.0,
       description: 'Corte profissional',
@@ -223,9 +240,7 @@ describe('ServiceService', () => {
       const result = await service.updateService(existingService.id, updateDto);
 
       expect(result).toEqual(updatedService);
-      expect(repository.update).toHaveBeenCalledWith(
-        existingService.id,
-        updateDto,
+      expect(repository.update).toHaveBeenCalledWith({ id: existingService.id, tenantId: TENANT_ID_MOCK }, updateDto,
       );
     });
 
@@ -295,6 +310,7 @@ describe('ServiceService', () => {
   describe('delete', () => {
     const existingService: Service = {
       id: '123e4567-e89b-12d3-a456-426614174000',
+      tenantId: TENANT_ID_MOCK,
       name: 'Corte de Cabelo',
       defaultPrice: 50.0,
       description: 'Corte profissional',
@@ -308,11 +324,11 @@ describe('ServiceService', () => {
 
       await service.delete(existingService.id);
 
-      expect(repository.findById).toHaveBeenCalledWith(existingService.id);
+      expect(repository.findById).toHaveBeenCalledWith(existingService.id, TENANT_ID_MOCK);
       expect(scheduledServiceRepository.find).toHaveBeenCalledWith({
-        where: { serviceId: existingService.id },
+        where: { serviceId: existingService.id, tenantId: TENANT_ID_MOCK },
       });
-      expect(repository.delete).toHaveBeenCalledWith(existingService.id);
+      expect(repository.delete).toHaveBeenCalledWith({ id: existingService.id, tenantId: TENANT_ID_MOCK });
     });
 
     it('should throw error when service not found', async () => {

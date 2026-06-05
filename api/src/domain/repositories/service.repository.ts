@@ -12,17 +12,21 @@ export class ServiceRepository extends Repository<Service> {
     super(repository.target, repository.manager, repository.queryRunner);
   }
 
-  async findById(id: string): Promise<Service | null> {
+  async findById(id: string, tenantId: string): Promise<Service | null> {
     return await this.findOne({
-      where: { id },
+      where: { id, tenantId },
       relations: ['collaborators'],
     });
   }
 
-  async searchByName(searchTerm: string): Promise<Service[]> {
+  async searchByName(
+    searchTerm: string,
+    tenantId: string,
+  ): Promise<Service[]> {
     return await this.createQueryBuilder('service')
       .leftJoinAndSelect('service.collaborators', 'collaborators')
       .where('service.name LIKE :search', { search: `%${searchTerm}%` })
+      .andWhere('service.tenantId = :tenantId', { tenantId })
       .getMany();
   }
 }

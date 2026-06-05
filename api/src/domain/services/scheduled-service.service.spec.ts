@@ -13,6 +13,9 @@ import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { ServiceRepository } from '../repositories/service.repository';
 import { ScheduledServiceService } from './scheduled-service.service';
+import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
+import { TenantContextService } from './tenant-context.service';
+import { mockTenantContextService } from '../../test/tenant-context.mock';
 
 describe('ScheduledServiceService', () => {
   let service: ScheduledServiceService;
@@ -43,6 +46,10 @@ describe('ScheduledServiceService', () => {
       providers: [
         ScheduledServiceService,
         {
+          provide: TenantContextService,
+          useValue: mockTenantContextService,
+        },
+        {
           provide: ScheduledServiceRepository,
           useValue: mockRepository,
         },
@@ -61,7 +68,7 @@ describe('ScheduledServiceService', () => {
       ],
     }).compile();
 
-    service = module.get<ScheduledServiceService>(ScheduledServiceService);
+    service = await module.resolve<ScheduledServiceService>(ScheduledServiceService);
     jest.clearAllMocks();
   });
 
@@ -72,6 +79,7 @@ describe('ScheduledServiceService', () => {
   describe('createScheduledService', () => {
     const mockService: Service = {
       id: 'service-1',
+      tenantId: TENANT_ID_MOCK,
       name: 'Corte de Cabelo',
       defaultPrice: 50.0,
       description: 'Corte profissional',
@@ -80,6 +88,7 @@ describe('ScheduledServiceService', () => {
 
     const mockCollaborator: Collaborator = {
       id: 'collaborator-1',
+      tenantId: TENANT_ID_MOCK,
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
@@ -96,6 +105,7 @@ describe('ScheduledServiceService', () => {
 
     const expectedScheduledService: ScheduledService = {
       id: 'scheduled-1',
+        tenantId: TENANT_ID_MOCK,
       appointmentId: 'appointment-1',
       serviceId: 'service-1',
       collaboratorId: 'collaborator-1',
@@ -114,12 +124,14 @@ describe('ScheduledServiceService', () => {
       );
 
       expect(result).toEqual(expectedScheduledService);
-      expect(mockServiceRepository.findById).toHaveBeenCalledWith('service-1');
+      expect(mockServiceRepository.findById).toHaveBeenCalledWith('service-1', TENANT_ID_MOCK);
       expect(mockCollaboratorRepository.findById).toHaveBeenCalledWith(
         'collaborator-1',
+        TENANT_ID_MOCK,
       );
       expect(mockRepository.save).toHaveBeenCalledWith({
         appointmentId: 'appointment-1',
+        tenantId: TENANT_ID_MOCK,
         serviceId: 'service-1',
         collaboratorId: 'collaborator-1',
         price: 50.0,
@@ -216,6 +228,7 @@ describe('ScheduledServiceService', () => {
     const mockScheduledServices: ScheduledService[] = [
       {
         id: 'scheduled-1',
+        tenantId: TENANT_ID_MOCK,
         appointmentId: 'appointment-1',
         serviceId: 'service-1',
         price: 50.0,
@@ -233,6 +246,7 @@ describe('ScheduledServiceService', () => {
       expect(result).toEqual(mockScheduledServices);
       expect(mockRepository.findByAppointmentId).toHaveBeenCalledWith(
         'appointment-1',
+        TENANT_ID_MOCK,
       );
     });
   });
@@ -240,6 +254,7 @@ describe('ScheduledServiceService', () => {
   describe('updateScheduledService', () => {
     const existingScheduledService: ScheduledService = {
       id: 'scheduled-1',
+        tenantId: TENANT_ID_MOCK,
       appointmentId: 'appointment-1',
       serviceId: 'service-1',
       collaboratorId: 'collaborator-1',
@@ -249,6 +264,7 @@ describe('ScheduledServiceService', () => {
 
     const mockCollaborator: Collaborator = {
       id: 'collaborator-1',
+      tenantId: TENANT_ID_MOCK,
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
@@ -277,9 +293,10 @@ describe('ScheduledServiceService', () => {
       );
 
       expect(result).toEqual(updatedScheduledService);
-      expect(mockRepository.update).toHaveBeenCalledWith('scheduled-1', {
-        price: 70.0,
-      });
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        { id: 'scheduled-1', tenantId: TENANT_ID_MOCK },
+        { price: 70.0 },
+      );
     });
 
     it('should throw error when scheduled service not found', async () => {
@@ -314,6 +331,7 @@ describe('ScheduledServiceService', () => {
 
       const newService: Service = {
         id: 'service-2',
+      tenantId: TENANT_ID_MOCK,
         name: 'Manicure',
         defaultPrice: 30.0,
         collaborators: [],
@@ -332,10 +350,10 @@ describe('ScheduledServiceService', () => {
 
       await service.updateScheduledService('scheduled-1', updateDto);
 
-      expect(mockRepository.update).toHaveBeenCalledWith('scheduled-1', {
-        serviceId: 'service-2',
-        price: 30.0,
-      });
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        { id: 'scheduled-1', tenantId: TENANT_ID_MOCK },
+        { serviceId: 'service-2', price: 30.0 },
+      );
     });
 
     it('should throw error when new service not found', async () => {
@@ -375,9 +393,10 @@ describe('ScheduledServiceService', () => {
 
       await service.updateScheduledService('scheduled-1', updateDto);
 
-      expect(mockRepository.update).toHaveBeenCalledWith('scheduled-1', {
-        collaboratorId: 'collaborator-2',
-      });
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        { id: 'scheduled-1', tenantId: TENANT_ID_MOCK },
+        { collaboratorId: 'collaborator-2' },
+      );
     });
 
     it('should throw error when new collaborator not found', async () => {
@@ -443,6 +462,7 @@ describe('ScheduledServiceService', () => {
   describe('completeScheduledService', () => {
     const pendingScheduledService: ScheduledService = {
       id: 'scheduled-1',
+        tenantId: TENANT_ID_MOCK,
       appointmentId: 'appointment-1',
       serviceId: 'service-1',
       collaboratorId: 'collaborator-1',
@@ -457,6 +477,7 @@ describe('ScheduledServiceService', () => {
 
     const mockCollaborator: Collaborator = {
       id: 'collaborator-1',
+      tenantId: TENANT_ID_MOCK,
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
@@ -467,6 +488,7 @@ describe('ScheduledServiceService', () => {
 
     const mockCommission: Commission = {
       id: 'commission-1',
+      tenantId: TENANT_ID_MOCK,
       collaboratorId: 'collaborator-1',
       scheduledServiceId: 'scheduled-1',
       amount: 5.0,
@@ -549,6 +571,7 @@ describe('ScheduledServiceService', () => {
   describe('cancelScheduledService', () => {
     const pendingScheduledService: ScheduledService = {
       id: 'scheduled-1',
+        tenantId: TENANT_ID_MOCK,
       appointmentId: 'appointment-1',
       serviceId: 'service-1',
       price: 50.0,

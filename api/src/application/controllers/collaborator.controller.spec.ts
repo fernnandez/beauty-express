@@ -5,6 +5,7 @@ import { CollaboratorRepository } from '@domain/repositories/collaborator.reposi
 import { Collaborator } from '@domain/entities/collaborator.entity';
 import { CreateCollaboratorDto } from '../dtos/collaborator/create-collaborator.dto';
 import { UpdateCollaboratorDto } from '../dtos/collaborator/update-collaborator.dto';
+import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
 
 describe('CollaboratorController', () => {
   let controller: CollaboratorController;
@@ -12,6 +13,7 @@ describe('CollaboratorController', () => {
 
   const mockCollaborator: Collaborator = {
     id: '123e4567-e89b-12d3-a456-426614174000',
+      tenantId: TENANT_ID_MOCK,
     name: 'João Silva',
     phone: '11999999999',
     area: 'Cabeleireiro',
@@ -116,6 +118,7 @@ describe('CollaboratorController', () => {
     };
 
     const updatedCollaborator: Collaborator = {
+      tenantId: TENANT_ID_MOCK,
       ...mockCollaborator,
       ...updateDto,
     };

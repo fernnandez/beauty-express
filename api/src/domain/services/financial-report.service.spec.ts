@@ -4,6 +4,9 @@ import { ScheduledServiceRepository } from '../repositories/scheduled-service.re
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledService, ScheduledServiceStatus } from '../entities/scheduled-service.entity';
 import { Commission } from '../entities/commission.entity';
+import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
+import { TenantContextService } from './tenant-context.service';
+import { mockTenantContextService } from '../../test/tenant-context.mock';
 
 describe('FinancialReportService', () => {
   let service: FinancialReportService;
@@ -23,6 +26,10 @@ describe('FinancialReportService', () => {
       providers: [
         FinancialReportService,
         {
+          provide: TenantContextService,
+          useValue: mockTenantContextService,
+        },
+        {
           provide: ScheduledServiceRepository,
           useValue: mockScheduledServiceRepository,
         },
@@ -33,7 +40,7 @@ describe('FinancialReportService', () => {
       ],
     }).compile();
 
-    service = module.get<FinancialReportService>(FinancialReportService);
+    service = await module.resolve<FinancialReportService>(FinancialReportService);
     scheduledServiceRepository = module.get(ScheduledServiceRepository);
     commissionRepository = module.get(CommissionRepository);
 
@@ -48,6 +55,7 @@ describe('FinancialReportService', () => {
     const mockScheduledServices: ScheduledService[] = [
       {
         id: 'scheduled-1',
+        tenantId: TENANT_ID_MOCK,
         appointmentId: 'appointment-1',
         serviceId: 'service-1',
         price: 100.0,
@@ -55,6 +63,7 @@ describe('FinancialReportService', () => {
       } as ScheduledService,
       {
         id: 'scheduled-2',
+        tenantId: TENANT_ID_MOCK,
         appointmentId: 'appointment-1',
         serviceId: 'service-2',
         price: 50.0,
@@ -62,6 +71,7 @@ describe('FinancialReportService', () => {
       } as ScheduledService,
       {
         id: 'scheduled-3',
+        tenantId: TENANT_ID_MOCK,
         appointmentId: 'appointment-2',
         serviceId: 'service-3',
         price: 30.0,
@@ -72,6 +82,7 @@ describe('FinancialReportService', () => {
     const mockPaidCommissions: Commission[] = [
       {
         id: 'commission-1',
+        tenantId: TENANT_ID_MOCK,
         collaboratorId: 'collaborator-1',
         scheduledServiceId: 'scheduled-1',
         amount: 10.0,
@@ -80,6 +91,7 @@ describe('FinancialReportService', () => {
       },
       {
         id: 'commission-2',
+        tenantId: TENANT_ID_MOCK,
         collaboratorId: 'collaborator-1',
         scheduledServiceId: 'scheduled-2',
         amount: 5.0,
@@ -92,6 +104,7 @@ describe('FinancialReportService', () => {
       ...mockPaidCommissions,
       {
         id: 'commission-3',
+        tenantId: TENANT_ID_MOCK,
         collaboratorId: 'collaborator-2',
         scheduledServiceId: 'scheduled-1',
         amount: 8.0,
@@ -103,6 +116,7 @@ describe('FinancialReportService', () => {
     const mockQueryBuilder = {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
       getMany: jest.fn(),
     };
 
@@ -154,6 +168,7 @@ describe('FinancialReportService', () => {
       const completedServices: ScheduledService[] = [
         {
           id: 'scheduled-1',
+        tenantId: TENANT_ID_MOCK,
           appointmentId: 'appointment-1',
           serviceId: 'service-1',
           price: 100.0,
@@ -182,6 +197,7 @@ describe('FinancialReportService', () => {
       const servicesWithCancelled: ScheduledService[] = [
         {
           id: 'scheduled-1',
+        tenantId: TENANT_ID_MOCK,
           appointmentId: 'appointment-1',
           serviceId: 'service-1',
           price: 100.0,
@@ -189,6 +205,7 @@ describe('FinancialReportService', () => {
         } as ScheduledService,
         {
           id: 'scheduled-2',
+        tenantId: TENANT_ID_MOCK,
           appointmentId: 'appointment-1',
           serviceId: 'service-2',
           price: 50.0,
@@ -223,9 +240,14 @@ describe('FinancialReportService', () => {
       // Teste para janeiro (mês 1)
       await service.getMonthlyReport(2024, 1);
 
-      expect(mockQueryBuilder.where).toHaveBeenCalled();
-      const whereCall = mockQueryBuilder.where.mock.calls[0][0];
-      expect(whereCall).toContain('appointment.date BETWEEN');
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'scheduledService.tenantId = :tenantId',
+        { tenantId: TENANT_ID_MOCK },
+      );
+      const dateFilterCall = mockQueryBuilder.andWhere.mock.calls.find(
+        (call) => typeof call[0] === 'string' && call[0].includes('appointment.date BETWEEN'),
+      );
+      expect(dateFilterCall).toBeDefined();
 
       // Teste para dezembro (mês 12)
       await service.getMonthlyReport(2024, 12);

@@ -7,11 +7,19 @@ import {
 } from 'typeorm';
 import { Collaborator } from './collaborator.entity';
 import { ScheduledService } from './scheduled-service.entity';
+import { Tenant } from './tenant.entity';
 
 @Entity('commissions')
 export class Commission {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ type: 'uuid' })
+  tenantId: string;
+
+  @ManyToOne(() => Tenant)
+  @JoinColumn({ name: 'tenantId' })
+  tenant?: Tenant;
 
   @Column()
   collaboratorId: string;

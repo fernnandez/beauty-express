@@ -11,9 +11,11 @@ import { ServiceRepository } from '../repositories/service.repository';
 import { CommissionService } from '../services/commission.service';
 import { CommissionController } from '@application/controllers/commission.controller';
 import { ScheduledServiceModule } from './scheduled-service.module';
+import { AuthModule } from './auth.module';
 
 @Module({
   imports: [
+    AuthModule,
     TypeOrmModule.forFeature([
       Commission,
       ScheduledService,

@@ -8,6 +8,7 @@ import {
 import { Appointment } from './appointment.entity';
 import { Collaborator } from './collaborator.entity';
 import { Service } from './service.entity';
+import { Tenant } from './tenant.entity';
 
 export enum ScheduledServiceStatus {
   PENDING = 'pendente',
@@ -19,6 +20,13 @@ export enum ScheduledServiceStatus {
 export class ScheduledService {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ type: 'uuid' })
+  tenantId: string;
+
+  @ManyToOne(() => Tenant)
+  @JoinColumn({ name: 'tenantId' })
+  tenant?: Tenant;
 
   @Column()
   appointmentId: string;

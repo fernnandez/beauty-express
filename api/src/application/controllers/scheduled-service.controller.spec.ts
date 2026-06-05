@@ -7,6 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CreateScheduledServiceDto } from '../dtos/scheduled-service/create-scheduled-service.dto';
 import { UpdateScheduledServiceDto } from '../dtos/scheduled-service/update-scheduled-service.dto';
 import { ScheduledServiceController } from './scheduled-service.controller';
+import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
 
 describe('ScheduledServiceController', () => {
   let controller: ScheduledServiceController;
@@ -14,6 +15,7 @@ describe('ScheduledServiceController', () => {
 
   const mockScheduledService: ScheduledService = {
     id: 'scheduled-1',
+        tenantId: TENANT_ID_MOCK,
     appointmentId: 'appointment-1',
     serviceId: 'service-1',
     collaboratorId: 'collaborator-1',

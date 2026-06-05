@@ -1,16 +1,26 @@
 import {
   Column,
   Entity,
+  JoinColumn,
   JoinTable,
   ManyToMany,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Service } from './service.entity';
+import { Tenant } from './tenant.entity';
 
 @Entity('collaborators')
 export class Collaborator {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ type: 'uuid' })
+  tenantId: string;
+
+  @ManyToOne(() => Tenant)
+  @JoinColumn({ name: 'tenantId' })
+  tenant?: Tenant;
 
   @Column()
   name: string;

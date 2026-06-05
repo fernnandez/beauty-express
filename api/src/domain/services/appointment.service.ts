@@ -7,6 +7,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Scope,
 } from '@nestjs/common';
 import { Between } from 'typeorm';
 import {
@@ -20,19 +21,23 @@ import { normalizeString } from '../../common/utils/string.util';
 import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
-import { ServiceRepository } from '../repositories/service.repository';
 import { CommissionService } from './commission.service';
 import { ScheduledServiceService } from './scheduled-service.service';
+import { TenantContextService } from './tenant-context.service';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class AppointmentService {
   constructor(
     private appointmentRepository: AppointmentRepository,
     private scheduledServiceRepository: ScheduledServiceRepository,
     private scheduledServiceService: ScheduledServiceService,
-    private serviceRepository: ServiceRepository,
     private commissionService: CommissionService,
+    private tenantContext: TenantContextService,
   ) {}
+
+  private getTenantId(): string {
+    return this.tenantContext.requireTenantId();
+  }
 
   private validatePastAppointmentServices(
     servicos: ScheduledServiceInputDto[],
@@ -64,7 +69,10 @@ export class AppointmentService {
       this.validatePastAppointmentServices(createDto.servicos);
     }
 
+    const tenantId = this.getTenantId();
+
     const savedAppointment = await this.appointmentRepository.save({
+      tenantId,
       clientName: createDto.clientName,
       clientPhone: createDto.clientPhone,
       date: normalizedDate,
@@ -94,6 +102,7 @@ export class AppointmentService {
 
   async findAll(): Promise<Appointment[]> {
     return await this.appointmentRepository.find({
+      where: { tenantId: this.getTenantId() },
       relations: [
         'scheduledServices',
         'scheduledServices.service',
@@ -109,6 +118,7 @@ export class AppointmentService {
     return await this.appointmentRepository.find({
       where: {
         date: Between(start, end),
+        tenantId: this.getTenantId(),
       },
       relations: [
         'scheduledServices',
@@ -122,22 +132,18 @@ export class AppointmentService {
   }
 
   async findById(id: string): Promise<Appointment | null> {
-    return await this.appointmentRepository.findOne({
-      where: { id },
-      relations: [
-        'scheduledServices',
-        'scheduledServices.service',
-        'scheduledServices.collaborator',
-      ],
-    });
+    return await this.appointmentRepository.findById(id, this.getTenantId());
   }
 
   async updateAppointment(
     appointmentId: string,
     updateDto: UpdateAppointmentDto,
   ): Promise<Appointment> {
-    const appointment =
-      await this.appointmentRepository.findById(appointmentId);
+    const tenantId = this.getTenantId();
+    const appointment = await this.appointmentRepository.findById(
+      appointmentId,
+      tenantId,
+    );
     if (!appointment) {
       throw new NotFoundException('Appointment not found');
     }
@@ -174,20 +180,27 @@ export class AppointmentService {
     }
 
     if (Object.keys(updatePayload).length > 0) {
-      await this.appointmentRepository.update(appointmentId, updatePayload);
+      await this.appointmentRepository.update(
+        { id: appointmentId, tenantId },
+        updatePayload,
+      );
     }
 
     return await this.findById(appointmentId);
   }
 
   async completeAppointment(appointmentId: string): Promise<Appointment> {
+    const tenantId = this.getTenantId();
     const appointment = await this.findById(appointmentId);
     if (!appointment) {
       throw new NotFoundException('Appointment not found');
     }
 
     const scheduledServices =
-      await this.scheduledServiceRepository.findByAppointmentId(appointmentId);
+      await this.scheduledServiceRepository.findByAppointmentId(
+        appointmentId,
+        tenantId,
+      );
 
     if (scheduledServices.length === 0) {
       throw new BadRequestException(
@@ -232,6 +245,7 @@ export class AppointmentService {
   }
 
   async cancelAppointment(appointmentId: string): Promise<Appointment> {
+    const tenantId = this.getTenantId();
     const appointment = await this.findById(appointmentId);
     if (!appointment) {
       throw new NotFoundException('Appointment not found');
@@ -242,7 +256,10 @@ export class AppointmentService {
     }
 
     const scheduledServices =
-      await this.scheduledServiceRepository.findByAppointmentId(appointmentId);
+      await this.scheduledServiceRepository.findByAppointmentId(
+        appointmentId,
+        tenantId,
+      );
 
     const nonCancelledServices = scheduledServices.filter(
       (s) => s.status !== 'cancelado',
@@ -259,7 +276,6 @@ export class AppointmentService {
   }
 
   async updateAppointmentStatus(): Promise<void> {
-    // Business rule: update appointment status based on scheduled services
     const appointments = await this.findAll();
 
     for (const appointment of appointments) {

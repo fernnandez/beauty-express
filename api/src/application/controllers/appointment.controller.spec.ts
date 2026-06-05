@@ -8,6 +8,7 @@ import { parseDateString } from '../../utils/date.util';
 import { CreateAppointmentDto } from '../dtos/appointment/create-appointment.dto';
 import { UpdateAppointmentDto } from '../dtos/appointment/update-appointment.dto';
 import { AppointmentController } from './appointment.controller';
+import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
 
 describe('AppointmentController', () => {
   let controller: AppointmentController;
@@ -15,6 +16,7 @@ describe('AppointmentController', () => {
 
   const mockAppointment: Appointment = {
     id: 'appointment-1',
+      tenantId: TENANT_ID_MOCK,
     clientName: 'João Silva',
     clientPhone: '11999999999',
     date: parseDateString('2024-12-28'),

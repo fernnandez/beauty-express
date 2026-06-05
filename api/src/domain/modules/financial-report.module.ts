@@ -6,9 +6,11 @@ import { Appointment } from '../entities/appointment.entity';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { FinancialReportService } from '../services/financial-report.service';
+import { AuthModule } from './auth.module';
 
 @Module({
   imports: [
+    AuthModule,
     TypeOrmModule.forFeature([ScheduledService, Commission, Appointment]),
   ],
   providers: [

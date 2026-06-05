@@ -12,17 +12,21 @@ export class CollaboratorRepository extends Repository<Collaborator> {
     super(repository.target, repository.manager, repository.queryRunner);
   }
 
-  async findById(id: string): Promise<Collaborator | null> {
+  async findById(id: string, tenantId: string): Promise<Collaborator | null> {
     return await this.findOne({
-      where: { id },
+      where: { id, tenantId },
       relations: ['services'],
     });
   }
 
-  async searchByName(searchTerm: string): Promise<Collaborator[]> {
+  async searchByName(
+    searchTerm: string,
+    tenantId: string,
+  ): Promise<Collaborator[]> {
     return await this.createQueryBuilder('collaborator')
       .leftJoinAndSelect('collaborator.services', 'services')
       .where('collaborator.name LIKE :search', { search: `%${searchTerm}%` })
+      .andWhere('collaborator.tenantId = :tenantId', { tenantId })
       .getMany();
   }
 }

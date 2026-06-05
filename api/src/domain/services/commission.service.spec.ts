@@ -9,12 +9,16 @@ import { CollaboratorRepository } from '../repositories/collaborator.repository'
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { CommissionService } from './commission.service';
+import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
+import { TenantContextService } from './tenant-context.service';
+import { mockTenantContextService } from '../../test/tenant-context.mock';
 
 describe('CommissionService', () => {
   let service: CommissionService;
   let mockQueryBuilder: {
     leftJoinAndSelect: jest.Mock;
     where: jest.Mock;
+    andWhere: jest.Mock;
     orderBy: jest.Mock;
     addOrderBy: jest.Mock;
     getMany: jest.Mock;
@@ -25,7 +29,7 @@ describe('CommissionService', () => {
     findById: jest.fn(),
     findByScheduledServiceId: jest.fn(),
     findByFilters: jest.fn(),
-    findByIds: jest.fn(),
+    findManyByIds: jest.fn(),
     update: jest.fn(),
     createQueryBuilder: jest.fn(),
   };
@@ -44,6 +48,7 @@ describe('CommissionService', () => {
     mockQueryBuilder = {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       addOrderBy: jest.fn().mockReturnThis(),
       getMany: jest.fn(),
@@ -56,6 +61,10 @@ describe('CommissionService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CommissionService,
+        {
+          provide: TenantContextService,
+          useValue: mockTenantContextService,
+        },
         {
           provide: CommissionRepository,
           useValue: mockCommissionRepository,
@@ -71,7 +80,7 @@ describe('CommissionService', () => {
       ],
     }).compile();
 
-    service = module.get<CommissionService>(CommissionService);
+    service = await module.resolve<CommissionService>(CommissionService);
 
     jest.clearAllMocks();
   });
@@ -83,6 +92,7 @@ describe('CommissionService', () => {
   describe('calculateCommission', () => {
     const mockCollaborator: Collaborator = {
       id: 'collaborator-1',
+      tenantId: TENANT_ID_MOCK,
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
@@ -93,6 +103,7 @@ describe('CommissionService', () => {
 
     const mockScheduledService: ScheduledService = {
       id: 'scheduled-1',
+        tenantId: TENANT_ID_MOCK,
       appointmentId: 'appointment-1',
       serviceId: 'service-1',
       collaboratorId: 'collaborator-1',
@@ -102,6 +113,7 @@ describe('CommissionService', () => {
 
     const expectedCommission: Commission = {
       id: 'commission-1',
+        tenantId: TENANT_ID_MOCK,
       collaboratorId: 'collaborator-1',
       scheduledServiceId: 'scheduled-1',
       amount: 10.0, // 10% de 100
@@ -183,6 +195,7 @@ describe('CommissionService', () => {
     it('should update existing commission when recalculating', async () => {
       const existingCommission: Commission = {
         id: 'commission-1',
+        tenantId: TENANT_ID_MOCK,
         collaboratorId: 'collaborator-1',
         scheduledServiceId: 'scheduled-1',
         amount: 5.0, // valor antigo
@@ -209,7 +222,7 @@ describe('CommissionService', () => {
 
       expect(result).toEqual(updatedCommission);
       expect(mockCommissionRepository.update).toHaveBeenCalledWith(
-        existingCommission.id,
+        { id: existingCommission.id, tenantId: TENANT_ID_MOCK },
         {
           amount: 10.0,
           percentage: 10,
@@ -225,6 +238,7 @@ describe('CommissionService', () => {
 
       const expectedCommission: Commission = {
         id: 'commission-1',
+        tenantId: TENANT_ID_MOCK,
         collaboratorId: 'collaborator-1',
         scheduledServiceId: 'scheduled-1',
         amount: 15.0, // 15% de 100
@@ -251,6 +265,7 @@ describe('CommissionService', () => {
   describe('calculateCommissionsForAppointment', () => {
     const mockCollaborator: Collaborator = {
       id: 'collaborator-1',
+      tenantId: TENANT_ID_MOCK,
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
@@ -261,6 +276,7 @@ describe('CommissionService', () => {
 
     const completedService: ScheduledService = {
       id: 'scheduled-1',
+        tenantId: TENANT_ID_MOCK,
       appointmentId: 'appointment-1',
       serviceId: 'service-1',
       collaboratorId: 'collaborator-1',
@@ -270,6 +286,7 @@ describe('CommissionService', () => {
 
     const pendingService: ScheduledService = {
       id: 'scheduled-2',
+        tenantId: TENANT_ID_MOCK,
       appointmentId: 'appointment-1',
       serviceId: 'service-2',
       collaboratorId: 'collaborator-1',
@@ -281,6 +298,7 @@ describe('CommissionService', () => {
       const scheduledServices = [completedService, pendingService];
       const expectedCommission: Commission = {
         id: 'commission-1',
+        tenantId: TENANT_ID_MOCK,
         collaboratorId: 'collaborator-1',
         scheduledServiceId: 'scheduled-1',
         amount: 10.0,
@@ -306,6 +324,7 @@ describe('CommissionService', () => {
       expect(mockScheduledServiceRepository.findById).toHaveBeenCalledTimes(1);
       expect(mockScheduledServiceRepository.findById).toHaveBeenCalledWith(
         'scheduled-1',
+        TENANT_ID_MOCK,
       );
     });
 
@@ -313,6 +332,7 @@ describe('CommissionService', () => {
       const scheduledServices = [completedService];
       const existingCommission: Commission = {
         id: 'commission-1',
+        tenantId: TENANT_ID_MOCK,
         collaboratorId: 'collaborator-1',
         scheduledServiceId: 'scheduled-1',
         amount: 10.0,
@@ -343,6 +363,7 @@ describe('CommissionService', () => {
     const mockCommissions: Commission[] = [
       {
         id: 'commission-1',
+        tenantId: TENANT_ID_MOCK,
         collaboratorId: 'collaborator-1',
         scheduledServiceId: 'scheduled-1',
         amount: 10.0,
@@ -351,6 +372,7 @@ describe('CommissionService', () => {
       },
       {
         id: 'commission-2',
+        tenantId: TENANT_ID_MOCK,
         collaboratorId: 'collaborator-2',
         scheduledServiceId: 'scheduled-2',
         amount: 15.0,
@@ -402,7 +424,7 @@ describe('CommissionService', () => {
       const result = await service.findAll({ paid: true });
 
       expect(result).toEqual(paidCommissions);
-      expect(mockCommissionRepository.findByFilters).toHaveBeenCalledWith({
+      expect(mockCommissionRepository.findByFilters).toHaveBeenCalledWith(TENANT_ID_MOCK, {
         paid: true,
       });
     });
@@ -418,7 +440,7 @@ describe('CommissionService', () => {
       });
 
       expect(result).toEqual(collaboratorCommissions);
-      expect(mockCommissionRepository.findByFilters).toHaveBeenCalledWith({
+      expect(mockCommissionRepository.findByFilters).toHaveBeenCalledWith(TENANT_ID_MOCK, {
         collaboratorId: 'collaborator-1',
       });
     });
@@ -435,7 +457,7 @@ describe('CommissionService', () => {
       const result = await service.findAll({ startDate, endDate });
 
       expect(result).toEqual(filteredCommissions);
-      expect(mockCommissionRepository.findByFilters).toHaveBeenCalledWith({
+      expect(mockCommissionRepository.findByFilters).toHaveBeenCalledWith(TENANT_ID_MOCK, {
         startDate,
         endDate,
       });
@@ -446,6 +468,7 @@ describe('CommissionService', () => {
     const mockCommissions: Commission[] = [
       {
         id: 'commission-1',
+        tenantId: TENANT_ID_MOCK,
         collaboratorId: 'collaborator-1',
         scheduledServiceId: 'scheduled-1',
         amount: 10.0,
@@ -454,6 +477,7 @@ describe('CommissionService', () => {
       },
       {
         id: 'commission-2',
+        tenantId: TENANT_ID_MOCK,
         collaboratorId: 'collaborator-2',
         scheduledServiceId: 'scheduled-2',
         amount: 15.0,
@@ -470,9 +494,9 @@ describe('CommissionService', () => {
     it('should mark multiple commissions as paid', async () => {
       const commissionIds = ['commission-1', 'commission-2'];
 
-      mockCommissionRepository.findByIds.mockResolvedValueOnce(mockCommissions);
+      mockCommissionRepository.findManyByIds.mockResolvedValueOnce(mockCommissions);
       mockCommissionRepository.update.mockResolvedValue(undefined);
-      mockCommissionRepository.findByIds.mockResolvedValueOnce(paidCommissions);
+      mockCommissionRepository.findManyByIds.mockResolvedValueOnce(paidCommissions);
 
       const result = await service.markAsPaid(commissionIds);
 
@@ -485,7 +509,7 @@ describe('CommissionService', () => {
       const commissionIds = ['commission-1', 'non-existent'];
       const foundCommissions = [mockCommissions[0]];
 
-      mockCommissionRepository.findByIds.mockResolvedValue(foundCommissions);
+      mockCommissionRepository.findManyByIds.mockResolvedValue(foundCommissions);
 
       await expect(service.markAsPaid(commissionIds)).rejects.toThrow(
         'Some commissions were not found',
@@ -497,6 +521,7 @@ describe('CommissionService', () => {
     const paidCommissions: Commission[] = [
       {
         id: 'commission-1',
+        tenantId: TENANT_ID_MOCK,
         collaboratorId: 'collaborator-1',
         scheduledServiceId: 'scheduled-1',
         amount: 10.0,
@@ -513,9 +538,9 @@ describe('CommissionService', () => {
     it('should mark commissions as unpaid', async () => {
       const commissionIds = ['commission-1'];
 
-      mockCommissionRepository.findByIds.mockResolvedValueOnce(paidCommissions);
+      mockCommissionRepository.findManyByIds.mockResolvedValueOnce(paidCommissions);
       mockCommissionRepository.update.mockResolvedValue(undefined);
-      mockCommissionRepository.findByIds.mockResolvedValueOnce(
+      mockCommissionRepository.findManyByIds.mockResolvedValueOnce(
         unpaidCommissions,
       );
 

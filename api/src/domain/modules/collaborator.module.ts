@@ -4,9 +4,10 @@ import { Collaborator } from '../entities/collaborator.entity';
 import { CollaboratorRepository } from '../repositories/collaborator.repository';
 import { CollaboratorService } from '../services/collaborator.service';
 import { CollaboratorController } from '@application/controllers/collaborator.controller';
+import { AuthModule } from './auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Collaborator])],
+  imports: [AuthModule, TypeOrmModule.forFeature([Collaborator])],
   controllers: [CollaboratorController],
   providers: [CollaboratorRepository, CollaboratorService],
   exports: [CollaboratorRepository, CollaboratorService],

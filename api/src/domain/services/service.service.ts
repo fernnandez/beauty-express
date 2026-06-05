@@ -5,19 +5,26 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Scope,
 } from '@nestjs/common';
 import { normalizeString } from '../../common/utils/string.util';
 import { VALIDATION_CONSTANTS } from '../../common/constants/validation.constants';
 import { Service } from '../entities/service.entity';
 import { ServiceRepository } from '../repositories/service.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
+import { TenantContextService } from './tenant-context.service';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class ServiceService {
   constructor(
     private repository: ServiceRepository,
     private scheduledServiceRepository: ScheduledServiceRepository,
+    private tenantContext: TenantContextService,
   ) {}
+
+  private getTenantId(): string {
+    return this.tenantContext.requireTenantId();
+  }
 
   private validatePrice(price: number): void {
     if (price <= VALIDATION_CONSTANTS.PRICE.MIN) {
@@ -30,26 +37,32 @@ export class ServiceService {
 
     return await this.repository.save({
       ...createDto,
+      tenantId: this.getTenantId(),
       description: normalizeString(createDto.description),
     });
   }
 
   async findAll(search?: string): Promise<Service[]> {
+    const tenantId = this.getTenantId();
+
     if (search && search.trim()) {
-      return await this.repository.searchByName(search.trim());
+      return await this.repository.searchByName(search.trim(), tenantId);
     }
-    return await this.repository.find({ relations: ['collaborators'] });
+    return await this.repository.find({
+      where: { tenantId },
+      relations: ['collaborators'],
+    });
   }
 
   async findById(id: string): Promise<Service | null> {
-    return await this.repository.findById(id);
+    return await this.repository.findById(id, this.getTenantId());
   }
 
   async updateService(
     id: string,
     updateDto: UpdateServiceDto,
   ): Promise<Service> {
-    const service = await this.repository.findById(id);
+    const service = await this.repository.findById(id, this.getTenantId());
     if (!service) {
       throw new NotFoundException('Service not found');
     }
@@ -63,20 +76,20 @@ export class ServiceService {
       updatePayload.description = normalizeString(updateDto.description);
     }
 
-    await this.repository.update(id, updatePayload);
+    await this.repository.update({ id, tenantId: this.getTenantId() }, updatePayload);
 
-    return await this.repository.findById(id);
+    return await this.repository.findById(id, this.getTenantId());
   }
 
   async delete(id: string): Promise<void> {
-    const service = await this.repository.findById(id);
+    const tenantId = this.getTenantId();
+    const service = await this.repository.findById(id, tenantId);
     if (!service) {
       throw new NotFoundException('Service not found');
     }
 
-    // Business rule: cannot delete service if it's being used in scheduled services
     const scheduledServices = await this.scheduledServiceRepository.find({
-      where: { serviceId: id },
+      where: { serviceId: id, tenantId },
     });
 
     if (scheduledServices.length > 0) {
@@ -85,6 +98,6 @@ export class ServiceService {
       );
     }
 
-    await this.repository.delete(id);
+    await this.repository.delete({ id, tenantId });
   }
 }

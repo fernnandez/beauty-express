@@ -12,9 +12,9 @@ export class CommissionRepository extends Repository<Commission> {
     super(repository.target, repository.manager, repository.queryRunner);
   }
 
-  async findById(id: string): Promise<Commission | null> {
+  async findById(id: string, tenantId: string): Promise<Commission | null> {
     return await this.findOne({
-      where: { id },
+      where: { id, tenantId },
       relations: [
         'collaborator',
         'scheduledService',
@@ -24,9 +24,12 @@ export class CommissionRepository extends Repository<Commission> {
     });
   }
 
-  async findByCollaboratorId(collaboratorId: string): Promise<Commission[]> {
+  async findByCollaboratorId(
+    collaboratorId: string,
+    tenantId: string,
+  ): Promise<Commission[]> {
     return await this.find({
-      where: { collaboratorId },
+      where: { collaboratorId, tenantId },
       relations: [
         'collaborator',
         'scheduledService',
@@ -38,9 +41,10 @@ export class CommissionRepository extends Repository<Commission> {
 
   async findByScheduledServiceId(
     scheduledServiceId: string,
+    tenantId: string,
   ): Promise<Commission | null> {
     return await this.findOne({
-      where: { scheduledServiceId },
+      where: { scheduledServiceId, tenantId },
       relations: [
         'collaborator',
         'scheduledService',
@@ -50,12 +54,12 @@ export class CommissionRepository extends Repository<Commission> {
     });
   }
 
-  async findByIds(ids: string[]): Promise<Commission[]> {
+  async findManyByIds(ids: string[], tenantId: string): Promise<Commission[]> {
     if (ids.length === 0) {
       return [];
     }
     return await this.find({
-      where: { id: In(ids) },
+      where: { id: In(ids), tenantId },
       relations: [
         'collaborator',
         'scheduledService',
@@ -65,24 +69,26 @@ export class CommissionRepository extends Repository<Commission> {
     });
   }
 
-  async findByFilters(filters: {
-    paid?: boolean;
-    startDate?: Date;
-    endDate?: Date;
-    collaboratorId?: string;
-  }): Promise<Commission[]> {
+  async findByFilters(
+    tenantId: string,
+    filters: {
+      paid?: boolean;
+      startDate?: Date;
+      endDate?: Date;
+      collaboratorId?: string;
+    },
+  ): Promise<Commission[]> {
     const queryBuilder = this.createQueryBuilder('commission')
       .leftJoinAndSelect('commission.collaborator', 'collaborator')
       .leftJoinAndSelect('commission.scheduledService', 'scheduledService')
       .leftJoinAndSelect('scheduledService.service', 'service')
-      .leftJoinAndSelect('scheduledService.appointment', 'appointment');
+      .leftJoinAndSelect('scheduledService.appointment', 'appointment')
+      .where('commission.tenantId = :tenantId', { tenantId });
 
-    // Filtro por status (paid)
     if (filters.paid !== undefined) {
       queryBuilder.andWhere('commission.paid = :paid', { paid: filters.paid });
     }
 
-    // Filtro por range de data (data do agendamento)
     if (filters.startDate && filters.endDate) {
       queryBuilder.andWhere(
         'appointment.date BETWEEN :startDate AND :endDate',
@@ -101,14 +107,12 @@ export class CommissionRepository extends Repository<Commission> {
       });
     }
 
-    // Filtro por colaborador
     if (filters.collaboratorId) {
       queryBuilder.andWhere('commission.collaboratorId = :collaboratorId', {
         collaboratorId: filters.collaboratorId,
       });
     }
 
-    // Ordena por data do agendamento (mais recentes primeiro)
     queryBuilder
       .orderBy('appointment.date', 'DESC')
       .addOrderBy('appointment.startTime', 'DESC');

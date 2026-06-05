@@ -4,6 +4,7 @@ import { ServiceService } from '@domain/services/service.service';
 import { Service } from '@domain/entities/service.entity';
 import { CreateServiceDto } from '../dtos/service/create-service.dto';
 import { UpdateServiceDto } from '../dtos/service/update-service.dto';
+import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
 
 describe('ServiceController', () => {
   let controller: ServiceController;
@@ -11,6 +12,7 @@ describe('ServiceController', () => {
 
   const mockService: Service = {
     id: '123e4567-e89b-12d3-a456-426614174000',
+      tenantId: TENANT_ID_MOCK,
     name: 'Corte de Cabelo',
     defaultPrice: 50.0,
     description: 'Corte profissional',

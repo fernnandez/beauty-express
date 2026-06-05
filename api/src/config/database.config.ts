@@ -4,9 +4,15 @@ import { Service } from '@domain/entities/service.entity';
 import { Appointment } from '@domain/entities/appointment.entity';
 import { Commission } from '@domain/entities/commission.entity';
 import { ScheduledService } from '@domain/entities/scheduled-service.entity';
+import { Tenant } from '@domain/entities/tenant.entity';
+import { User } from '@domain/entities/user.entity';
+import { RefreshToken } from '@domain/entities/refresh-token.entity';
 import { DataSourceOptions } from 'typeorm';
 
 const entities = [
+  Tenant,
+  User,
+  RefreshToken,
   Collaborator,
   Service,
   Appointment,

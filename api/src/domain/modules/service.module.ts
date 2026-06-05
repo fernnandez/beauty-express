@@ -6,9 +6,10 @@ import { ServiceRepository } from '../repositories/service.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { ServiceService } from '../services/service.service';
 import { ServiceController } from '@application/controllers/service.controller';
+import { AuthModule } from './auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Service, ScheduledService])],
+  imports: [AuthModule, TypeOrmModule.forFeature([Service, ScheduledService])],
   controllers: [ServiceController],
   providers: [ServiceRepository, ScheduledServiceRepository, ServiceService],
   exports: [ServiceRepository, ServiceService],
