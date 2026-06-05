@@ -3,8 +3,9 @@ import type { InternalAxiosRequestConfig } from 'axios';
 import { authStorage } from '../services/auth-storage';
 import { authService } from '../services/auth.service';
 import type { ApiErrorResponse } from '../types/api.types';
+import { resolveApiBaseUrl } from '../utils/api-url.util';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = resolveApiBaseUrl();
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

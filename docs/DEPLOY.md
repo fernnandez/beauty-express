@@ -162,9 +162,11 @@ Conecte o repositório ao Vercel ou Netlify:
 ### 3.2 Variáveis de ambiente (build time)
 
 ```env
-VITE_API_URL=https://api.seu-dominio.com.br
+VITE_API_URL=https://beauty-express-production-xxxx.up.railway.app
 ```
 
+> Use sempre com `https://`. Sem o protocolo, o browser monta URL errada (ex.: `/backoffice/seu-dominio.railway.app/...`).
+>
 > `VITE_*` é injetada no build. Se mudar a URL da API, **rebuild obrigatório**.
 
 ### 3.3 SPA / rotas
