@@ -94,13 +94,15 @@ No Railway/Render, use um **release command** ou job one-off:
 |-------|-------|
 | Release / pre-deploy command | `npm run migration:run:prod` |
 
-**Opção B — automático no start:**
+**Opção B — automático no start (padrão com Docker/Railway):**
+
+O `start:prod` já roda `migration:run:prod` antes de subir a API. Não precisa de pre-deploy separado.
+
+Alternativa via TypeORM no Nest (sem o script acima):
 
 ```env
 DB_MIGRATIONS_RUN=true
 ```
-
-A API aplica migrations pendentes ao iniciar (útil em deploys contínuos).
 
 **Desenvolvimento local:**
 
