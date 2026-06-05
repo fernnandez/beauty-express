@@ -67,7 +67,7 @@ services/       # Cliente HTTP (Axios)
 |--------|-------|
 | **API** | NestJS 11, TypeORM, PostgreSQL, Swagger, Jest |
 | **Frontend** | React 19, Vite 7, Mantine 8, TanStack Query, Luxon, dayjs |
-| **Infra** | Docker Compose (Postgres), PM2, Nginx (produção) |
+| **Infra** | Docker Compose (Postgres local), plataformas gerenciadas (produção) |
 
 ## 🛠️ Instalação e Desenvolvimento
 
@@ -225,8 +225,8 @@ Em desenvolvimento, `DB_SYNCHRONIZE=true` cria/atualiza o schema automaticamente
 
 API e frontend são implantados **separadamente**:
 
-- **API** — PM2 + PostgreSQL gerenciado (Railway, Render, RDS, etc.)
-- **Frontend** — build estático servido por Nginx, Vercel, Netlify ou CDN
+- **API** — Railway, Render, Fly.io ou similar + PostgreSQL gerenciado
+- **Frontend** — Vercel, Netlify ou CDN (build estático)
 
 Em produção, recomenda-se subdomínios distintos: `app.` (filiais) e `admin.` (backoffice), com `CORS_ORIGIN` listando ambas as origens.
 

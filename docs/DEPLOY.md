@@ -1,113 +1,116 @@
-# Guia de Implantação — Beauty Express
+# Guia de Implantação — Maria Borboleta
 
-Este guia descreve a implantação em produção com **API e frontend separados** e **PostgreSQL**.
+Deploy recomendado via **plataformas gerenciadas** (sem servidor próprio).
 
 ## Arquitetura
 
 ```
-                    ┌─────────────────────────┐
-                    │         Nginx           │
-                    │   (proxy + SSL)         │
-                    └───────────┬─────────────┘
-                                │
-              ┌─────────────────┴─────────────────┐
-              │                                   │
-              ▼                                   ▼
-   ┌──────────────────────┐          ┌──────────────────────┐
-   │  Frontend (estático) │          │   API (NestJS)       │
-   │  app.dominio.com.br  │          │  api.dominio.com.br  │
-   │  dist/ via Nginx     │          │  PM2 :3000           │
-   └──────────────────────┘          └──────────┬───────────┘
-                                                │
-                                     ┌──────────▼───────────┐
-                                     │     PostgreSQL         │
-                                     │  (RDS, Railway, etc.)  │
-                                     └────────────────────────┘
+┌─────────────────────┐     HTTPS      ┌─────────────────────┐
+│  Frontend (Vite)    │ ─────────────► │  API (NestJS)       │
+│  Vercel / Netlify   │                │  Railway / Render   │
+│  app.dominio.com    │                │  api.dominio.com    │
+└─────────────────────┘                └──────────┬──────────┘
+                                                  │
+                                       ┌──────────▼──────────┐
+                                       │  PostgreSQL         │
+                                       │  (Railway, RDS, …)  │
+                                       └─────────────────────┘
 ```
+
+Backoffice (super admin): mesmo frontend, rota `/backoffice/*`. Em produção, pode usar subdomínio `admin.` apontando para o mesmo deploy do frontend.
+
+---
 
 ## Pré-requisitos
 
-- Node.js 20+
-- PM2 (`npm install -g pm2`)
-- PostgreSQL 16+ (gerenciado ou self-hosted)
-- Nginx (recomendado)
-- Domínio com SSL (Let's Encrypt)
+- Conta em provedor de API (Railway, Render, Fly.io, etc.)
+- Conta em provedor de frontend (Vercel, Netlify, etc.)
+- PostgreSQL 16+ gerenciado
+- Domínio com SSL (geralmente incluso nos provedores)
 
 ---
 
 ## 1. Banco de dados (PostgreSQL)
 
-### Opção A — Serviço gerenciado
-
-Use Railway, Render, Supabase, AWS RDS ou similar. Anote:
+Use o Postgres do próprio provedor (Railway, Supabase, Neon, RDS, etc.) e anote:
 
 - Host, porta, usuário, senha, nome do banco
 - Se exige SSL (`DB_SSL=true`)
 
-### Opção B — Docker no servidor
+**Desenvolvimento local:**
 
 ```bash
-docker compose up -d postgres
+cd api && npm run db:up
 ```
 
 ---
 
 ## 2. Deploy da API
 
-### 2.1 Preparar o servidor
+### 2.1 Variáveis de ambiente
 
-```bash
-git clone <repository-url> beauty-express
-cd beauty-express/api
-npm ci --production
-```
-
-### 2.2 Configurar `.env`
+Configure no painel do provedor (não commite `.env`):
 
 ```env
 PORT=3000
 NODE_ENV=production
-CORS_ORIGIN=https://app.seu-dominio.com.br
+CORS_ORIGIN=https://app.seu-dominio.com.br,https://admin.seu-dominio.com.br
 
-DB_HOST=seu-host-postgres
+DB_HOST=...
 DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=sua-senha-segura
+DB_USERNAME=...
+DB_PASSWORD=...
 DB_DATABASE=beauty_express
 DB_SYNCHRONIZE=false
 DB_LOGGING=false
 DB_SSL=true
+
+JWT_ACCESS_SECRET=...
+JWT_REFRESH_SECRET=...
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+THROTTLE_LOGIN_LIMIT=10
+THROTTLE_LOGIN_TTL_MS=60000
 ```
 
-### 2.3 Build e PM2
+### 2.2 Build e start
 
-```bash
-npm run build
-pm2 start ecosystem.config.js
-pm2 startup
-pm2 save
-```
+No painel do serviço:
 
-Ajuste `CORS_ORIGIN` no `ecosystem.config.js` se necessário.
+| Campo | Valor |
+|-------|-------|
+| Root directory | `api` |
+| Build command | `npm ci && npm run build` |
+| Start command | `npm run start:prod` |
 
-### 2.4 Docker (alternativa)
+Ou via Docker:
 
 ```bash
 cd api
 docker build -t beauty-express-api .
-docker run -d \
-  -p 3000:3000 \
-  --env-file .env \
-  --name beauty-express-api \
-  beauty-express-api
+docker run -d -p 3000:3000 --env-file .env beauty-express-api
 ```
 
-### 2.5 Verificar
+> O `start:prod` carrega `bootstrap-paths` antes do `dist/main.js` (aliases `@common/*`).
+
+### 2.3 Verificar
 
 ```bash
-curl https://api.seu-dominio.com.br/collaborators
-# Swagger: https://api.seu-dominio.com.br/docs
+curl https://api.seu-dominio.com.br/docs
+# Swagger operacional e backoffice: /docs e /docs/admin
 ```
+
+Rotas operacionais exigem JWT — use login em `/auth/login` para testar com token.
+
+### 2.4 Seed (só primeira vez / staging)
+
+```bash
+# Localmente, apontando para o banco de produção/staging
+npm run seed
+```
+
+**Não rode seed em produção** com credenciais de demo. Crie o super admin manualmente e troque senhas.
 
 ---
 
@@ -115,190 +118,93 @@ curl https://api.seu-dominio.com.br/collaborators
 
 ### 3.1 Build
 
-```bash
-cd frontend
-npm ci
-```
+Conecte o repositório ao Vercel ou Netlify:
 
-Crie `.env.production` (ou exporte antes do build):
+| Campo | Valor |
+|-------|-------|
+| Root directory | `frontend` |
+| Build command | `npm ci && npm run build` |
+| Output directory | `dist` |
+
+### 3.2 Variáveis de ambiente (build time)
 
 ```env
 VITE_API_URL=https://api.seu-dominio.com.br
 ```
 
-```bash
-npm run build
-```
+> `VITE_*` é injetada no build. Se mudar a URL da API, **rebuild obrigatório**.
 
-A pasta `dist/` contém os arquivos estáticos.
+### 3.3 SPA / rotas
 
-### 3.2 Servir com Nginx
+Configure fallback para `index.html` (Vercel e Netlify fazem isso automaticamente para SPAs Vite).
 
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name app.seu-dominio.com.br;
+Rotas principais:
 
-    ssl_certificate     /etc/letsencrypt/live/app.seu-dominio.com.br/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/app.seu-dominio.com.br/privkey.pem;
-
-    root /var/www/beauty-express/frontend/dist;
-    index index.html;
-
-    # SPA — redireciona rotas para index.html
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Cache de assets
-    location ~* \.(js|css|png|jpg|svg|woff2?)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
-```
-
-### 3.3 Outras opções
-
-- **Vercel / Netlify** — conecte o repositório, root `frontend/`, build `npm run build`, output `dist/`
-- Defina `VITE_API_URL` nas variáveis de ambiente do provedor
+| Rota | Uso |
+|------|-----|
+| `/login` | App operacional (filiais) |
+| `/backoffice/login` | Super admin (URL não linkada no app) |
+| `/*` | Demais páginas |
 
 ---
 
-## 4. Nginx — API (proxy reverso)
+## 4. Backup (PostgreSQL)
 
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name api.seu-dominio.com.br;
+Use o backup nativo do provedor (Railway, RDS snapshots, etc.).
 
-    ssl_certificate     /etc/letsencrypt/live/api.seu-dominio.com.br/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.seu-dominio.com.br/privkey.pem;
-
-    client_max_body_size 10M;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
+Backup manual, se necessário:
 
 ```bash
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
----
-
-## 5. Comandos PM2
-
-```bash
-pm2 status
-pm2 logs beauty-express-api
-pm2 restart beauty-express-api
-pm2 reload beauty-express-api
-pm2 monit
-```
-
-Rotação de logs:
-
-```bash
-pm2 install pm2-logrotate
-pm2 set pm2-logrotate:max_size 10M
-pm2 set pm2-logrotate:retain 7
-```
-
----
-
-## 6. Backup (PostgreSQL)
-
-```bash
-# Backup manual
 pg_dump -h $DB_HOST -U $DB_USERNAME -d beauty_express > backup_$(date +%Y%m%d).sql
-
-# Restaurar
-psql -h $DB_HOST -U $DB_USERNAME -d beauty_express < backup_20260605.sql
-```
-
-Cron diário (exemplo):
-
-```bash
-0 2 * * * pg_dump -h localhost -U postgres beauty_express | gzip > /backups/beauty_$(date +\%Y\%m\%d).sql.gz
 ```
 
 ---
 
-## 7. Atualização
+## 5. Atualização
 
 ### API
 
-```bash
-pm2 stop beauty-express-api
-git pull
-cd api && npm ci --production && npm run build
-pm2 restart beauty-express-api
-pm2 logs beauty-express-api --lines 30
-```
+Redeploy via git push no provedor (ou botão “Redeploy”). O pipeline deve rodar `npm run build` e reiniciar com `npm run start:prod`.
 
 ### Frontend
 
-```bash
-cd frontend
-git pull
-npm ci
-npm run build
-# Copiar dist/ para o servidor web ou redeploy no Vercel/Netlify
-```
+Push no repositório → rebuild automático no Vercel/Netlify.
 
 ---
 
-## 8. Troubleshooting
+## 6. Troubleshooting
 
 ### API não conecta ao banco
 
-```bash
-# Testar conexão
-psql -h $DB_HOST -U $DB_USERNAME -d $DB_DATABASE
-
-# Verificar variáveis
-pm2 env beauty-express-api
-```
+- Confirme `DB_HOST`, `DB_SSL=true` se o provedor exige
+- Teste: `psql -h $DB_HOST -U $DB_USERNAME -d $DB_DATABASE`
 
 ### CORS bloqueando o frontend
 
-- Confirme `CORS_ORIGIN` com a URL exata do frontend (com `https://`)
-- Múltiplas origens: `CORS_ORIGIN=https://app.com,https://www.app.com`
+- `CORS_ORIGIN` deve listar as URLs exatas do frontend (com `https://`)
+- Múltiplas origens separadas por vírgula: app + admin
 
 ### Frontend não carrega dados
 
-- `VITE_API_URL` é injetada no **build** — alterou a URL? Rebuild obrigatório
-- Verifique no DevTools (Network) se as requisições vão para a API correta
+- Verifique `VITE_API_URL` no painel do provedor e faça rebuild
+- No DevTools (Network), confirme que as requisições vão para a API correta
 
-### Porta em uso
+### 401 em todas as rotas operacionais
 
-```bash
-lsof -ti :3000 | xargs kill
-pm2 restart beauty-express-api
-```
+- Normal sem token. Faça login em `/auth/login` primeiro.
 
 ---
 
 ## Checklist
 
-- [ ] PostgreSQL provisionado e acessível
-- [ ] `api/.env` configurado (`DB_SYNCHRONIZE=false` em produção)
-- [ ] API buildada e rodando com PM2
-- [ ] `CORS_ORIGIN` aponta para o frontend
+- [ ] PostgreSQL provisionado
+- [ ] `api/.env` configurado no provedor (`DB_SYNCHRONIZE=false`)
+- [ ] JWT secrets definidos (não use valores de dev)
+- [ ] API com build + `npm run start:prod`
+- [ ] `CORS_ORIGIN` com URLs do frontend (app e admin)
 - [ ] Frontend buildado com `VITE_API_URL` correto
-- [ ] Nginx com SSL para API e frontend
-- [ ] Backup do Postgres agendado
-- [ ] PM2 configurado para iniciar no boot
-- [ ] Seed executado (se necessário): `npm run seed`
+- [ ] Backup do Postgres configurado no provedor
+- [ ] Credenciais de demo **não** usadas em produção
 
 ---
 
