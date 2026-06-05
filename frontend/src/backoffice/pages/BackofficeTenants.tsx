@@ -1,4 +1,5 @@
 import {
+  ActionIcon,
   Badge,
   Button,
   Container,
@@ -12,31 +13,30 @@ import {
   Text,
   TextInput,
   Title,
+  Tooltip,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconPlus } from '@tabler/icons-react';
-import { useState } from 'react';
+import { IconEdit, IconPlus } from '@tabler/icons-react';
+import { useEffect, useState } from 'react';
 import {
   useAdminTenants,
   useCreateTenant,
   useUpdateTenant,
 } from '../hooks/useAdminTenants';
 import { getErrorMessage } from '../../utils/error.util';
-import type { CreateTenantDto, Tenant } from '../../types/admin.types';
+import type { CreateTenantDto, Tenant, UpdateTenantDto } from '../../types/admin.types';
 
 export function BackofficeTenants() {
   const { data: tenants, isLoading } = useAdminTenants();
   const createMutation = useCreateTenant();
   const updateMutation = useUpdateTenant();
   const [createOpened, setCreateOpened] = useState(false);
+  const [editOpened, setEditOpened] = useState(false);
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
 
-  const form = useForm<CreateTenantDto>({
-    initialValues: {
-      slug: '',
-      name: '',
-      isActive: true,
-    },
+  const createForm = useForm<CreateTenantDto>({
+    initialValues: { slug: '', name: '', isActive: true },
     validate: {
       slug: (value) =>
         /^[a-z0-9-]+$/.test(value)
@@ -45,6 +45,31 @@ export function BackofficeTenants() {
       name: (value) => (value.trim().length > 0 ? null : 'Nome obrigatório'),
     },
   });
+
+  const editForm = useForm<UpdateTenantDto & { name: string; slug: string }>({
+    initialValues: { name: '', slug: '' },
+    validate: {
+      slug: (value) =>
+        /^[a-z0-9-]+$/.test(value)
+          ? null
+          : 'Use apenas letras minúsculas, números e hífens',
+      name: (value) => (value.trim().length > 0 ? null : 'Nome obrigatório'),
+    },
+  });
+
+  useEffect(() => {
+    if (selectedTenant && editOpened) {
+      editForm.setValues({
+        name: selectedTenant.name,
+        slug: selectedTenant.slug,
+      });
+    }
+  }, [selectedTenant, editOpened]);
+
+  const handleEdit = (tenant: Tenant) => {
+    setSelectedTenant(tenant);
+    setEditOpened(true);
+  };
 
   const handleToggleActive = async (tenant: Tenant) => {
     try {
@@ -66,7 +91,7 @@ export function BackofficeTenants() {
     }
   };
 
-  const handleCreate = form.onSubmit(async (values) => {
+  const handleCreate = createForm.onSubmit(async (values) => {
     try {
       await createMutation.mutateAsync(values);
       notifications.show({
@@ -74,8 +99,32 @@ export function BackofficeTenants() {
         message: `${values.name} cadastrada com sucesso`,
         color: 'green',
       });
-      form.reset();
+      createForm.reset();
       setCreateOpened(false);
+    } catch (error) {
+      notifications.show({
+        title: 'Erro',
+        message: getErrorMessage(error),
+        color: 'red',
+      });
+    }
+  });
+
+  const handleUpdate = editForm.onSubmit(async (values) => {
+    if (!selectedTenant) return;
+
+    try {
+      await updateMutation.mutateAsync({
+        id: selectedTenant.id,
+        data: { name: values.name, slug: values.slug },
+      });
+      notifications.show({
+        title: 'Filial atualizada',
+        message: `${values.name} salva com sucesso`,
+        color: 'green',
+      });
+      setEditOpened(false);
+      setSelectedTenant(null);
     } catch (error) {
       notifications.show({
         title: 'Erro',
@@ -122,6 +171,7 @@ export function BackofficeTenants() {
                   <Table.Th>Slug</Table.Th>
                   <Table.Th>Status</Table.Th>
                   <Table.Th w={120}>Ativa</Table.Th>
+                  <Table.Th w={60} />
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -146,6 +196,17 @@ export function BackofficeTenants() {
                         onChange={() => handleToggleActive(tenant)}
                       />
                     </Table.Td>
+                    <Table.Td>
+                      <Tooltip label="Editar">
+                        <ActionIcon
+                          variant="subtle"
+                          color="indigo"
+                          onClick={() => handleEdit(tenant)}
+                        >
+                          <IconEdit size={18} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Table.Td>
                   </Table.Tr>
                 ))}
               </Table.Tbody>
@@ -165,13 +226,13 @@ export function BackofficeTenants() {
             <TextInput
               label="Nome"
               placeholder="Maria Borboleta — Nova Unidade"
-              {...form.getInputProps('name')}
+              {...createForm.getInputProps('name')}
             />
             <TextInput
               label="Slug"
               placeholder="nova-unidade"
               description="Identificador único (minúsculas, números e hífens)"
-              {...form.getInputProps('slug')}
+              {...createForm.getInputProps('slug')}
             />
             <Group justify="flex-end">
               <Button variant="default" onClick={() => setCreateOpened(false)}>
@@ -179,6 +240,44 @@ export function BackofficeTenants() {
               </Button>
               <Button type="submit" color="indigo" loading={createMutation.isPending}>
                 Criar filial
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Modal>
+
+      <Modal
+        opened={editOpened}
+        onClose={() => {
+          setEditOpened(false);
+          setSelectedTenant(null);
+        }}
+        title="Editar filial"
+        centered
+      >
+        <form onSubmit={handleUpdate}>
+          <Stack gap="md">
+            <TextInput
+              label="Nome"
+              {...editForm.getInputProps('name')}
+            />
+            <TextInput
+              label="Slug"
+              description="Identificador único (minúsculas, números e hífens)"
+              {...editForm.getInputProps('slug')}
+            />
+            <Group justify="flex-end">
+              <Button
+                variant="default"
+                onClick={() => {
+                  setEditOpened(false);
+                  setSelectedTenant(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" color="indigo" loading={updateMutation.isPending}>
+                Salvar
               </Button>
             </Group>
           </Stack>

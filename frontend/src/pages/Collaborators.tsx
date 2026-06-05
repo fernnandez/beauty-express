@@ -33,6 +33,7 @@ import {
 import { useNotifications } from "../hooks/useNotifications";
 import { MESSAGES } from "../constants/messages.constants";
 import type { Collaborator } from "../types";
+import { toMoney } from "../utils/money.util";
 
 export function Collaborators() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -160,7 +161,7 @@ export function Collaborators() {
                   <Table.Td>{collaborator.name}</Table.Td>
                   <Table.Td>{collaborator.area}</Table.Td>
                   <Table.Td>{collaborator.phone}</Table.Td>
-                  <Table.Td>{collaborator.commissionPercentage}%</Table.Td>
+                  <Table.Td>{toMoney(collaborator.commissionPercentage)}%</Table.Td>
                   <Table.Td>
                     <Badge color={collaborator.isActive ? "green" : "red"}>
                       {collaborator.isActive ? "Ativo" : "Inativo"}

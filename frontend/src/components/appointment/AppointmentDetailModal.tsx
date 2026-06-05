@@ -47,6 +47,7 @@ import {
   formatPrice,
   formatServiceOption,
 } from "../../utils/appointment.utils";
+import { sumMoney, toMoney } from "../../utils/money.util";
 
 interface AppointmentDetailModalProps {
   opened: boolean;
@@ -153,7 +154,10 @@ export function AppointmentDetailModal({
       const data: CreateScheduledServiceDto = {
         serviceId: newService.serviceId,
         collaboratorId: newService.collaboratorId,
-        price: newService.price ?? selectedService.defaultPrice,
+        price:
+          toMoney(newService.price) > 0
+            ? toMoney(newService.price)
+            : toMoney(selectedService.defaultPrice),
       };
 
       await createServiceMutation.mutateAsync({
@@ -178,7 +182,7 @@ export function AppointmentDetailModal({
     setEditingService(service);
     setEditServiceData({
       collaboratorId: service.collaboratorId || undefined,
-      price: service.price,
+      price: toMoney(service.price),
     });
     setEditServiceModalOpened(true);
   };
@@ -224,10 +228,11 @@ export function AppointmentDetailModal({
     }
   };
 
-  const totalPrice =
+  const totalPrice = sumMoney(
     appointment.scheduledServices
       ?.filter((service) => service.status !== "cancelado")
-      .reduce((total, service) => total + service.price, 0) || 0;
+      .map((service) => service.price) ?? [],
+  );
 
   return (
     <Modal
@@ -532,14 +537,17 @@ export function AppointmentDetailModal({
                 decimalScale={2}
                 fixedDecimalScale
                 value={
-                  newService.price ??
-                  services?.find((s) => s.id === newService.serviceId)
-                    ?.defaultPrice
+                  newService.price !== undefined
+                    ? toMoney(newService.price)
+                    : toMoney(
+                        services?.find((s) => s.id === newService.serviceId)
+                          ?.defaultPrice,
+                      )
                 }
                 onChange={(value) =>
                   setNewService({
                     ...newService,
-                    price: Number(value) || undefined,
+                    price: toMoney(value) || undefined,
                   })
                 }
               />
@@ -618,11 +626,15 @@ export function AppointmentDetailModal({
               min={0.01}
               decimalScale={2}
               fixedDecimalScale
-              value={editServiceData.price ?? editingService.price}
+              value={
+                editServiceData.price !== undefined
+                  ? toMoney(editServiceData.price)
+                  : toMoney(editingService.price)
+              }
               onChange={(value) =>
                 setEditServiceData({
                   ...editServiceData,
-                  price: Number(value) || editingService.price,
+                  price: toMoney(value) || toMoney(editingService.price),
                 })
               }
             />

@@ -1,6 +1,7 @@
 import { CreateTenantDto } from '@application/dtos/admin/create-tenant.dto';
 import { CreateUserDto } from '@application/dtos/admin/create-user.dto';
 import { UpdateTenantDto } from '@application/dtos/admin/update-tenant.dto';
+import { UpdateUserDto } from '@application/dtos/admin/update-user.dto';
 import {
   BadRequestException,
   Injectable,
@@ -76,6 +77,13 @@ export class AdminService {
       throw new NotFoundException('Filial não encontrada');
     }
 
+    if (dto.slug && dto.slug !== tenant.slug) {
+      const slugTaken = await this.tenantRepository.findBySlug(dto.slug);
+      if (slugTaken && slugTaken.id !== id) {
+        throw new BadRequestException('Slug já está em uso');
+      }
+    }
+
     await this.tenantRepository.update(id, dto);
     const updated = await this.tenantRepository.findOne({ where: { id } });
 
@@ -146,6 +154,109 @@ export class AdminService {
     );
 
     const { passwordHash: _, ...safeUser } = user;
+    return safeUser;
+  }
+
+  async updateUser(
+    id: string,
+    dto: UpdateUserDto,
+    audit: AdminAuditContext,
+  ): Promise<Omit<User, 'passwordHash'>> {
+    const user = await this.userRepository.findByIdWithTenant(id);
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    const isSuperAdmin = user.role === UserRole.SUPER_ADMIN;
+
+    if (isSuperAdmin && (dto.role !== undefined || dto.tenantId !== undefined)) {
+      throw new BadRequestException(
+        'Super admin não pode ter papel ou filial alterados',
+      );
+    }
+
+    if (!isSuperAdmin && dto.role === UserRole.SUPER_ADMIN) {
+      throw new BadRequestException(
+        'Não é permitido promover usuário a super admin',
+      );
+    }
+
+    const targetTenantId =
+      dto.tenantId !== undefined ? dto.tenantId : user.tenantId;
+
+    if (!isSuperAdmin && !targetTenantId) {
+      throw new BadRequestException('tenantId é obrigatório');
+    }
+
+    if (dto.tenantId !== undefined && !isSuperAdmin) {
+      const tenant = await this.tenantRepository.findOne({
+        where: { id: dto.tenantId },
+      });
+      if (!tenant) {
+        throw new NotFoundException('Filial não encontrada');
+      }
+    }
+
+    const targetEmail = dto.email ?? user.email;
+    if (targetEmail !== user.email) {
+      const duplicate = await this.userRepository.findByEmailAndTenant(
+        targetEmail,
+        isSuperAdmin ? null : targetTenantId,
+        id,
+      );
+      if (duplicate) {
+        throw new BadRequestException('E-mail já cadastrado');
+      }
+    } else if (
+      dto.tenantId !== undefined &&
+      dto.tenantId !== user.tenantId &&
+      !isSuperAdmin
+    ) {
+      const duplicate = await this.userRepository.findByEmailAndTenant(
+        user.email,
+        dto.tenantId,
+        id,
+      );
+      if (duplicate) {
+        throw new BadRequestException('E-mail já cadastrado nesta filial');
+      }
+    }
+
+    const updates: Partial<User> = {};
+
+    if (dto.email !== undefined) updates.email = dto.email;
+    if (dto.role !== undefined && !isSuperAdmin) updates.role = dto.role;
+    if (dto.tenantId !== undefined && !isSuperAdmin) {
+      updates.tenantId = dto.tenantId;
+    }
+    if (dto.isActive !== undefined) updates.isActive = dto.isActive;
+    if (dto.password) {
+      updates.passwordHash = await bcrypt.hash(dto.password, 10);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      const { passwordHash: _, ...safeUser } = user;
+      return safeUser;
+    }
+
+    await this.userRepository.update(id, updates);
+    const updated = await this.userRepository.findByIdWithTenant(id);
+
+    await this.adminAuditService.log(
+      audit,
+      'user.update',
+      'user',
+      id,
+      {
+        email: dto.email,
+        role: dto.role,
+        tenantId: dto.tenantId,
+        isActive: dto.isActive,
+        passwordChanged: Boolean(dto.password),
+      },
+    );
+
+    const { passwordHash: _, ...safeUser } = updated;
     return safeUser;
   }
 

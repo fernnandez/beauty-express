@@ -1,4 +1,5 @@
 import {
+  ActionIcon,
   Badge,
   Button,
   Container,
@@ -9,28 +10,50 @@ import {
   ScrollArea,
   Select,
   Stack,
+  Switch,
   Table,
   Text,
   TextInput,
   Title,
+  Tooltip,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconPlus } from '@tabler/icons-react';
-import { useState } from 'react';
+import { IconEdit, IconPlus } from '@tabler/icons-react';
+import { useEffect, useState } from 'react';
 import { OPERATIONAL_ROLES, ROLE_LABELS } from '../constants/roles';
 import { useAdminTenants } from '../hooks/useAdminTenants';
-import { useAdminUsers, useCreateAdminUser } from '../hooks/useAdminUsers';
+import {
+  useAdminUsers,
+  useCreateAdminUser,
+  useUpdateAdminUser,
+} from '../hooks/useAdminUsers';
 import { getErrorMessage } from '../../utils/error.util';
-import type { CreateAdminUserDto } from '../../types/admin.types';
+import type {
+  AdminUser,
+  CreateAdminUserDto,
+  UpdateAdminUserDto,
+} from '../../types/admin.types';
+import type { UserRole } from '../../types/auth.types';
+
+interface UserEditFormValues {
+  email: string;
+  password: string;
+  role: Exclude<UserRole, 'super_admin'>;
+  tenantId: string;
+  isActive: boolean;
+}
 
 export function BackofficeUsers() {
   const { data: users, isLoading } = useAdminUsers();
   const { data: tenants } = useAdminTenants();
   const createMutation = useCreateAdminUser();
+  const updateMutation = useUpdateAdminUser();
   const [createOpened, setCreateOpened] = useState(false);
+  const [editOpened, setEditOpened] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
 
-  const form = useForm<CreateAdminUserDto>({
+  const createForm = useForm<CreateAdminUserDto>({
     initialValues: {
       email: '',
       password: '',
@@ -45,12 +68,56 @@ export function BackofficeUsers() {
     },
   });
 
+  const editForm = useForm<UserEditFormValues>({
+    initialValues: {
+      email: '',
+      password: '',
+      role: 'admin',
+      tenantId: '',
+      isActive: true,
+    },
+    validate: {
+      email: (value) => (/^\S+@\S+$/.test(value) ? null : 'E-mail inválido'),
+      password: (value) =>
+        value.length === 0 || value.length >= 6
+          ? null
+          : 'Senha deve ter ao menos 6 caracteres',
+      tenantId: (value) => {
+        if (selectedUser?.role === 'super_admin') return null;
+        return value ? null : 'Selecione uma filial';
+      },
+    },
+  });
+
+  useEffect(() => {
+    if (selectedUser && editOpened) {
+      editForm.setValues({
+        email: selectedUser.email,
+        password: '',
+        role:
+          selectedUser.role === 'super_admin'
+            ? 'admin'
+            : (selectedUser.role as Exclude<UserRole, 'super_admin'>),
+        tenantId: selectedUser.tenantId ?? '',
+        isActive: selectedUser.isActive,
+      });
+    }
+  }, [selectedUser, editOpened]);
+
   const tenantOptions =
+    tenants?.map((t) => ({ value: t.id, label: t.name })) ?? [];
+
+  const activeTenantOptions =
     tenants
       ?.filter((t) => t.isActive)
       .map((t) => ({ value: t.id, label: t.name })) ?? [];
 
-  const handleCreate = form.onSubmit(async (values) => {
+  const handleEdit = (user: AdminUser) => {
+    setSelectedUser(user);
+    setEditOpened(true);
+  };
+
+  const handleCreate = createForm.onSubmit(async (values) => {
     try {
       await createMutation.mutateAsync(values);
       notifications.show({
@@ -58,7 +125,7 @@ export function BackofficeUsers() {
         message: `${values.email} cadastrado com sucesso`,
         color: 'green',
       });
-      form.reset();
+      createForm.reset();
       setCreateOpened(false);
     } catch (error) {
       notifications.show({
@@ -68,6 +135,43 @@ export function BackofficeUsers() {
       });
     }
   });
+
+  const handleUpdate = editForm.onSubmit(async (values) => {
+    if (!selectedUser) return;
+
+    const payload: UpdateAdminUserDto = {
+      email: values.email,
+      isActive: values.isActive,
+    };
+
+    if (values.password.trim()) {
+      payload.password = values.password;
+    }
+
+    if (selectedUser.role !== 'super_admin') {
+      payload.role = values.role;
+      payload.tenantId = values.tenantId;
+    }
+
+    try {
+      await updateMutation.mutateAsync({ id: selectedUser.id, data: payload });
+      notifications.show({
+        title: 'Usuário atualizado',
+        message: `${values.email} salvo com sucesso`,
+        color: 'green',
+      });
+      setEditOpened(false);
+      setSelectedUser(null);
+    } catch (error) {
+      notifications.show({
+        title: 'Erro',
+        message: getErrorMessage(error),
+        color: 'red',
+      });
+    }
+  });
+
+  const isSuperAdmin = selectedUser?.role === 'super_admin';
 
   return (
     <Container style={{ maxWidth: '95%' }} px={{ base: 'xs', sm: 'md' }}>
@@ -80,7 +184,7 @@ export function BackofficeUsers() {
             leftSection={<IconPlus size={16} />}
             color="indigo"
             onClick={() => setCreateOpened(true)}
-            disabled={tenantOptions.length === 0}
+            disabled={activeTenantOptions.length === 0}
           >
             Novo usuário
           </Button>
@@ -107,6 +211,7 @@ export function BackofficeUsers() {
                   <Table.Th>Papel</Table.Th>
                   <Table.Th>Filial</Table.Th>
                   <Table.Th>Status</Table.Th>
+                  <Table.Th w={60} />
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -130,6 +235,17 @@ export function BackofficeUsers() {
                         {user.isActive ? 'Ativo' : 'Inativo'}
                       </Badge>
                     </Table.Td>
+                    <Table.Td>
+                      <Tooltip label="Editar">
+                        <ActionIcon
+                          variant="subtle"
+                          color="indigo"
+                          onClick={() => handleEdit(user)}
+                        >
+                          <IconEdit size={18} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Table.Td>
                   </Table.Tr>
                 ))}
               </Table.Tbody>
@@ -149,24 +265,24 @@ export function BackofficeUsers() {
             <TextInput
               label="E-mail"
               placeholder="gerente@paulista.mariaborboleta.com"
-              {...form.getInputProps('email')}
+              {...createForm.getInputProps('email')}
             />
             <PasswordInput
               label="Senha"
               placeholder="Senha inicial"
-              {...form.getInputProps('password')}
+              {...createForm.getInputProps('password')}
             />
             <Select
               label="Papel"
               data={OPERATIONAL_ROLES}
-              {...form.getInputProps('role')}
+              {...createForm.getInputProps('role')}
             />
             <Select
               label="Filial"
               placeholder="Selecione a filial"
-              data={tenantOptions}
+              data={activeTenantOptions}
               searchable
-              {...form.getInputProps('tenantId')}
+              {...createForm.getInputProps('tenantId')}
             />
             <Group justify="flex-end">
               <Button variant="default" onClick={() => setCreateOpened(false)}>
@@ -174,6 +290,64 @@ export function BackofficeUsers() {
               </Button>
               <Button type="submit" color="indigo" loading={createMutation.isPending}>
                 Criar usuário
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Modal>
+
+      <Modal
+        opened={editOpened}
+        onClose={() => {
+          setEditOpened(false);
+          setSelectedUser(null);
+        }}
+        title="Editar usuário"
+        centered
+      >
+        <form onSubmit={handleUpdate}>
+          <Stack gap="md">
+            <TextInput label="E-mail" {...editForm.getInputProps('email')} />
+            <PasswordInput
+              label="Nova senha"
+              placeholder="Deixe em branco para não alterar"
+              {...editForm.getInputProps('password')}
+            />
+
+            {!isSuperAdmin && (
+              <>
+                <Select
+                  label="Papel"
+                  data={OPERATIONAL_ROLES}
+                  {...editForm.getInputProps('role')}
+                />
+                <Select
+                  label="Filial"
+                  data={tenantOptions}
+                  searchable
+                  {...editForm.getInputProps('tenantId')}
+                />
+              </>
+            )}
+
+            <Switch
+              label="Usuário ativo"
+              color="indigo"
+              {...editForm.getInputProps('isActive', { type: 'checkbox' })}
+            />
+
+            <Group justify="flex-end">
+              <Button
+                variant="default"
+                onClick={() => {
+                  setEditOpened(false);
+                  setSelectedUser(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" color="indigo" loading={updateMutation.isPending}>
+                Salvar
               </Button>
             </Group>
           </Stack>

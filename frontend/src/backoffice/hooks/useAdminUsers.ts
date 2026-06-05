@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminService } from '../../services/admin.service';
-import type { CreateAdminUserDto } from '../../types/admin.types';
+import type { CreateAdminUserDto, UpdateAdminUserDto } from '../../types/admin.types';
 
 export const useAdminUsers = () => {
   return useQuery({
@@ -17,6 +17,18 @@ export const useCreateAdminUser = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
+    },
+  });
+};
+
+export const useUpdateAdminUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateAdminUserDto }) =>
+      adminService.updateUser(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     },
   });
 };

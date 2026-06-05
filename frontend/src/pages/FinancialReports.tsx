@@ -15,13 +15,7 @@ import { IconAlertCircle, IconCurrencyDollar, IconTrendingUp, IconTrendingDown, 
 import { DateTime } from "luxon";
 import { useMemo, useState } from "react";
 import { useFinancialReports } from "../hooks/useFinancialReports";
-
-function formatPrice(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-}
+import { formatPrice, toMoney } from "../utils/money.util";
 
 function getMonthName(month: number): string {
   const months = [
@@ -70,51 +64,51 @@ export function FinancialReports() {
   const cards = [
     {
       title: "Total Agendado",
-      value: report?.totalScheduled ?? 0,
+      value: toMoney(report?.totalScheduled),
       icon: IconReceipt,
       color: "blue",
       description: "Valor total dos serviços agendados",
     },
     {
       title: "Serviços Pagos",
-      value: report?.totalPaid ?? 0,
+      value: toMoney(report?.totalPaid),
       icon: IconCash,
       color: "green",
       description: "Valor dos serviços já pagos",
     },
     {
       title: "Serviços Não Pagos",
-      value: report?.totalUnpaid ?? 0,
+      value: toMoney(report?.totalUnpaid),
       icon: IconTrendingDown,
       color: "orange",
       description: "Valor dos serviços pendentes",
     },
     {
       title: "Comissões Pagas",
-      value: report?.totalCommissionsPaid ?? 0,
+      value: toMoney(report?.totalCommissionsPaid),
       icon: IconCurrencyDollar,
       color: "violet",
       description: "Total de comissões pagas",
     },
     {
       title: "Comissões Previstas",
-      value: report?.totalCommissionsExpected ?? 0,
+      value: toMoney(report?.totalCommissionsExpected),
       icon: IconCurrencyDollar,
       color: "indigo",
       description: "Total de comissões previstas (pagas + não pagas)",
     },
     {
       title: "Valor Líquido",
-      value: report?.netAmount ?? 0,
+      value: toMoney(report?.netAmount),
       icon: IconTrendingUp,
-      color: report?.netAmount && report.netAmount >= 0 ? "teal" : "red",
+      color: toMoney(report?.netAmount) >= 0 ? "teal" : "red",
       description: "Valor líquido (pagos - comissões pagas)",
     },
     {
       title: "Valor Líquido Previsto",
-      value: report?.netAmountExpected ?? 0,
+      value: toMoney(report?.netAmountExpected),
       icon: IconTrendingUp,
-      color: report?.netAmountExpected && report.netAmountExpected >= 0 ? "cyan" : "red",
+      color: toMoney(report?.netAmountExpected) >= 0 ? "cyan" : "red",
       description: "Valor líquido previsto (pagos - todas as comissões)",
     },
   ];

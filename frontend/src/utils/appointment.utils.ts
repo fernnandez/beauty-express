@@ -1,5 +1,8 @@
 import { DateTime } from "luxon";
 import type { ScheduledServiceInputDto, Service } from "../types";
+import { formatPrice, toMoney } from "./money.util";
+
+export { formatPrice, toMoney, sumMoney } from "./money.util";
 
 // Gera opções de horário de 8h às 20h em intervalos de 30 minutos
 export const generateTimeOptions = () => {
@@ -118,11 +121,9 @@ export const convertServicesToDto = (
       throw new Error(`Serviço não encontrado: ${servico.serviceId}`);
     }
 
-    // Garante que sempre tenha um preço válido (número)
+    const customPrice = toMoney(servico.price);
     const price =
-      typeof servico.price === "number" && servico.price > 0
-        ? servico.price
-        : service.defaultPrice;
+      customPrice > 0 ? customPrice : toMoney(service.defaultPrice);
 
     const result: ScheduledServiceInputDto = {
       serviceId: servico.serviceId,
@@ -147,20 +148,13 @@ export const calculateTotalPrice = (
   servicesList: Service[] | undefined
 ): number => {
   return services.reduce((total, servico) => {
-    if (servico.price) {
-      return total + servico.price;
+    const customPrice = toMoney(servico.price);
+    if (customPrice > 0) {
+      return total + customPrice;
     }
     const service = servicesList?.find((s) => s.id === servico.serviceId);
-    return total + (service?.defaultPrice || 0);
+    return total + toMoney(service?.defaultPrice);
   }, 0);
-};
-
-// Formata preço para exibição
-export const formatPrice = (price: number): string => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(price);
 };
 
 // Formata uma data para exibição em pt-BR

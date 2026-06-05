@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, Repository } from 'typeorm';
+import { Not, Repository, IsNull } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { UserRole } from '../entities/user-role.enum';
 
@@ -44,5 +44,25 @@ export class UserRepository extends Repository<User> {
       where: { id },
       relations: ['tenant'],
     });
+  }
+
+  async findByEmailAndTenant(
+    email: string,
+    tenantId: string | null,
+    excludeId?: string,
+  ): Promise<User | null> {
+    const where =
+      tenantId === null
+        ? { email, tenantId: IsNull() }
+        : { email, tenantId };
+
+    const user = await this.findOne({ where });
+    if (!user) {
+      return null;
+    }
+    if (excludeId && user.id === excludeId) {
+      return null;
+    }
+    return user;
   }
 }

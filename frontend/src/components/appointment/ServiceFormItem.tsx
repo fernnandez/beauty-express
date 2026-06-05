@@ -18,6 +18,7 @@ import {
   formatPrice,
   formatServiceOption,
 } from "../../utils/appointment.utils";
+import { toMoney } from "../../utils/money.util";
 
 interface ServiceFormItemProps {
   index: number;
@@ -110,11 +111,15 @@ export function ServiceFormItem({
               min={0.01}
               decimalScale={2}
               fixedDecimalScale
-              value={price ?? selectedService.defaultPrice}
+              value={
+                price !== undefined
+                  ? toMoney(price)
+                  : toMoney(selectedService.defaultPrice)
+              }
               onChange={(value) =>
                 onPriceChange(
                   index,
-                  Number(value) || selectedService.defaultPrice
+                  toMoney(value) || toMoney(selectedService.defaultPrice),
                 )
               }
             />

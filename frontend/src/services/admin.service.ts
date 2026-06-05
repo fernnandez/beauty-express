@@ -5,6 +5,7 @@ import type {
   CreateTenantDto,
   DashboardStats,
   Tenant,
+  UpdateAdminUserDto,
   UpdateTenantDto,
 } from '../types/admin.types';
 
@@ -36,6 +37,11 @@ export const adminService = {
 
   createUser: async (dto: CreateAdminUserDto): Promise<AdminUser> => {
     const response = await adminApi.post<AdminUser>('/admin/users', dto);
+    return response.data;
+  },
+
+  updateUser: async (id: string, dto: UpdateAdminUserDto): Promise<AdminUser> => {
+    const response = await adminApi.patch<AdminUser>(`/admin/users/${id}`, dto);
     return response.data;
   },
 };

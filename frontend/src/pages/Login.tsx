@@ -1,6 +1,5 @@
 import {
   Alert,
-  Anchor,
   Avatar,
   Box,
   Button,
@@ -16,7 +15,7 @@ import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getErrorMessage } from '../utils/error.util';
 import type { LoginDto } from '../types/auth.types';
@@ -81,7 +80,7 @@ export function Login() {
           <Stack gap="xs" align="center">
             <Avatar src="/logo.png" size={64} radius="md" />
             <Title order={2} ta="center">
-              Beauty Express
+              Maria Borboleta
             </Title>
             <Text c="dimmed" size="sm" ta="center">
               Entre com seu e-mail e senha
@@ -117,13 +116,6 @@ export function Login() {
               </Button>
             </Stack>
           </Box>
-
-          <Text size="sm" ta="center" c="dimmed">
-            Super admin?{' '}
-            <Anchor component={Link} to="/backoffice/login" c="pink">
-              Acessar backoffice
-            </Anchor>
-          </Text>
         </Stack>
       </Paper>
     </Center>

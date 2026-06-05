@@ -33,6 +33,7 @@ export interface CreateTenantDto {
 
 export interface UpdateTenantDto {
   name?: string;
+  slug?: string;
   isActive?: boolean;
 }
 
@@ -41,4 +42,12 @@ export interface CreateAdminUserDto {
   password: string;
   role: Exclude<UserRole, 'super_admin'>;
   tenantId: string;
+}
+
+export interface UpdateAdminUserDto {
+  email?: string;
+  password?: string;
+  role?: Exclude<UserRole, 'super_admin'>;
+  tenantId?: string;
+  isActive?: boolean;
 }

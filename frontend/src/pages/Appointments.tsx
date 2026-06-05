@@ -16,6 +16,7 @@ import {
 } from "../hooks/useAppointments";
 import { appointmentService } from "../services/appointment.service";
 import type { Appointment } from "../types";
+import { sumMoney } from "../utils/money.util";
 
 export function Appointments() {
   const { showSuccess, showError } = useNotifications();
@@ -130,11 +131,8 @@ export function Appointments() {
 
   // Calcula o preço total de um agendamento
   const getTotalPrice = (appointment: Appointment): number => {
-    return (
-      appointment.scheduledServices?.reduce(
-        (total, service) => total + service.price,
-        0
-      ) || 0
+    return sumMoney(
+      appointment.scheduledServices?.map((service) => service.price) ?? [],
     );
   };
 

@@ -35,7 +35,8 @@ import {
   useMarkCommissionsAsUnpaid,
 } from "../hooks/useCommissions";
 import { useNotifications } from "../hooks/useNotifications";
-import { formatDate, formatPrice } from "../utils/appointment.utils";
+import { formatDate } from "../utils/appointment.utils";
+import { formatPrice, sumMoney, toMoney } from "../utils/money.util";
 
 export function Commissions() {
   const [activeTab, setActiveTab] = useState<string>("pending");
@@ -139,13 +140,13 @@ export function Commissions() {
 
   // Calcular totais
   const totals = useMemo(() => {
-    const total = commissionsToShow.reduce((sum, c) => sum + c.amount, 0);
-    const pending = commissionsToShow
-      .filter((c) => !c.paid)
-      .reduce((sum, c) => sum + c.amount, 0);
-    const paid = commissionsToShow
-      .filter((c) => c.paid)
-      .reduce((sum, c) => sum + c.amount, 0);
+    const total = sumMoney(commissionsToShow.map((c) => c.amount));
+    const pending = sumMoney(
+      commissionsToShow.filter((c) => !c.paid).map((c) => c.amount),
+    );
+    const paid = sumMoney(
+      commissionsToShow.filter((c) => c.paid).map((c) => c.amount),
+    );
     return { total, pending, paid };
   }, [commissionsToShow]);
 
@@ -470,7 +471,7 @@ export function Commissions() {
                         )}
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm">{commission.percentage}%</Text>
+                        <Text size="sm">{toMoney(commission.percentage)}%</Text>
                       </Table.Td>
                       <Table.Td>
                         <Group gap="xs">

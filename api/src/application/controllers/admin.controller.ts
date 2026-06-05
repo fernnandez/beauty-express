@@ -1,6 +1,7 @@
 import { CreateTenantDto } from '@application/dtos/admin/create-tenant.dto';
 import { CreateUserDto } from '@application/dtos/admin/create-user.dto';
 import { UpdateTenantDto } from '@application/dtos/admin/update-tenant.dto';
+import { UpdateUserDto } from '@application/dtos/admin/update-user.dto';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { SuperAdminGuard } from '@common/guards/super-admin.guard';
 import { AdminService } from '@domain/services/admin.service';
@@ -90,6 +91,21 @@ export class AdminController {
     @Req() req: Request,
   ) {
     return await this.adminService.createUser(
+      dto,
+      this.auditContext(user, req),
+    );
+  }
+
+  @Patch('users/:id')
+  @ApiOperation({ summary: 'Atualizar usuário' })
+  async updateUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() user: AccessTokenPayload,
+    @Req() req: Request,
+  ) {
+    return await this.adminService.updateUser(
+      id,
       dto,
       this.auditContext(user, req),
     );
