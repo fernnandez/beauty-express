@@ -64,6 +64,7 @@ DB_DATABASE=beauty_express
 DB_SYNCHRONIZE=false
 DB_LOGGING=false
 DB_SSL=true
+# DB_MIGRATIONS_RUN=true  # alternativa: aplica migrations ao subir a API
 
 JWT_ACCESS_SECRET=...
 JWT_REFRESH_SECRET=...
@@ -74,7 +75,41 @@ THROTTLE_LOGIN_LIMIT=10
 THROTTLE_LOGIN_TTL_MS=60000
 ```
 
-### 2.2 Build e start
+### 2.2 Migrations (primeiro deploy e atualizações)
+
+Com `DB_SYNCHRONIZE=false`, o schema é criado pelas **migrations** — não pelo `synchronize` do TypeORM.
+
+**Opção A — comando separado (recomendado no primeiro deploy):**
+
+```bash
+cd api
+npm ci && npm run build
+npm run migration:run:prod
+npm run start:prod
+```
+
+No Railway/Render, use um **release command** ou job one-off:
+
+| Campo | Valor |
+|-------|-------|
+| Release / pre-deploy command | `npm run migration:run:prod` |
+
+**Opção B — automático no start:**
+
+```env
+DB_MIGRATIONS_RUN=true
+```
+
+A API aplica migrations pendentes ao iniciar (útil em deploys contínuos).
+
+**Desenvolvimento local:**
+
+```bash
+cd api && npm run migration:run      # aplica migrations
+cd api && npm run migration:show     # lista status
+```
+
+### 2.3 Build e start
 
 No painel do serviço:
 
@@ -94,7 +129,7 @@ docker run -d -p 3000:3000 --env-file .env beauty-express-api
 
 > O `start:prod` carrega `bootstrap-paths` antes do `dist/main.js` (aliases `@common/*`).
 
-### 2.3 Verificar
+### 2.4 Verificar
 
 ```bash
 curl https://api.seu-dominio.com.br/docs
@@ -103,7 +138,7 @@ curl https://api.seu-dominio.com.br/docs
 
 Rotas operacionais exigem JWT — use login em `/auth/login` para testar com token.
 
-### 2.4 Seed (só primeira vez / staging)
+### 2.5 Seed (só primeira vez / staging)
 
 ```bash
 # Localmente, apontando para o banco de produção/staging
@@ -199,6 +234,7 @@ Push no repositório → rebuild automático no Vercel/Netlify.
 
 - [ ] PostgreSQL provisionado
 - [ ] `api/.env` configurado no provedor (`DB_SYNCHRONIZE=false`)
+- [ ] Migrations aplicadas (`npm run migration:run:prod` ou `DB_MIGRATIONS_RUN=true`)
 - [ ] JWT secrets definidos (não use valores de dev)
 - [ ] API com build + `npm run start:prod`
 - [ ] `CORS_ORIGIN` com URLs do frontend (app e admin)

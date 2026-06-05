@@ -10,7 +10,7 @@ import { AdminAuditLog } from '@domain/entities/admin-audit-log.entity';
 import { RefreshToken } from '@domain/entities/refresh-token.entity';
 import { DataSourceOptions } from 'typeorm';
 
-const entities = [
+export const entities = [
   Tenant,
   User,
   RefreshToken,
@@ -23,6 +23,11 @@ const entities = [
 ];
 
 const isProduction = process.env.NODE_ENV === 'production';
+const isCompiled = __filename.endsWith('.js');
+
+const migrationsGlob = isCompiled
+  ? __dirname + '/../migrations/*.js'
+  : __dirname + '/../migrations/*.{ts,js}';
 
 export const getDatabaseConfig = (): DataSourceOptions => ({
   type: 'postgres',
@@ -32,6 +37,8 @@ export const getDatabaseConfig = (): DataSourceOptions => ({
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_DATABASE || 'beauty_express',
   entities,
+  migrations: [migrationsGlob],
+  migrationsRun: process.env.DB_MIGRATIONS_RUN === 'true',
   synchronize:
     process.env.DB_SYNCHRONIZE === 'true' ||
     (process.env.DB_SYNCHRONIZE !== 'false' && !isProduction),

@@ -21,7 +21,13 @@
     "seed": "ts-node -r tsconfig-paths/register src/scripts/seed.ts",
     "db:reset": "ts-node -r tsconfig-paths/register src/scripts/reset-db.ts",
     "db:up": "docker compose up -d",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
+    "migration:run": "npm run typeorm -- migration:run -d src/config/data-source.ts",
+    "migration:run:prod": "node ./node_modules/typeorm/cli.js migration:run -d dist/config/data-source.js",
+    "migration:revert": "npm run typeorm -- migration:revert -d src/config/data-source.ts",
+    "migration:show": "npm run typeorm -- migration:show -d src/config/data-source.ts",
+    "migration:generate": "npm run typeorm -- migration:generate -d src/config/data-source.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.24",
