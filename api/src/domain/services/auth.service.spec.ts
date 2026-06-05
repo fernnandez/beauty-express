@@ -4,7 +4,6 @@ import { UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { UserRepository } from '@domain/repositories/user.repository';
-import { TenantRepository } from '@domain/repositories/tenant.repository';
 import { RefreshTokenRepository } from '@domain/repositories/refresh-token.repository';
 import { UserRole } from '@domain/entities/user-role.enum';
 import { RefreshTokenAudience } from '@domain/entities/refresh-token.entity';
@@ -41,13 +40,9 @@ describe('AuthService', () => {
   };
 
   const userRepository = {
-    findOperationalUser: jest.fn(),
+    findOperationalUsersByEmail: jest.fn(),
     findSuperAdmin: jest.fn(),
     findByIdWithTenant: jest.fn(),
-  };
-
-  const tenantRepository = {
-    findBySlug: jest.fn(),
   };
 
   const refreshTokenRepository = {
@@ -70,7 +65,6 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: UserRepository, useValue: userRepository },
-        { provide: TenantRepository, useValue: tenantRepository },
         { provide: RefreshTokenRepository, useValue: refreshTokenRepository },
         { provide: JwtService, useValue: jwtService },
       ],
@@ -81,28 +75,28 @@ describe('AuthService', () => {
   });
 
   it('should login operational user with valid credentials', async () => {
-    tenantRepository.findBySlug.mockResolvedValue(tenant);
-    userRepository.findOperationalUser.mockResolvedValue(operationalUser);
+    userRepository.findOperationalUsersByEmail.mockResolvedValue([
+      operationalUser,
+    ]);
     refreshTokenRepository.save.mockResolvedValue({});
 
     const result = await service.loginOperational({
-      tenantSlug: 'paulista',
       email: operationalUser.email,
       password: 'Senha123!',
     });
 
     expect(result.accessToken).toBe('access-token');
-    expect(result.user.tenantSlug).toBe('paulista');
+    expect(result.user.tenantName).toBe('Maria Borboleta - Paulista');
     expect(refreshTokenRepository.save).toHaveBeenCalled();
   });
 
   it('should reject operational login with invalid password', async () => {
-    tenantRepository.findBySlug.mockResolvedValue(tenant);
-    userRepository.findOperationalUser.mockResolvedValue(operationalUser);
+    userRepository.findOperationalUsersByEmail.mockResolvedValue([
+      operationalUser,
+    ]);
 
     await expect(
       service.loginOperational({
-        tenantSlug: 'paulista',
         email: operationalUser.email,
         password: 'wrong-password',
       }),

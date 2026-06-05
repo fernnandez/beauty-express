@@ -16,6 +16,7 @@ import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { DataSource } from 'typeorm';
 import { getDatabaseConfig } from '../config/database.config';
+import { resetDatabaseSchema } from './db-reset.util';
 
 const TENANT_PAULISTA_ID = 'c1000001-0001-4000-8000-000000000001';
 const TENANT_RECIFE_ID = 'c1000001-0001-4000-8000-000000000002';
@@ -23,8 +24,13 @@ const TENANT_BOAVIAGEM_ID = 'c1000001-0001-4000-8000-000000000003';
 const DEMO_TENANT_ID = TENANT_PAULISTA_ID;
 
 async function seed() {
+  const dbConfig = getDatabaseConfig();
+
+  console.log('🔄 Resetando schema do banco (estrutura antiga sem multi-tenant)...\n');
+  await resetDatabaseSchema(dbConfig);
+
   const dataSource = new DataSource({
-    ...getDatabaseConfig(),
+    ...dbConfig,
     synchronize: true,
   });
   await dataSource.initialize();

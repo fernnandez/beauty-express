@@ -16,7 +16,6 @@ import {
   RefreshTokenAudience,
 } from '@domain/entities/refresh-token.entity';
 import { RefreshTokenRepository } from '@domain/repositories/refresh-token.repository';
-import { TenantRepository } from '@domain/repositories/tenant.repository';
 import { UserRepository } from '@domain/repositories/user.repository';
 import {
   AuthTokens,
@@ -32,23 +31,16 @@ export class AuthService {
 
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly tenantRepository: TenantRepository,
     private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly jwtService: JwtService,
   ) {}
 
   async loginOperational(dto: LoginDto): Promise<AuthTokens & { user: AuthUserResponse }> {
-    const tenant = await this.tenantRepository.findBySlug(dto.tenantSlug);
-    if (!tenant || !tenant.isActive) {
-      throw new UnauthorizedException('Credenciais inválidas');
-    }
-
-    const user = await this.userRepository.findOperationalUser(
+    const candidates = await this.userRepository.findOperationalUsersByEmail(
       dto.email,
-      tenant.id,
     );
 
-    await this.validateOperationalUser(user, dto.password);
+    const user = await this.resolveOperationalUser(candidates, dto.password);
 
     const tokens = await this.issueTokens(user, RefreshTokenAudience.OPERATIONAL);
 
@@ -138,23 +130,47 @@ export class AuthService {
     };
   }
 
-  private async validateOperationalUser(
-    user: User | null,
+  private async resolveOperationalUser(
+    candidates: User[],
     password: string,
-  ): Promise<void> {
-    if (
-      !user ||
-      !user.isActive ||
-      user.role === UserRole.SUPER_ADMIN ||
-      !user.tenantId
-    ) {
+  ): Promise<User> {
+    if (candidates.length === 0) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
 
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) {
+    let matchedUser: User | null = null;
+
+    for (const candidate of candidates) {
+      if (!this.isValidOperationalCandidate(candidate)) {
+        continue;
+      }
+
+      const valid = await bcrypt.compare(password, candidate.passwordHash);
+      if (!valid) {
+        continue;
+      }
+
+      if (matchedUser) {
+        throw new UnauthorizedException('Credenciais inválidas');
+      }
+
+      matchedUser = candidate;
+    }
+
+    if (!matchedUser) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
+
+    return matchedUser;
+  }
+
+  private isValidOperationalCandidate(user: User): boolean {
+    return (
+      user.isActive &&
+      user.role !== UserRole.SUPER_ADMIN &&
+      Boolean(user.tenantId) &&
+      Boolean(user.tenant?.isActive)
+    );
   }
 
   private async issueTokens(
@@ -196,7 +212,6 @@ export class AuthService {
       email: user.email,
       role: user.role,
       tenantId: user.tenantId,
-      tenantSlug: user.tenant?.slug,
       tenantName: user.tenant?.name,
     };
   }

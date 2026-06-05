@@ -26,7 +26,7 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login operacional (filial)' })
+  @ApiOperation({ summary: 'Login operacional (e-mail + senha)' })
   async login(@Body() dto: LoginDto) {
     return await this.authService.loginOperational(dto);
   }

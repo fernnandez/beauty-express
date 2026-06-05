@@ -14,6 +14,7 @@ import { Collaborators } from "./pages/Collaborators";
 import { Commissions } from "./pages/Commissions";
 import { Dashboard } from "./pages/Dashboard";
 import { FinancialReports } from "./pages/FinancialReports";
+import { BackofficeApp } from "./backoffice/BackofficeApp";
 import { Login } from "./pages/Login";
 import { Services } from "./pages/Services";
 
@@ -46,6 +47,7 @@ function App() {
             <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route path="/backoffice/*" element={<BackofficeApp />} />
                 <Route
                   path="/*"
                   element={

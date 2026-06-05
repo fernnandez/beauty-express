@@ -1,8 +1,9 @@
+import './bootstrap-paths';
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 
 function getCorsOrigins(): string[] | string {
   if (process.env.CORS_ORIGIN) {

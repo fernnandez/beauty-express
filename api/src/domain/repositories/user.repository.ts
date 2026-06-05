@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { UserRole } from '../entities/user-role.enum';
 
@@ -19,6 +19,16 @@ export class UserRepository extends Repository<User> {
   ): Promise<User | null> {
     return await this.findOne({
       where: { email, tenantId },
+      relations: ['tenant'],
+    });
+  }
+
+  async findOperationalUsersByEmail(email: string): Promise<User[]> {
+    return await this.find({
+      where: {
+        email,
+        role: Not(UserRole.SUPER_ADMIN),
+      },
       relations: ['tenant'],
     });
   }

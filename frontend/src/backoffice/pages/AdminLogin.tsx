@@ -17,12 +17,12 @@ import { notifications } from '@mantine/notifications';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { getErrorMessage } from '../utils/error.util';
-import type { LoginDto } from '../types/auth.types';
+import { useAdminAuth } from '../../contexts/AdminAuthContext';
+import { getErrorMessage } from '../../utils/error.util';
+import type { LoginDto } from '../../types/auth.types';
 
-export function Login() {
-  const { login, isAuthenticated, isLoading } = useAuth();
+export function AdminLogin() {
+  const { login, isAuthenticated, isLoading } = useAdminAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [submitting, setSubmitting] = useState(false);
@@ -42,7 +42,7 @@ export function Login() {
 
   if (!isLoading && isAuthenticated) {
     const redirectTo =
-      (location.state as { from?: string } | null)?.from || '/';
+      (location.state as { from?: string } | null)?.from || '/backoffice';
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -53,16 +53,15 @@ export function Login() {
     try {
       await login(values);
       notifications.show({
-        title: 'Bem-vindo',
+        title: 'Backoffice',
         message: 'Login realizado com sucesso',
-        color: 'green',
+        color: 'indigo',
       });
       const redirectTo =
-        (location.state as { from?: string } | null)?.from || '/';
+        (location.state as { from?: string } | null)?.from || '/backoffice';
       navigate(redirectTo, { replace: true });
     } catch (err) {
-      const message = getErrorMessage(err);
-      setError(message);
+      setError(getErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -72,19 +71,25 @@ export function Login() {
     <Center
       mih="100vh"
       style={{
-        background:
-          'linear-gradient(135deg, #fdf2f8 0%, #faf5ff 50%, #fefefe 100%)',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%)',
       }}
     >
-      <Paper shadow="md" radius="lg" p="xl" w={420} withBorder>
+      <Paper
+        shadow="md"
+        radius="lg"
+        p="xl"
+        w={420}
+        withBorder
+        style={{ borderColor: '#334155', backgroundColor: '#1e293b' }}
+      >
         <Stack gap="lg">
           <Stack gap="xs" align="center">
             <Avatar src="/logo.png" size={64} radius="md" />
-            <Title order={2} ta="center">
-              Beauty Express
+            <Title order={2} ta="center" c="white">
+              Backoffice
             </Title>
             <Text c="dimmed" size="sm" ta="center">
-              Entre com seu e-mail e senha
+              Acesso exclusivo para super admin
             </Text>
           </Stack>
 
@@ -102,7 +107,7 @@ export function Login() {
             <Stack gap="md">
               <TextInput
                 label="E-mail"
-                placeholder="seu@email.com"
+                placeholder="owner@beautyexpress.com"
                 autoComplete="username"
                 {...form.getInputProps('email')}
               />
@@ -112,16 +117,21 @@ export function Login() {
                 autoComplete="current-password"
                 {...form.getInputProps('password')}
               />
-              <Button type="submit" loading={submitting} fullWidth color="pink">
-                Entrar
+              <Button
+                type="submit"
+                loading={submitting}
+                fullWidth
+                color="indigo"
+              >
+                Entrar no backoffice
               </Button>
             </Stack>
           </Box>
 
           <Text size="sm" ta="center" c="dimmed">
-            Super admin?{' '}
-            <Anchor component={Link} to="/backoffice/login" c="pink">
-              Acessar backoffice
+            App operacional?{' '}
+            <Anchor component={Link} to="/login" c="indigo">
+              Fazer login na filial
             </Anchor>
           </Text>
         </Stack>

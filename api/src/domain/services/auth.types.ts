@@ -19,6 +19,5 @@ export interface AuthUserResponse {
   email: string;
   role: UserRole;
   tenantId: string | null;
-  tenantSlug?: string;
   tenantName?: string;
 }

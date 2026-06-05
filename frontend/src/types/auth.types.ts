@@ -5,12 +5,10 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   tenantId: string | null;
-  tenantSlug?: string;
   tenantName?: string;
 }
 
 export interface LoginDto {
-  tenantSlug: string;
   email: string;
   password: string;
 }
