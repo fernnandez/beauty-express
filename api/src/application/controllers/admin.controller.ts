@@ -1,8 +1,10 @@
 import { CreateTenantDto } from '@application/dtos/admin/create-tenant.dto';
 import { CreateUserDto } from '@application/dtos/admin/create-user.dto';
 import { UpdateTenantDto } from '@application/dtos/admin/update-tenant.dto';
+import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { SuperAdminGuard } from '@common/guards/super-admin.guard';
 import { AdminService } from '@domain/services/admin.service';
+import { AccessTokenPayload } from '@domain/services/auth.types';
 import {
   Body,
   Controller,
@@ -12,15 +14,25 @@ import {
   Param,
   Patch,
   Post,
+  Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 
 @ApiTags('Admin')
 @Controller('admin')
 @UseGuards(SuperAdminGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  private auditContext(user: AccessTokenPayload, req: Request) {
+    return {
+      actorUserId: user.sub,
+      ipAddress: req.ip,
+    };
+  }
 
   @Get('dashboard/stats')
   @ApiOperation({ summary: 'Estatísticas consolidadas do backoffice' })
@@ -37,14 +49,30 @@ export class AdminController {
   @Post('tenants')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Criar filial' })
-  async createTenant(@Body() dto: CreateTenantDto) {
-    return await this.adminService.createTenant(dto);
+  async createTenant(
+    @Body() dto: CreateTenantDto,
+    @CurrentUser() user: AccessTokenPayload,
+    @Req() req: Request,
+  ) {
+    return await this.adminService.createTenant(
+      dto,
+      this.auditContext(user, req),
+    );
   }
 
   @Patch('tenants/:id')
   @ApiOperation({ summary: 'Atualizar filial' })
-  async updateTenant(@Param('id') id: string, @Body() dto: UpdateTenantDto) {
-    return await this.adminService.updateTenant(id, dto);
+  async updateTenant(
+    @Param('id') id: string,
+    @Body() dto: UpdateTenantDto,
+    @CurrentUser() user: AccessTokenPayload,
+    @Req() req: Request,
+  ) {
+    return await this.adminService.updateTenant(
+      id,
+      dto,
+      this.auditContext(user, req),
+    );
   }
 
   @Get('users')
@@ -56,7 +84,24 @@ export class AdminController {
   @Post('users')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Criar usuário operacional' })
-  async createUser(@Body() dto: CreateUserDto) {
-    return await this.adminService.createUser(dto);
+  async createUser(
+    @Body() dto: CreateUserDto,
+    @CurrentUser() user: AccessTokenPayload,
+    @Req() req: Request,
+  ) {
+    return await this.adminService.createUser(
+      dto,
+      this.auditContext(user, req),
+    );
+  }
+
+  @Get('audit-logs')
+  @ApiOperation({ summary: 'Listar ações recentes do backoffice' })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async listAuditLogs(@Query('limit') limit?: string) {
+    const parsedLimit = limit ? parseInt(limit, 10) : 50;
+    return await this.adminService.listAuditLogs(
+      Number.isNaN(parsedLimit) ? 50 : parsedLimit,
+    );
   }
 }

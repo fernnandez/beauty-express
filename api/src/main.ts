@@ -4,6 +4,10 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
+import {
+  filterSwaggerPaths,
+  isAdminSwaggerPath,
+} from '@common/utils/swagger.util';
 
 function getCorsOrigins(): string[] | string {
   if (process.env.CORS_ORIGIN) {
@@ -39,27 +43,46 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const config = new DocumentBuilder()
-    .setTitle('Beauty Express API')
-    .setDescription('Backend API for beauty salon management system')
+  const operationalConfig = new DocumentBuilder()
+    .setTitle('Beauty Express API — Operacional')
+    .setDescription('Endpoints das filiais (agendamentos, colaboradores, etc.)')
     .setVersion('1.0')
     .addBearerAuth()
-    .addTag('Auth', 'Authentication endpoints')
-    .addTag('Admin', 'Backoffice endpoints (super admin)')
-    .addTag('Collaborators', 'Collaborator management endpoints')
-    .addTag('Services', 'Service catalog endpoints')
-    .addTag('Appointments', 'Appointment scheduling endpoints')
-    .addTag('Commissions', 'Commission calculation endpoints')
+    .addTag('Auth', 'Login e sessão das filiais')
+    .addTag('Collaborators', 'Colaboradores da filial')
+    .addTag('Services', 'Serviços da filial')
+    .addTag('Appointments', 'Agendamentos')
+    .addTag('Commissions', 'Comissões')
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  const adminConfig = new DocumentBuilder()
+    .setTitle('Beauty Express API — Backoffice')
+    .setDescription('Endpoints exclusivos do super admin')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .addTag('Auth', 'Login e sessão do backoffice')
+    .addTag('Admin', 'Gestão de filiais, usuários e auditoria')
+    .build();
+
+  const fullDocument = SwaggerModule.createDocument(app, operationalConfig);
+  const operationalDocument = filterSwaggerPaths(
+    fullDocument,
+    (path) => !isAdminSwaggerPath(path),
+  );
+  const adminDocument = filterSwaggerPaths(fullDocument, isAdminSwaggerPath);
+
+  adminDocument.info = adminConfig.info;
+  adminDocument.tags = adminConfig.tags;
+
+  SwaggerModule.setup('docs', app, operationalDocument);
+  SwaggerModule.setup('docs/admin', app, adminDocument);
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
   Logger.log(`Application is running on: http://localhost:${port}`);
-  Logger.log(`Swagger: http://localhost:${port}/docs`);
+  Logger.log(`Swagger operacional: http://localhost:${port}/docs`);
+  Logger.log(`Swagger backoffice: http://localhost:${port}/docs/admin`);
 }
 
 bootstrap();

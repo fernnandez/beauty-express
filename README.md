@@ -102,7 +102,8 @@ npm run seed
 ```
 
 - API: `http://localhost:3000`
-- Swagger: `http://localhost:3000/docs`
+- Swagger operacional: `http://localhost:3000/docs`
+- Swagger backoffice: `http://localhost:3000/docs/admin`
 
 ### 3. Frontend
 
@@ -113,10 +114,33 @@ cp .env.example .env
 npm run dev
 ```
 
-- App: `http://localhost:5173`
+- App operacional: `http://localhost:5173`
+- Backoffice (super admin): `http://localhost:5173/backoffice/login`
 - Conecta à API em `http://localhost:3000` (variável `VITE_API_URL`)
 
 > A API precisa estar rodando antes do frontend.
+
+### Autenticação (Maria Borboleta — multi-tenant)
+
+| App | URL | Quem acessa |
+|-----|-----|-------------|
+| Operacional | `/login` | Admin, gerente ou staff de **uma filial** |
+| Backoffice | `/backoffice/login` | **Super admin** apenas |
+
+**Credenciais do seed (dev):**
+
+| Papel | E-mail | Senha |
+|-------|--------|-------|
+| Super admin | `owner@beautyexpress.com` | `SenhaAdmin123!` |
+| Admin Paulista | `admin@paulista.mariaborboleta.com` | `Senha123!` |
+| Admin Recife | `admin@recife.mariaborboleta.com` | `Senha123!` |
+| Admin Boa Viagem | `admin@boaviagem.mariaborboleta.com` | `Senha123!` |
+
+Reset completo do banco + seed:
+
+```bash
+cd api && npm run db:reset && npm run seed
+```
 
 ### Variáveis de ambiente
 
@@ -131,6 +155,10 @@ DB_USERNAME=postgres
 DB_PASSWORD=postgres
 DB_DATABASE=beauty_express
 DB_SYNCHRONIZE=true
+JWT_ACCESS_SECRET=change-me-access-secret
+JWT_REFRESH_SECRET=change-me-refresh-secret
+THROTTLE_LOGIN_LIMIT=10
+THROTTLE_LOGIN_TTL_MS=60000
 ```
 
 **`frontend/.env`**:
@@ -164,18 +192,26 @@ npm run test:cov      # Com cobertura
 
 ## 📚 API
 
-Documentação interativa: `http://localhost:3000/docs`
+| Documentação | URL |
+|--------------|-----|
+| Operacional | `http://localhost:3000/docs` |
+| Backoffice | `http://localhost:3000/docs/admin` |
 
 ### Endpoints principais
 
 | Recurso | Exemplos |
 |---------|----------|
+| Auth operacional | `POST /auth/login`, `POST /auth/refresh` |
+| Auth backoffice | `POST /auth/admin/login` |
+| Admin | `GET /admin/tenants`, `POST /admin/users`, `GET /admin/audit-logs` |
 | Colaboradores | `GET/POST /collaborators` |
 | Serviços | `GET/POST /services` |
 | Agendamentos | `GET/POST /appointments`, `PUT /appointments/:id/complete` |
 | Serviços agendados | `POST /scheduled-services/appointment/:id` |
 | Comissões | `GET /commissions`, `PUT /commissions/mark-as-paid` |
 | Relatórios | `GET /financial-reports/monthly?year=2026&month=6` |
+
+Logins têm rate limit configurável (`THROTTLE_LOGIN_LIMIT` / `THROTTLE_LOGIN_TTL_MS`). Ações do backoffice são registradas em `admin_audit_logs`.
 
 ## 🗄️ Banco de Dados
 
@@ -192,11 +228,13 @@ API e frontend são implantados **separadamente**:
 - **API** — PM2 + PostgreSQL gerenciado (Railway, Render, RDS, etc.)
 - **Frontend** — build estático servido por Nginx, Vercel, Netlify ou CDN
 
+Em produção, recomenda-se subdomínios distintos: `app.` (filiais) e `admin.` (backoffice), com `CORS_ORIGIN` listando ambas as origens.
+
 Guia completo: **[docs/DEPLOY.md](./docs/DEPLOY.md)**
 
 ## 🔮 Roadmap
 
-Planejamento de **multi-tenant** e **white label** documentado em **[docs/MULTI_TENANT.md](./docs/MULTI_TENANT.md)**.
+Plano de auth e multi-tenant: **[docs/PLANO_AUTH_MULTI_TENANT.md](./docs/PLANO_AUTH_MULTI_TENANT.md)**.
 
 ## 📝 Licença
 

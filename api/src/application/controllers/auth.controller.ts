@@ -17,6 +17,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -24,9 +25,11 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @UseGuards(ThrottlerGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login operacional (e-mail + senha)' })
+  @ApiResponse({ status: 429, description: 'Muitas tentativas de login' })
   async login(@Body() dto: LoginDto) {
     return await this.authService.loginOperational(dto);
   }
@@ -54,9 +57,11 @@ export class AuthController {
   }
 
   @Public()
+  @UseGuards(ThrottlerGuard)
   @Post('admin/login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login do backoffice (super admin)' })
+  @ApiResponse({ status: 429, description: 'Muitas tentativas de login' })
   async adminLogin(@Body() dto: AdminLoginDto) {
     return await this.authService.loginAdmin(dto);
   }
