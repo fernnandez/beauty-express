@@ -16,13 +16,12 @@ import {
   IconCalendar,
   IconClock,
   IconInfoCircle,
-  IconPhone,
   IconPlus,
-  IconUserCircle,
 } from "@tabler/icons-react";
 import { useAppointmentForm } from "../../hooks/useAppointmentForm";
 import { useCreateAppointment } from "../../hooks/useAppointments";
 import { useNotifications } from "../../hooks/useNotifications";
+import { ClientSelector } from "../client/ClientSelector";
 import { TIME_OPTIONS, formatPrice } from "../../utils/appointment.utils";
 import { ServiceFormItem } from "./ServiceFormItem";
 
@@ -88,22 +87,18 @@ export function AppointmentCreateModal({
         <Stack gap="lg">
           {/* Seção: Cliente */}
           <Divider label="Cliente" labelPosition="center" />
-          <Group grow>
-            <TextInput
-              label="Nome do Cliente"
-              placeholder="Nome completo do cliente"
-              required
-              leftSection={<IconUserCircle size={16} />}
-              {...form.getInputProps("clientName")}
-            />
-            <TextInput
-              label="Telefone do Cliente"
-              placeholder="(11) 99999-9999"
-              required
-              leftSection={<IconPhone size={16} />}
-              {...form.getInputProps("clientPhone")}
-            />
-          </Group>
+          <ClientSelector
+            values={{
+              clientId: form.values.clientId,
+              clientName: form.values.clientName,
+              clientPhone: form.values.clientPhone,
+            }}
+            errors={{
+              clientName: form.errors.clientName,
+              clientPhone: form.errors.clientPhone,
+            }}
+            onChange={(values) => form.setValues(values)}
+          />
 
           {/* Seção: Data e Hora */}
           <Divider label="Data e Hora" labelPosition="center" />

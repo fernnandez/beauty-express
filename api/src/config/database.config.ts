@@ -1,6 +1,7 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { Collaborator } from '@domain/entities/collaborator.entity';
 import { Service } from '@domain/entities/service.entity';
+import { Client } from '@domain/entities/client.entity';
 import { Appointment } from '@domain/entities/appointment.entity';
 import { Commission } from '@domain/entities/commission.entity';
 import { ScheduledService } from '@domain/entities/scheduled-service.entity';
@@ -16,6 +17,7 @@ export const entities = [
   RefreshToken,
   AdminAuditLog,
   Collaborator,
+  Client,
   Service,
   Appointment,
   Commission,

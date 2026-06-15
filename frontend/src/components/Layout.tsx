@@ -16,6 +16,7 @@ import {
   IconHome,
   IconLogout,
   IconScissors,
+  IconUserCircle,
   IconUsers,
 } from "@tabler/icons-react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -28,6 +29,7 @@ interface LayoutProps {
 const navigationItems = [
   { icon: IconHome, label: "Dashboard", path: "/" },
   { icon: IconUsers, label: "Colaboradores", path: "/collaborators" },
+  { icon: IconUserCircle, label: "Clientes", path: "/clients" },
   { icon: IconScissors, label: "Serviços", path: "/services" },
   { icon: IconCalendar, label: "Agendamentos", path: "/appointments" },
   { icon: IconCurrencyDollar, label: "Comissões", path: "/commissions" },

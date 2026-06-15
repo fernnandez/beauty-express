@@ -12,8 +12,6 @@ import { useForm } from "@mantine/form";
 import {
   IconCalendar,
   IconClock,
-  IconPhone,
-  IconUserCircle,
 } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import { useEffect } from "react";
@@ -25,6 +23,11 @@ import {
   formatDateToString,
   validateTimeRange,
 } from "../../utils/appointment.utils";
+import {
+  validateClientName,
+  validateClientPhone,
+} from "../../utils/phone.util";
+import { ClientSelector } from "../client/ClientSelector";
 
 interface AppointmentEditModalProps {
   opened: boolean;
@@ -41,6 +44,7 @@ export function AppointmentEditModal({
   const { showSuccess, showError } = useNotifications();
   const form = useForm({
     initialValues: {
+      clientId: undefined as string | undefined,
       clientName: "",
       clientPhone: "",
       data: null as string | null,
@@ -49,12 +53,8 @@ export function AppointmentEditModal({
       observacoes: "",
     },
     validate: {
-      clientName: (value: string) =>
-        !value || value.trim().length < 2
-          ? "Nome do cliente é obrigatório"
-          : null,
-      clientPhone: (value: string) =>
-        !value ? "Telefone do cliente é obrigatório" : null,
+      clientName: validateClientName,
+      clientPhone: validateClientPhone,
       data: (value: string | null) => (!value ? "Data é obrigatória" : null),
       startTime: (value: string) =>
         !value ? "Horário de início é obrigatório" : null,
@@ -83,6 +83,7 @@ export function AppointmentEditModal({
       }
 
       form.setValues({
+        clientId: appointment.clientId ?? undefined,
         clientName: appointment.clientName,
         clientPhone: appointment.clientPhone,
         data: appointmentDate,
@@ -119,6 +120,7 @@ export function AppointmentEditModal({
       const data: UpdateAppointmentDto = {
         clientName: form.values.clientName.trim(),
         clientPhone: form.values.clientPhone.trim(),
+        clientId: form.values.clientId,
         date: dateString,
         startTime: form.values.startTime,
         endTime: form.values.endTime,
@@ -156,22 +158,18 @@ export function AppointmentEditModal({
         <Stack gap="lg">
           {/* Cliente */}
           <Divider label="Cliente" labelPosition="center" />
-          <Group grow>
-            <TextInput
-              label="Nome do Cliente"
-              placeholder="Nome completo"
-              required
-              leftSection={<IconUserCircle size={16} />}
-              {...form.getInputProps("clientName")}
-            />
-            <TextInput
-              label="Telefone do Cliente"
-              placeholder="(11) 99999-9999"
-              required
-              leftSection={<IconPhone size={16} />}
-              {...form.getInputProps("clientPhone")}
-            />
-          </Group>
+          <ClientSelector
+            values={{
+              clientId: form.values.clientId,
+              clientName: form.values.clientName,
+              clientPhone: form.values.clientPhone,
+            }}
+            errors={{
+              clientName: form.errors.clientName,
+              clientPhone: form.errors.clientPhone,
+            }}
+            onChange={(values) => form.setValues(values)}
+          />
 
           {/* Data e Hora */}
           <Divider label="Data e Hora" labelPosition="center" />

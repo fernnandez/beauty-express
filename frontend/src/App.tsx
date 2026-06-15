@@ -10,6 +10,7 @@ import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { Appointments } from "./pages/Appointments";
+import { Clients } from "./pages/Clients";
 import { Collaborators } from "./pages/Collaborators";
 import { Commissions } from "./pages/Commissions";
 import { Dashboard } from "./pages/Dashboard";
@@ -59,6 +60,7 @@ function App() {
                             path="/collaborators"
                             element={<Collaborators />}
                           />
+                          <Route path="/clients" element={<Clients />} />
                           <Route path="/services" element={<Services />} />
                           <Route
                             path="/appointments"

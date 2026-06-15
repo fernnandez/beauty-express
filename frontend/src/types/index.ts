@@ -28,6 +28,22 @@ export interface UpdateCollaboratorDto {
   isActive?: boolean;
 }
 
+export interface CreateClientDto {
+  name: string;
+  phone: string;
+}
+
+export interface UpdateClientDto {
+  name?: string;
+  phone?: string;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  phone: string;
+}
+
 export interface CreateServiceDto {
   name: string;
   defaultPrice: number;
@@ -49,6 +65,7 @@ export interface ScheduledServiceInputDto {
 export interface CreateAppointmentDto {
   clientName: string;
   clientPhone: string;
+  clientId?: string;
   date: string; // yyyy-MM-dd
   startTime: string; // HH:MM
   endTime: string; // HH:MM
@@ -59,6 +76,7 @@ export interface CreateAppointmentDto {
 export interface UpdateAppointmentDto {
   clientName?: string;
   clientPhone?: string;
+  clientId?: string;
   date?: string; // yyyy-MM-dd
   startTime?: string; // HH:MM
   endTime?: string; // HH:MM
@@ -135,6 +153,7 @@ export interface Appointment {
   id: string;
   clientName: string;
   clientPhone: string;
+  clientId?: string | null;
   date: string; // ISO string
   startTime: string; // HH:MM
   endTime: string; // HH:MM

@@ -2,6 +2,10 @@ import { useForm } from "@mantine/form";
 import { useMemo } from "react";
 import type { CreateAppointmentDto, UpdateAppointmentDto } from "../types";
 import {
+  validateClientName,
+  validateClientPhone,
+} from "../utils/phone.util";
+import {
   calculateTotalPrice,
   convertServicesToDto,
   formatDateToString,
@@ -18,6 +22,7 @@ export interface ServiceFormItem {
 }
 
 export interface AppointmentFormValues {
+  clientId?: string;
   clientName: string;
   clientPhone: string;
   data: string | null; // Mantine 8: formato YYYY-MM-DD
@@ -45,12 +50,8 @@ export const useAppointmentForm = (
       ...initialValues,
     },
     validate: {
-      clientName: (value) =>
-        !value || value.trim().length < 2
-          ? "Nome do cliente é obrigatório"
-          : null,
-      clientPhone: (value) =>
-        !value ? "Telefone do cliente é obrigatório" : null,
+      clientName: validateClientName,
+      clientPhone: validateClientPhone,
       data: (value) => (!value ? "Data é obrigatória" : null),
       startTime: (value) => (!value ? "Horário de início é obrigatório" : null),
       endTime: (value) => (!value ? "Horário de término é obrigatório" : null),
@@ -131,6 +132,10 @@ export const useAppointmentForm = (
       dto.observations = observacoesTrimmed;
     }
 
+    if (form.values.clientId) {
+      dto.clientId = form.values.clientId;
+    }
+
     return dto;
   };
 
@@ -145,6 +150,10 @@ export const useAppointmentForm = (
       endTime: form.values.endTime,
       observations: form.values.observacoes?.trim() || undefined,
     };
+
+    if (form.values.clientId) {
+      dto.clientId = form.values.clientId;
+    }
 
     return dto;
   };

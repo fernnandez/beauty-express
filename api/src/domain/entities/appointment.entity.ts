@@ -6,6 +6,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Client } from './client.entity';
 import { ScheduledService } from './scheduled-service.entity';
 import { Tenant } from './tenant.entity';
 
@@ -32,6 +33,13 @@ export class Appointment {
 
   @Column()
   clientPhone: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  clientId?: string | null;
+
+  @ManyToOne(() => Client, { nullable: true })
+  @JoinColumn({ name: 'clientId' })
+  client?: Client | null;
 
   @Column({ type: 'timestamptz' })
   date: Date;

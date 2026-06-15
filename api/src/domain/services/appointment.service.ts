@@ -22,6 +22,7 @@ import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { CommissionService } from './commission.service';
+import { ClientService } from './client.service';
 import { ScheduledServiceService } from './scheduled-service.service';
 import { AppointmentEditability } from './appointment-editability.types';
 import { TenantContextService } from './tenant-context.service';
@@ -33,6 +34,7 @@ export class AppointmentService {
     private scheduledServiceRepository: ScheduledServiceRepository,
     private scheduledServiceService: ScheduledServiceService,
     private commissionService: CommissionService,
+    private clientService: ClientService,
     private tenantContext: TenantContextService,
   ) {}
 
@@ -72,10 +74,17 @@ export class AppointmentService {
 
     const tenantId = this.getTenantId();
 
+    const resolvedClient = await this.clientService.resolveClientForAppointment(
+      createDto.clientName,
+      createDto.clientPhone,
+      createDto.clientId,
+    );
+
     const savedAppointment = await this.appointmentRepository.save({
       tenantId,
-      clientName: createDto.clientName,
-      clientPhone: createDto.clientPhone,
+      clientName: resolvedClient.clientName,
+      clientPhone: resolvedClient.clientPhone,
+      clientId: resolvedClient.clientId,
       date: normalizedDate,
       startTime: createDto.startTime,
       endTime: createDto.endTime,
@@ -181,12 +190,21 @@ export class AppointmentService {
 
     const updatePayload: Partial<Appointment> = {};
 
-    if (updateDto.clientName !== undefined) {
-      updatePayload.clientName = updateDto.clientName;
+    if (
+      updateDto.clientName !== undefined ||
+      updateDto.clientPhone !== undefined ||
+      updateDto.clientId !== undefined
+    ) {
+      const resolvedClient = await this.clientService.resolveClientForAppointment(
+        updateDto.clientName ?? appointment.clientName,
+        updateDto.clientPhone ?? appointment.clientPhone,
+        updateDto.clientId ?? appointment.clientId ?? undefined,
+      );
+      updatePayload.clientName = resolvedClient.clientName;
+      updatePayload.clientPhone = resolvedClient.clientPhone;
+      updatePayload.clientId = resolvedClient.clientId;
     }
-    if (updateDto.clientPhone !== undefined) {
-      updatePayload.clientPhone = updateDto.clientPhone;
-    }
+
     if (updateDto.date !== undefined) {
       updatePayload.date = parseDateString(updateDto.date);
     }

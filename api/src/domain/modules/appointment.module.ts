@@ -10,6 +10,7 @@ import { CollaboratorRepository } from '../repositories/collaborator.repository'
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { ServiceRepository } from '../repositories/service.repository';
 import { AppointmentService } from '../services/appointment.service';
+import { ClientModule } from './client.module';
 import { CommissionModule } from './commission.module';
 import { ScheduledServiceModule } from './scheduled-service.module';
 import { AuthModule } from './auth.module';
@@ -25,6 +26,7 @@ import { AuthModule } from './auth.module';
     ]),
     ScheduledServiceModule,
     CommissionModule,
+    ClientModule,
   ],
   controllers: [AppointmentController],
   providers: [

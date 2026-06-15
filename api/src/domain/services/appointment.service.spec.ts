@@ -12,6 +12,7 @@ import { AppointmentRepository } from '../repositories/appointment.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { ServiceRepository } from '../repositories/service.repository';
 import { AppointmentService } from './appointment.service';
+import { ClientService } from './client.service';
 import { CommissionService } from './commission.service';
 import { ScheduledServiceService } from './scheduled-service.service';
 import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
@@ -53,6 +54,17 @@ describe('AppointmentService', () => {
     assertAppointmentCommissionsEditable: jest.fn(),
   };
 
+  const mockClientService = {
+    resolveClientForAppointment: jest.fn(
+      (clientName: string, clientPhone: string, clientId?: string) =>
+        Promise.resolve({
+          clientId: clientId ?? 'client-1',
+          clientName,
+          clientPhone,
+        }),
+    ),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -80,6 +92,10 @@ describe('AppointmentService', () => {
         {
           provide: CommissionService,
           useValue: mockCommissionService,
+        },
+        {
+          provide: ClientService,
+          useValue: mockClientService,
         },
       ],
     }).compile();

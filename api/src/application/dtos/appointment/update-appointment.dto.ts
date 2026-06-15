@@ -12,6 +12,11 @@ export class UpdateAppointmentDto {
   @IsOptional()
   clientPhone?: string;
 
+  @ApiProperty({ example: 'client-id-123', required: false })
+  @IsString()
+  @IsOptional()
+  clientId?: string;
+
   @ApiProperty({
     example: '2024-12-28',
     description: 'Data principal do agendamento (formato YYYY-MM-DD)',
