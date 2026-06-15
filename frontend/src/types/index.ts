@@ -120,6 +120,17 @@ export interface ScheduledService {
   status: ScheduledServiceStatus;
 }
 
+export interface AppointmentEditability {
+  canEditAppointment: boolean;
+  services: Record<
+    string,
+    {
+      canEdit: boolean;
+      commissionPaid: boolean;
+    }
+  >;
+}
+
 export interface Appointment {
   id: string;
   clientName: string;
@@ -130,6 +141,7 @@ export interface Appointment {
   status: AppointmentStatus;
   observations?: string;
   scheduledServices?: ScheduledService[];
+  editability?: AppointmentEditability;
 }
 
 export interface Commission {

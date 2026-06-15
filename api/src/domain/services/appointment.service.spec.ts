@@ -46,6 +46,11 @@ describe('AppointmentService', () => {
 
   const mockCommissionService = {
     calculateCommissionsForAppointment: jest.fn(),
+    getAppointmentEditability: jest.fn().mockResolvedValue({
+      canEditAppointment: true,
+      services: {},
+    }),
+    assertAppointmentCommissionsEditable: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -149,7 +154,15 @@ describe('AppointmentService', () => {
 
       const result = await service.createAppointment(createDto);
 
-      expect(result).toEqual(appointmentWithServices);
+      expect(result).toEqual(
+        expect.objectContaining({
+          ...appointmentWithServices,
+          editability: {
+            canEditAppointment: true,
+            services: {},
+          },
+        }),
+      );
       expect(mockAppointmentRepository.save).toHaveBeenCalled();
       expect(
         mockScheduledServiceService.createScheduledService,
@@ -457,7 +470,13 @@ describe('AppointmentService', () => {
 
       const result = await service.findById(mockAppointment.id);
 
-      expect(result).toEqual(mockAppointment);
+      expect(result).toEqual({
+        ...mockAppointment,
+        editability: {
+          canEditAppointment: true,
+          services: {},
+        },
+      });
       expect(mockAppointmentRepository.findById).toHaveBeenCalledWith(mockAppointment.id, TENANT_ID_MOCK);
     });
 
@@ -732,6 +751,76 @@ describe('AppointmentService', () => {
       await expect(
         service.cancelAppointment(mockAppointment.id),
       ).rejects.toThrow('Cannot cancel completed appointments');
+    });
+  });
+
+  describe('updateAppointment', () => {
+    const mockAppointment: Appointment = {
+      id: 'appointment-1',
+      tenantId: TENANT_ID_MOCK,
+      clientName: 'João Silva',
+      clientPhone: '11999999999',
+      date: new Date('2024-12-28'),
+      startTime: '09:00',
+      endTime: '11:00',
+      status: AppointmentStatus.SCHEDULED,
+      scheduledServices: [],
+    };
+
+    it('should update scheduled appointment', async () => {
+      mockAppointmentRepository.findById
+        .mockResolvedValueOnce(mockAppointment)
+        .mockResolvedValueOnce({
+          ...mockAppointment,
+          clientName: 'Maria Souza',
+        });
+      mockAppointmentRepository.update.mockResolvedValue(undefined);
+
+      const result = await service.updateAppointment(mockAppointment.id, {
+        clientName: 'Maria Souza',
+      });
+
+      expect(result?.clientName).toBe('Maria Souza');
+      expect(
+        mockCommissionService.assertAppointmentCommissionsEditable,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should update completed appointment when commissions are unpaid', async () => {
+      const completedAppointment: Appointment = {
+        ...mockAppointment,
+        status: AppointmentStatus.COMPLETED,
+      };
+
+      mockAppointmentRepository.findById
+        .mockResolvedValueOnce(completedAppointment)
+        .mockResolvedValueOnce({
+          ...completedAppointment,
+          clientName: 'Maria Souza',
+        });
+      mockAppointmentRepository.update.mockResolvedValue(undefined);
+
+      const result = await service.updateAppointment(mockAppointment.id, {
+        clientName: 'Maria Souza',
+      });
+
+      expect(result?.clientName).toBe('Maria Souza');
+      expect(
+        mockCommissionService.assertAppointmentCommissionsEditable,
+      ).toHaveBeenCalledWith(mockAppointment.id);
+    });
+
+    it('should reject update when appointment is cancelled', async () => {
+      mockAppointmentRepository.findById.mockResolvedValue({
+        ...mockAppointment,
+        status: AppointmentStatus.CANCELLED,
+      });
+
+      await expect(
+        service.updateAppointment(mockAppointment.id, {
+          clientName: 'Maria Souza',
+        }),
+      ).rejects.toThrow('Cannot update cancelled appointments');
     });
   });
 });

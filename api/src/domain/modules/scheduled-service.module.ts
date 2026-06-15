@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { Appointment } from '../entities/appointment.entity';
 import { ScheduledService } from '../entities/scheduled-service.entity';
 import { Service } from '../entities/service.entity';
 import { Collaborator } from '../entities/collaborator.entity';
 import { Commission } from '../entities/commission.entity';
+import { AppointmentRepository } from '../repositories/appointment.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { ServiceRepository } from '../repositories/service.repository';
 import { CollaboratorRepository } from '../repositories/collaborator.repository';
@@ -14,9 +16,16 @@ import { AuthModule } from './auth.module';
 @Module({
   imports: [
     AuthModule,
-    TypeOrmModule.forFeature([ScheduledService, Service, Collaborator, Commission]),
+    TypeOrmModule.forFeature([
+      Appointment,
+      ScheduledService,
+      Service,
+      Collaborator,
+      Commission,
+    ]),
   ],
   providers: [
+    AppointmentRepository,
     ScheduledServiceRepository,
     ServiceRepository,
     CollaboratorRepository,

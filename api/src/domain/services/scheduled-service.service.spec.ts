@@ -8,7 +8,9 @@ import {
   ScheduledServiceStatus,
 } from '../entities/scheduled-service.entity';
 import { Service } from '../entities/service.entity';
+import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
 import { CollaboratorRepository } from '../repositories/collaborator.repository';
+import { AppointmentRepository } from '../repositories/appointment.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { ServiceRepository } from '../repositories/service.repository';
@@ -38,8 +40,26 @@ describe('ScheduledServiceService', () => {
 
   const mockCommissionRepository = {
     findByScheduledServiceId: jest.fn(),
+    findById: jest.fn(),
     save: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
   };
+
+  const mockAppointmentRepository = {
+    findById: jest.fn(),
+  };
+
+  const scheduledAppointment: Appointment = {
+    id: 'appointment-1',
+    tenantId: TENANT_ID_MOCK,
+    clientName: 'Cliente',
+    clientPhone: '11999999999',
+    date: new Date(),
+    startTime: '09:00',
+    endTime: '10:00',
+    status: AppointmentStatus.SCHEDULED,
+  } as Appointment;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -65,11 +85,16 @@ describe('ScheduledServiceService', () => {
           provide: CommissionRepository,
           useValue: mockCommissionRepository,
         },
+        {
+          provide: AppointmentRepository,
+          useValue: mockAppointmentRepository,
+        },
       ],
     }).compile();
 
     service = await module.resolve<ScheduledServiceService>(ScheduledServiceService);
     jest.clearAllMocks();
+    mockAppointmentRepository.findById.mockResolvedValue(scheduledAppointment);
   });
 
   it('should be defined', () => {
@@ -117,6 +142,7 @@ describe('ScheduledServiceService', () => {
       mockServiceRepository.findById.mockResolvedValue(mockService);
       mockCollaboratorRepository.findById.mockResolvedValue(mockCollaborator);
       mockRepository.save.mockResolvedValue(expectedScheduledService);
+      mockRepository.findById.mockResolvedValue(expectedScheduledService);
 
       const result = await service.createScheduledService(
         'appointment-1',
@@ -146,6 +172,10 @@ describe('ScheduledServiceService', () => {
 
       mockServiceRepository.findById.mockResolvedValue(mockService);
       mockRepository.save.mockResolvedValue({
+        ...expectedScheduledService,
+        price: mockService.defaultPrice,
+      });
+      mockRepository.findById.mockResolvedValue({
         ...expectedScheduledService,
         price: mockService.defaultPrice,
       });
@@ -206,6 +236,10 @@ describe('ScheduledServiceService', () => {
 
       mockServiceRepository.findById.mockResolvedValue(mockService);
       mockRepository.save.mockResolvedValue({
+        ...expectedScheduledService,
+        collaboratorId: undefined,
+      });
+      mockRepository.findById.mockResolvedValue({
         ...expectedScheduledService,
         collaboratorId: undefined,
       });
@@ -309,17 +343,73 @@ describe('ScheduledServiceService', () => {
       expect(mockRepository.update).not.toHaveBeenCalled();
     });
 
-    it('should throw error when trying to update non-pending service', async () => {
+    it('should throw error when trying to update completed service with paid commission', async () => {
       const completedService: ScheduledService = {
         ...existingScheduledService,
         status: ScheduledServiceStatus.COMPLETED,
       };
 
       mockRepository.findById.mockResolvedValue(completedService);
+      mockCommissionRepository.findByScheduledServiceId.mockResolvedValue({
+        id: 'commission-1',
+        paid: true,
+      });
 
       await expect(
         service.updateScheduledService('scheduled-1', { price: 70.0 }),
-      ).rejects.toThrow('Can only update pending scheduled services');
+      ).rejects.toThrow('Cannot modify scheduled service with paid commission');
+
+      expect(mockRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('should update completed service when commission is unpaid', async () => {
+      const completedService: ScheduledService = {
+        ...existingScheduledService,
+        status: ScheduledServiceStatus.COMPLETED,
+      };
+
+      const updatedScheduledService: ScheduledService = {
+        ...completedService,
+        price: 70.0,
+      };
+
+      mockRepository.findById
+        .mockResolvedValueOnce(completedService)
+        .mockResolvedValueOnce(updatedScheduledService);
+      mockCommissionRepository.findByScheduledServiceId
+        .mockResolvedValueOnce({ id: 'commission-1', paid: false })
+        .mockResolvedValueOnce({ id: 'commission-1', paid: false });
+      mockCollaboratorRepository.findById.mockResolvedValue({
+        id: 'collaborator-1',
+        commissionPercentage: 10,
+        isActive: true,
+      });
+      mockCommissionRepository.update.mockResolvedValue(undefined);
+      mockCommissionRepository.findById.mockResolvedValue({
+        id: 'commission-1',
+        paid: false,
+      });
+      mockRepository.update.mockResolvedValue(undefined);
+
+      const result = await service.updateScheduledService('scheduled-1', {
+        price: 70.0,
+      });
+
+      expect(result).toEqual(updatedScheduledService);
+      expect(mockCommissionRepository.update).toHaveBeenCalled();
+    });
+
+    it('should throw error when trying to update cancelled service', async () => {
+      const cancelledService: ScheduledService = {
+        ...existingScheduledService,
+        status: ScheduledServiceStatus.CANCELLED,
+      };
+
+      mockRepository.findById.mockResolvedValue(cancelledService);
+
+      await expect(
+        service.updateScheduledService('scheduled-1', { price: 70.0 }),
+      ).rejects.toThrow('Cannot modify cancelled scheduled services');
 
       expect(mockRepository.update).not.toHaveBeenCalled();
     });

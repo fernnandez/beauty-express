@@ -11,6 +11,11 @@ import { CollaboratorRepository } from '../repositories/collaborator.repository'
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { TenantContextService } from './tenant-context.service';
+import {
+  AppointmentEditability,
+  ScheduledServiceEditability,
+} from './appointment-editability.types';
+import { AppointmentStatus } from '../entities/appointment.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class CommissionService {
@@ -64,6 +69,11 @@ export class CommissionService {
         tenantId,
       );
     if (existingCommission) {
+      if (existingCommission.paid) {
+        throw new BadRequestException(
+          'Cannot recalculate commission that is already paid',
+        );
+      }
       await this.commissionRepository.update(
         { id: existingCommission.id, tenantId },
         { amount, percentage },
@@ -183,5 +193,110 @@ export class CommissionService {
 
   async markAsUnpaid(commissionIds: string[]): Promise<Commission[]> {
     return this.markCommissionsStatus(commissionIds, false);
+  }
+
+  async assertScheduledServiceCommissionEditable(
+    scheduledServiceId: string,
+  ): Promise<void> {
+    const tenantId = this.getTenantId();
+    const commission = await this.commissionRepository.findByScheduledServiceId(
+      scheduledServiceId,
+      tenantId,
+    );
+
+    if (commission?.paid) {
+      throw new BadRequestException(
+        'Cannot modify scheduled service with paid commission',
+      );
+    }
+  }
+
+  async assertAppointmentCommissionsEditable(
+    appointmentId: string,
+  ): Promise<void> {
+    const tenantId = this.getTenantId();
+    const scheduledServices =
+      await this.scheduledServiceRepository.findByAppointmentId(
+        appointmentId,
+        tenantId,
+      );
+
+    for (const scheduledService of scheduledServices) {
+      if (scheduledService.status === ScheduledServiceStatus.CANCELLED) {
+        continue;
+      }
+
+      await this.assertScheduledServiceCommissionEditable(scheduledService.id);
+    }
+  }
+
+  async removeUnpaidCommissionForScheduledService(
+    scheduledServiceId: string,
+  ): Promise<void> {
+    const tenantId = this.getTenantId();
+    const commission = await this.commissionRepository.findByScheduledServiceId(
+      scheduledServiceId,
+      tenantId,
+    );
+
+    if (commission && !commission.paid) {
+      await this.commissionRepository.delete({ id: commission.id, tenantId });
+    }
+  }
+
+  async getAppointmentEditability(
+    appointmentId: string,
+    appointmentStatus: AppointmentStatus,
+    scheduledServiceIds: string[],
+  ): Promise<AppointmentEditability> {
+    const tenantId = this.getTenantId();
+    const scheduledServices =
+      await this.scheduledServiceRepository.findByAppointmentId(
+        appointmentId,
+        tenantId,
+      );
+
+    const services: Record<string, ScheduledServiceEditability> = {};
+    let hasPaidCommission = false;
+
+    for (const scheduledService of scheduledServices) {
+      if (!scheduledServiceIds.includes(scheduledService.id)) {
+        continue;
+      }
+
+      if (scheduledService.status === ScheduledServiceStatus.CANCELLED) {
+        services[scheduledService.id] = {
+          canEdit: false,
+          commissionPaid: false,
+        };
+        continue;
+      }
+
+      const commission = await this.commissionRepository.findByScheduledServiceId(
+        scheduledService.id,
+        tenantId,
+      );
+      const commissionPaid = commission?.paid ?? false;
+
+      if (commissionPaid) {
+        hasPaidCommission = true;
+      }
+
+      const canEdit =
+        (appointmentStatus === AppointmentStatus.SCHEDULED &&
+          scheduledService.status === ScheduledServiceStatus.PENDING) ||
+        (appointmentStatus === AppointmentStatus.COMPLETED &&
+          scheduledService.status === ScheduledServiceStatus.COMPLETED &&
+          !commissionPaid);
+
+      services[scheduledService.id] = { canEdit, commissionPaid };
+    }
+
+    const canEditAppointment =
+      appointmentStatus === AppointmentStatus.SCHEDULED ||
+      (appointmentStatus === AppointmentStatus.COMPLETED &&
+        !hasPaidCommission);
+
+    return { canEditAppointment, services };
   }
 }

@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Alert,
   Badge,
   Button,
   Card,
@@ -17,6 +18,7 @@ import {
   IconCheck,
   IconCurrencyDollar,
   IconEdit,
+  IconInfoCircle,
   IconNotes,
   IconPhone,
   IconPlus,
@@ -95,7 +97,7 @@ export function AppointmentDetailModal({
   const [addServiceModalOpened, setAddServiceModalOpened] = useState(false);
   const [editServiceModalOpened, setEditServiceModalOpened] = useState(false);
   const [editingService, setEditingService] = useState<ScheduledService | null>(
-    null
+    null,
   );
   const [newService, setNewService] = useState<{
     serviceId: string;
@@ -125,7 +127,7 @@ export function AppointmentDetailModal({
   // Busca os dados atualizados do agendamento quando o modal está aberto
   const { data: appointmentData } = useAppointment(
     appointmentProp?.id || "",
-    opened && !!appointmentProp?.id
+    opened && !!appointmentProp?.id,
   );
 
   // Usa os dados atualizados se disponíveis, senão usa a prop
@@ -137,14 +139,37 @@ export function AppointmentDetailModal({
     appointment.scheduledServices?.filter((s) => s.status !== "cancelado") ||
     [];
 
+  const canEditAppointment =
+    appointment.editability?.canEditAppointment ??
+    appointment.status === AppointmentStatus.SCHEDULED;
+
+  const canEditService = (service: ScheduledService) =>
+    appointment.editability?.services[service.id]?.canEdit ??
+    (appointment.status === AppointmentStatus.SCHEDULED &&
+      service.status === ScheduledServiceStatus.PENDING);
+
+  const canManageServices =
+    appointment.status === AppointmentStatus.SCHEDULED ||
+    (appointment.status === AppointmentStatus.COMPLETED && canEditAppointment);
+
   const canRemoveService = nonCancelledServices.length > 1;
 
   const handleAddService = async () => {
     if (!appointment || !newService.serviceId) return;
 
+    if (
+      appointment.status === AppointmentStatus.COMPLETED &&
+      !newService.collaboratorId
+    ) {
+      showError(
+        "Colaborador é obrigatório ao adicionar serviço em agendamento concluído",
+      );
+      return;
+    }
+
     try {
       const selectedService = services?.find(
-        (s) => s.id === newService.serviceId
+        (s) => s.id === newService.serviceId,
       );
       if (!selectedService) {
         showError("Serviço não encontrado");
@@ -215,7 +240,7 @@ export function AppointmentDetailModal({
   const handleRemoveService = async (serviceId: string) => {
     if (!canRemoveService) {
       showError(
-        "Não é possível remover o último serviço. O agendamento deve ter pelo menos um serviço."
+        "Não é possível remover o último serviço. O agendamento deve ter pelo menos um serviço.",
       );
       return;
     }
@@ -249,6 +274,18 @@ export function AppointmentDetailModal({
             {statusLabels[appointment.status]}
           </Badge>
         </Group>
+
+        {appointment.status === AppointmentStatus.COMPLETED &&
+          !canEditAppointment && (
+            <Alert
+              icon={<IconInfoCircle size={16} />}
+              color="yellow"
+              variant="light"
+            >
+              Este agendamento não pode ser editado porque possui comissão já
+              paga.
+            </Alert>
+          )}
 
         <Divider />
 
@@ -347,33 +384,39 @@ export function AppointmentDetailModal({
                     >
                       {serviceStatusLabels[service.status]}
                     </Badge>
-                    {appointment.status === AppointmentStatus.SCHEDULED &&
-                      service.status === ScheduledServiceStatus.PENDING && (
-                        <>
-                          <ActionIcon
-                            color="blue"
-                            variant="light"
-                            size="sm"
-                            onClick={() => handleEditService(service)}
-                            title="Editar serviço"
-                          >
-                            <IconEdit size={16} />
-                          </ActionIcon>
-                          <ActionIcon
-                            color="red"
-                            variant="light"
-                            size="sm"
-                            onClick={() => handleRemoveService(service.id)}
-                            disabled={!canRemoveService}
-                            title={
-                              canRemoveService
-                                ? "Remover serviço"
-                                : "Não é possível remover o último serviço"
-                            }
-                          >
-                            <IconTrash size={16} />
-                          </ActionIcon>
-                        </>
+                    {canEditService(service) && (
+                      <>
+                        <ActionIcon
+                          color="blue"
+                          variant="light"
+                          size="sm"
+                          onClick={() => handleEditService(service)}
+                          title="Editar serviço"
+                        >
+                          <IconEdit size={16} />
+                        </ActionIcon>
+                        <ActionIcon
+                          color="red"
+                          variant="light"
+                          size="sm"
+                          onClick={() => handleRemoveService(service.id)}
+                          disabled={!canRemoveService}
+                          title={
+                            canRemoveService
+                              ? "Remover serviço"
+                              : "Não é possível remover o último serviço"
+                          }
+                        >
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </>
+                    )}
+                    {appointment.editability?.services[service.id]
+                      ?.commissionPaid &&
+                      service.status === ScheduledServiceStatus.COMPLETED && (
+                        <Badge color="orange" size="xs" variant="light">
+                          Comissão paga
+                        </Badge>
                       )}
                   </Group>
                 </Group>
@@ -399,7 +442,7 @@ export function AppointmentDetailModal({
             </Card>
           ))}
 
-          {appointment.status === AppointmentStatus.SCHEDULED && (
+          {canManageServices && (
             <Button
               variant="light"
               leftSection={<IconPlus size={16} />}
@@ -427,7 +470,9 @@ export function AppointmentDetailModal({
           )}
 
         {/* Ações do Agendamento */}
-        {appointment.status === AppointmentStatus.SCHEDULED && (
+        {(appointment.status === AppointmentStatus.SCHEDULED ||
+          (appointment.status === AppointmentStatus.COMPLETED &&
+            canEditAppointment)) && (
           <>
             <Divider />
             <Group>
@@ -444,31 +489,35 @@ export function AppointmentDetailModal({
                   Editar
                 </Button>
               )}
-              {onComplete && (
-                <Button
-                  variant="light"
-                  color="green"
-                  leftSection={<IconCheck size={16} />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onComplete();
-                  }}
-                >
-                  Concluir Agendamento
-                </Button>
-              )}
-              {onCancel && (
-                <Button
-                  variant="light"
-                  color="red"
-                  leftSection={<IconX size={16} />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCancel();
-                  }}
-                >
-                  Cancelar Agendamento
-                </Button>
+              {appointment.status === AppointmentStatus.SCHEDULED && (
+                <>
+                  {onComplete && (
+                    <Button
+                      variant="light"
+                      color="green"
+                      leftSection={<IconCheck size={16} />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onComplete();
+                      }}
+                    >
+                      Concluir Agendamento
+                    </Button>
+                  )}
+                  {onCancel && (
+                    <Button
+                      variant="light"
+                      color="red"
+                      leftSection={<IconX size={16} />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCancel();
+                      }}
+                    >
+                      Cancelar Agendamento
+                    </Button>
+                  )}
+                </>
               )}
             </Group>
           </>
@@ -508,15 +557,22 @@ export function AppointmentDetailModal({
           {newService.serviceId && (
             <>
               <Select
-                label="Colaborador (Opcional)"
+                label={
+                  appointment.status === AppointmentStatus.COMPLETED
+                    ? "Colaborador"
+                    : "Colaborador (Opcional)"
+                }
                 placeholder="Selecione o colaborador"
+                required={appointment.status === AppointmentStatus.COMPLETED}
                 leftSection={<IconUser size={16} />}
                 data={activeCollaborators.map((collaborator) => ({
                   value: collaborator.id,
                   label: collaborator.name,
                 }))}
                 searchable
-                clearable
+                clearable={
+                  appointment.status !== AppointmentStatus.COMPLETED
+                }
                 comboboxProps={{ zIndex: 600 }}
                 value={newService.collaboratorId || null}
                 onChange={(value) =>
@@ -530,7 +586,7 @@ export function AppointmentDetailModal({
                 label="Preço (Opcional)"
                 placeholder={`Padrão: ${formatPrice(
                   services?.find((s) => s.id === newService.serviceId)
-                    ?.defaultPrice || 0
+                    ?.defaultPrice || 0,
                 )}`}
                 leftSection={<IconCurrencyDollar size={16} />}
                 min={0.01}

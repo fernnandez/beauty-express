@@ -6,11 +6,13 @@ import {
   NotFoundException,
   Scope,
 } from '@nestjs/common';
+import { AppointmentStatus } from '../entities/appointment.entity';
 import { Commission } from '../entities/commission.entity';
 import {
   ScheduledService,
   ScheduledServiceStatus,
 } from '../entities/scheduled-service.entity';
+import { AppointmentRepository } from '../repositories/appointment.repository';
 import { CollaboratorRepository } from '../repositories/collaborator.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
@@ -24,6 +26,7 @@ export class ScheduledServiceService {
     private serviceRepository: ServiceRepository,
     private collaboratorRepository: CollaboratorRepository,
     private commissionRepository: CommissionRepository,
+    private appointmentRepository: AppointmentRepository,
     private tenantContext: TenantContextService,
   ) {}
 
@@ -47,11 +50,115 @@ export class ScheduledServiceService {
     }
   }
 
+  private async assertCommissionNotPaid(
+    scheduledServiceId: string,
+  ): Promise<void> {
+    const tenantId = this.getTenantId();
+    const commission = await this.commissionRepository.findByScheduledServiceId(
+      scheduledServiceId,
+      tenantId,
+    );
+
+    if (commission?.paid) {
+      throw new BadRequestException(
+        'Cannot modify scheduled service with paid commission',
+      );
+    }
+  }
+
+  private async assertScheduledServiceEditable(
+    scheduledService: ScheduledService,
+  ): Promise<void> {
+    if (scheduledService.status === ScheduledServiceStatus.PENDING) {
+      return;
+    }
+
+    if (scheduledService.status === ScheduledServiceStatus.COMPLETED) {
+      await this.assertCommissionNotPaid(scheduledService.id);
+      return;
+    }
+
+    throw new BadRequestException(
+      'Cannot modify cancelled scheduled services',
+    );
+  }
+
+  private async syncCommissionForCompletedService(
+    scheduledService: ScheduledService,
+  ): Promise<Commission | null> {
+    if (scheduledService.status !== ScheduledServiceStatus.COMPLETED) {
+      return null;
+    }
+
+    if (!scheduledService.collaboratorId) {
+      throw new BadRequestException(
+        'Completed scheduled service must have a collaborator assigned',
+      );
+    }
+
+    await this.assertCommissionNotPaid(scheduledService.id);
+
+    const tenantId = this.getTenantId();
+    const collaborator = await this.collaboratorRepository.findById(
+      scheduledService.collaboratorId,
+      tenantId,
+    );
+    if (!collaborator) {
+      throw new NotFoundException('Collaborator not found');
+    }
+
+    const percentage = collaborator.commissionPercentage;
+    const amount = (Number(scheduledService.price) * percentage) / 100;
+    const existingCommission =
+      await this.commissionRepository.findByScheduledServiceId(
+        scheduledService.id,
+        tenantId,
+      );
+
+    if (existingCommission) {
+      await this.commissionRepository.update(
+        { id: existingCommission.id, tenantId },
+        {
+          amount,
+          percentage,
+          collaboratorId: scheduledService.collaboratorId,
+        },
+      );
+      return await this.commissionRepository.findById(
+        existingCommission.id,
+        tenantId,
+      );
+    }
+
+    return await this.commissionRepository.save({
+      tenantId,
+      collaboratorId: scheduledService.collaboratorId,
+      scheduledServiceId: scheduledService.id,
+      amount,
+      percentage,
+      paid: false,
+    });
+  }
+
   async createScheduledService(
     appointmentId: string,
     createDto: CreateScheduledServiceDto,
   ): Promise<ScheduledService> {
     const tenantId = this.getTenantId();
+    const appointment = await this.appointmentRepository.findById(
+      appointmentId,
+      tenantId,
+    );
+    if (!appointment) {
+      throw new NotFoundException('Appointment not found');
+    }
+
+    if (appointment.status === AppointmentStatus.CANCELLED) {
+      throw new BadRequestException(
+        'Cannot add services to cancelled appointments',
+      );
+    }
+
     const service = await this.serviceRepository.findById(
       createDto.serviceId,
       tenantId,
@@ -64,14 +171,34 @@ export class ScheduledServiceService {
       await this.validateCollaboratorActive(createDto.collaboratorId);
     }
 
-    return await this.scheduledServiceRepository.save({
+    const isCompletedAppointment =
+      appointment.status === AppointmentStatus.COMPLETED;
+
+    if (isCompletedAppointment && !createDto.collaboratorId) {
+      throw new BadRequestException(
+        'Collaborator is required when adding services to completed appointments',
+      );
+    }
+
+    const savedService = await this.scheduledServiceRepository.save({
       appointmentId,
       tenantId,
       serviceId: createDto.serviceId,
       collaboratorId: createDto.collaboratorId,
       price: createDto.price ?? service.defaultPrice,
-      status: ScheduledServiceStatus.PENDING,
+      status: isCompletedAppointment
+        ? ScheduledServiceStatus.COMPLETED
+        : ScheduledServiceStatus.PENDING,
     });
+
+    if (isCompletedAppointment) {
+      await this.syncCommissionForCompletedService(savedService);
+    }
+
+    return await this.scheduledServiceRepository.findById(
+      savedService.id,
+      tenantId,
+    );
   }
 
   async findByAppointmentId(
@@ -96,11 +223,7 @@ export class ScheduledServiceService {
       throw new NotFoundException('ScheduledService not found');
     }
 
-    if (scheduledService.status !== ScheduledServiceStatus.PENDING) {
-      throw new BadRequestException(
-        'Can only update pending scheduled services',
-      );
-    }
+    await this.assertScheduledServiceEditable(scheduledService);
 
     if (updateDto.serviceId) {
       const service = await this.serviceRepository.findById(
@@ -138,7 +261,19 @@ export class ScheduledServiceService {
       );
     }
 
-    return await this.scheduledServiceRepository.findById(id, tenantId);
+    const updatedService = await this.scheduledServiceRepository.findById(
+      id,
+      tenantId,
+    );
+
+    if (
+      updatedService?.status === ScheduledServiceStatus.COMPLETED &&
+      Object.keys(updatePayload).length > 0
+    ) {
+      await this.syncCommissionForCompletedService(updatedService);
+    }
+
+    return updatedService;
   }
 
   async completeScheduledService(id: string): Promise<ScheduledService> {
@@ -167,43 +302,9 @@ export class ScheduledServiceService {
     const savedService =
       await this.scheduledServiceRepository.save(scheduledService);
 
-    await this.createCommissionForService(savedService);
+    await this.syncCommissionForCompletedService(savedService);
 
     return savedService;
-  }
-
-  private async createCommissionForService(
-    scheduledService: ScheduledService,
-  ): Promise<Commission> {
-    const tenantId = this.getTenantId();
-    const existingCommission =
-      await this.commissionRepository.findByScheduledServiceId(
-        scheduledService.id,
-        tenantId,
-      );
-    if (existingCommission) {
-      return existingCommission;
-    }
-
-    const collaborator = await this.collaboratorRepository.findById(
-      scheduledService.collaboratorId!,
-      tenantId,
-    );
-    if (!collaborator) {
-      throw new NotFoundException('Collaborator not found');
-    }
-
-    const percentage = collaborator.commissionPercentage;
-    const amount = (Number(scheduledService.price) * percentage) / 100;
-
-    return await this.commissionRepository.save({
-      tenantId,
-      collaboratorId: scheduledService.collaboratorId!,
-      scheduledServiceId: scheduledService.id,
-      amount,
-      percentage,
-      paid: false,
-    });
   }
 
   async cancelScheduledService(id: string): Promise<ScheduledService> {
@@ -220,7 +321,24 @@ export class ScheduledServiceService {
       return scheduledService;
     }
 
+    if (scheduledService.status === ScheduledServiceStatus.COMPLETED) {
+      await this.assertCommissionNotPaid(scheduledService.id);
+    }
+
     scheduledService.status = ScheduledServiceStatus.CANCELLED;
-    return await this.scheduledServiceRepository.save(scheduledService);
+    const savedService =
+      await this.scheduledServiceRepository.save(scheduledService);
+
+    if (savedService.status === ScheduledServiceStatus.CANCELLED) {
+      const commission = await this.commissionRepository.findByScheduledServiceId(
+        id,
+        tenantId,
+      );
+      if (commission && !commission.paid) {
+        await this.commissionRepository.delete({ id: commission.id, tenantId });
+      }
+    }
+
+    return savedService;
   }
 }

@@ -23,6 +23,7 @@ import { AppointmentRepository } from '../repositories/appointment.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { CommissionService } from './commission.service';
 import { ScheduledServiceService } from './scheduled-service.service';
+import { AppointmentEditability } from './appointment-editability.types';
 import { TenantContextService } from './tenant-context.service';
 
 @Injectable({ scope: Scope.REQUEST })
@@ -131,8 +132,22 @@ export class AppointmentService {
     });
   }
 
-  async findById(id: string): Promise<Appointment | null> {
-    return await this.appointmentRepository.findById(id, this.getTenantId());
+  async findById(
+    id: string,
+  ): Promise<(Appointment & { editability?: AppointmentEditability }) | null> {
+    const tenantId = this.getTenantId();
+    const appointment = await this.appointmentRepository.findById(id, tenantId);
+    if (!appointment) {
+      return null;
+    }
+
+    const editability = await this.commissionService.getAppointmentEditability(
+      appointment.id,
+      appointment.status,
+      appointment.scheduledServices?.map((service) => service.id) ?? [],
+    );
+
+    return { ...appointment, editability };
   }
 
   async updateAppointment(
@@ -148,8 +163,14 @@ export class AppointmentService {
       throw new NotFoundException('Appointment not found');
     }
 
-    if (appointment.status !== AppointmentStatus.SCHEDULED) {
-      throw new BadRequestException('Can only update scheduled appointments');
+    if (appointment.status === AppointmentStatus.CANCELLED) {
+      throw new BadRequestException('Cannot update cancelled appointments');
+    }
+
+    if (appointment.status === AppointmentStatus.COMPLETED) {
+      await this.commissionService.assertAppointmentCommissionsEditable(
+        appointmentId,
+      );
     }
 
     if (updateDto.startTime || updateDto.endTime) {
