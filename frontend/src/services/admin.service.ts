@@ -1,10 +1,14 @@
 import { adminApi } from '../config/admin-api';
+import type { Appointment, Commission } from '../types';
 import type {
   AdminUser,
   CreateAdminUserDto,
   CreateTenantDto,
   DashboardStats,
   Tenant,
+  TenantCommissionsFilters,
+  TenantDetail,
+  TenantFinancialReport,
   UpdateAdminUserDto,
   UpdateTenantDto,
 } from '../types/admin.types';
@@ -17,6 +21,45 @@ export const adminService = {
 
   listTenants: async (): Promise<Tenant[]> => {
     const response = await adminApi.get<Tenant[]>('/admin/tenants');
+    return response.data;
+  },
+
+  getTenantDetail: async (id: string): Promise<TenantDetail> => {
+    const response = await adminApi.get<TenantDetail>(`/admin/tenants/${id}`);
+    return response.data;
+  },
+
+  getTenantAppointments: async (
+    id: string,
+    params?: { date?: string; startDate?: string; endDate?: string },
+  ): Promise<Appointment[]> => {
+    const response = await adminApi.get<Appointment[]>(
+      `/admin/tenants/${id}/appointments`,
+      { params },
+    );
+    return response.data;
+  },
+
+  getTenantCommissions: async (
+    id: string,
+    filters?: TenantCommissionsFilters,
+  ): Promise<Commission[]> => {
+    const response = await adminApi.get<Commission[]>(
+      `/admin/tenants/${id}/commissions`,
+      { params: filters },
+    );
+    return response.data;
+  },
+
+  getTenantSummary: async (
+    id: string,
+    year: number,
+    month: number,
+  ): Promise<TenantFinancialReport> => {
+    const response = await adminApi.get<TenantFinancialReport>(
+      `/admin/tenants/${id}/summary`,
+      { params: { year, month } },
+    );
     return response.data;
   },
 

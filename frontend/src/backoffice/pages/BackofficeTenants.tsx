@@ -17,7 +17,8 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconEdit, IconPlus } from '@tabler/icons-react';
+import { IconEdit, IconEye, IconPlus } from '@tabler/icons-react';
+import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import {
   useAdminTenants,
@@ -28,6 +29,7 @@ import { getErrorMessage } from '../../utils/error.util';
 import type { CreateTenantDto, Tenant, UpdateTenantDto } from '../../types/admin.types';
 
 export function BackofficeTenants() {
+  const navigate = useNavigate();
   const { data: tenants, isLoading } = useAdminTenants();
   const createMutation = useCreateTenant();
   const updateMutation = useUpdateTenant();
@@ -171,7 +173,7 @@ export function BackofficeTenants() {
                   <Table.Th>Slug</Table.Th>
                   <Table.Th>Status</Table.Th>
                   <Table.Th w={120}>Ativa</Table.Th>
-                  <Table.Th w={60} />
+                  <Table.Th w={90} />
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -197,15 +199,26 @@ export function BackofficeTenants() {
                       />
                     </Table.Td>
                     <Table.Td>
-                      <Tooltip label="Editar">
-                        <ActionIcon
-                          variant="subtle"
-                          color="indigo"
-                          onClick={() => handleEdit(tenant)}
-                        >
-                          <IconEdit size={18} />
-                        </ActionIcon>
-                      </Tooltip>
+                      <Group gap={4} wrap="nowrap">
+                        <Tooltip label="Ver detalhes">
+                          <ActionIcon
+                            variant="subtle"
+                            color="indigo"
+                            onClick={() => navigate(`/backoffice/tenants/${tenant.id}`)}
+                          >
+                            <IconEye size={18} />
+                          </ActionIcon>
+                        </Tooltip>
+                        <Tooltip label="Editar">
+                          <ActionIcon
+                            variant="subtle"
+                            color="indigo"
+                            onClick={() => handleEdit(tenant)}
+                          >
+                            <IconEdit size={18} />
+                          </ActionIcon>
+                        </Tooltip>
+                      </Group>
                     </Table.Td>
                   </Table.Tr>
                 ))}

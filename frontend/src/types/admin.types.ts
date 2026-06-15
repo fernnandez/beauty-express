@@ -1,3 +1,4 @@
+import type { FinancialReport } from '../services/financial-report.service';
 import type { UserRole } from './auth.types';
 
 export interface Tenant {
@@ -6,6 +7,40 @@ export interface Tenant {
   name: string;
   isActive: boolean;
 }
+
+export interface TenantMetricsSnapshot {
+  appointmentsToday: number;
+  revenueThisMonth: number;
+  pendingCommissions: number;
+  collaborators: number;
+  services: number;
+  appointments: number;
+}
+
+export interface TenantDetail extends Tenant {
+  metrics: TenantMetricsSnapshot;
+}
+
+export interface TenantDashboardRow {
+  tenantId: string;
+  tenantName: string;
+  slug: string;
+  isActive: boolean;
+  appointmentsToday: number;
+  revenueThisMonth: number;
+  pendingCommissions: number;
+  collaborators: number;
+  services: number;
+}
+
+export interface TenantCommissionsFilters {
+  paid?: boolean;
+  startDate?: string;
+  endDate?: string;
+  collaboratorId?: string;
+}
+
+export type TenantFinancialReport = FinancialReport;
 
 export interface AdminUser {
   id: string;
@@ -23,6 +58,11 @@ export interface DashboardStats {
   collaborators: number;
   services: number;
   appointments: number;
+  activeTenants: number;
+  appointmentsToday: number;
+  revenueThisMonth: number;
+  pendingCommissions: number;
+  byTenant: TenantDashboardRow[];
 }
 
 export interface CreateTenantDto {

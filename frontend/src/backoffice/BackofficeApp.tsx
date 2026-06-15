@@ -6,6 +6,7 @@ import { BackofficeLayout } from './components/BackofficeLayout';
 import { AdminLogin } from './pages/AdminLogin';
 import { BackofficeDashboard } from './pages/BackofficeDashboard';
 import { BackofficeTenants } from './pages/BackofficeTenants';
+import { BackofficeTenantDetail } from './pages/BackofficeTenantDetail';
 import { BackofficeUsers } from './pages/BackofficeUsers';
 
 const backofficeTheme = {
@@ -29,6 +30,7 @@ export function BackofficeApp() {
           >
             <Route index element={<BackofficeDashboard />} />
             <Route path="tenants" element={<BackofficeTenants />} />
+            <Route path="tenants/:id" element={<BackofficeTenantDetail />} />
             <Route path="users" element={<BackofficeUsers />} />
           </Route>
         </Routes>
