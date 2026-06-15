@@ -11,6 +11,9 @@ import * as bcrypt from 'bcrypt';
 import { UserRole } from '@domain/entities/user-role.enum';
 import { Tenant } from '@domain/entities/tenant.entity';
 import { User } from '@domain/entities/user.entity';
+import { AppointmentRepository } from '@domain/repositories/appointment.repository';
+import { CommissionRepository } from '@domain/repositories/commission.repository';
+import { ScheduledServiceRepository } from '@domain/repositories/scheduled-service.repository';
 import { TenantRepository } from '@domain/repositories/tenant.repository';
 import { UserRepository } from '@domain/repositories/user.repository';
 import {
@@ -19,9 +22,58 @@ import {
 } from './admin-audit.service';
 import { Collaborator } from '@domain/entities/collaborator.entity';
 import { Service } from '@domain/entities/service.entity';
-import { Appointment } from '@domain/entities/appointment.entity';
+import { Appointment, AppointmentStatus } from '@domain/entities/appointment.entity';
+import { Commission } from '@domain/entities/commission.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Not, Repository } from 'typeorm';
+import { DateTime } from 'luxon';
+import {
+  endOfDay,
+  parseDateString,
+} from '../../utils/date.util';
+import {
+  buildTenantFinancialReport,
+  getMonthPeriod,
+  TenantFinancialReport,
+} from './tenant-financial-report.util';
+
+export interface TenantMetricsSnapshot {
+  appointmentsToday: number;
+  revenueThisMonth: number;
+  pendingCommissions: number;
+  collaborators: number;
+  services: number;
+  appointments: number;
+}
+
+export interface TenantDashboardRow {
+  tenantId: string;
+  tenantName: string;
+  slug: string;
+  isActive: boolean;
+  appointmentsToday: number;
+  revenueThisMonth: number;
+  pendingCommissions: number;
+  collaborators: number;
+  services: number;
+}
+
+export interface DashboardStats {
+  tenants: number;
+  users: number;
+  collaborators: number;
+  services: number;
+  appointments: number;
+  activeTenants: number;
+  appointmentsToday: number;
+  revenueThisMonth: number;
+  pendingCommissions: number;
+  byTenant: TenantDashboardRow[];
+}
+
+export interface TenantDetail extends Tenant {
+  metrics: TenantMetricsSnapshot;
+}
 
 @Injectable()
 export class AdminService {
@@ -29,6 +81,9 @@ export class AdminService {
     private readonly tenantRepository: TenantRepository,
     private readonly userRepository: UserRepository,
     private readonly adminAuditService: AdminAuditService,
+    private readonly appointmentRepository: AppointmentRepository,
+    private readonly commissionRepository: CommissionRepository,
+    private readonly scheduledServiceRepository: ScheduledServiceRepository,
     @InjectRepository(Collaborator)
     private readonly collaboratorRepo: Repository<Collaborator>,
     @InjectRepository(Service)
@@ -264,15 +319,33 @@ export class AdminService {
     return await this.adminAuditService.listRecent(limit);
   }
 
-  async getDashboardStats() {
-    const [tenants, users, collaborators, services, appointments] =
+  async getDashboardStats(): Promise<DashboardStats> {
+    const [tenants, users, collaborators, services, appointments, allTenants] =
       await Promise.all([
         this.tenantRepository.count(),
         this.userRepository.count(),
         this.collaboratorRepo.count(),
         this.serviceRepo.count(),
         this.appointmentRepo.count(),
+        this.tenantRepository.find({ order: { name: 'ASC' } }),
       ]);
+
+    const byTenant = await Promise.all(
+      allTenants.map(async (tenant) => {
+        const metrics = await this.getTenantMetricsSnapshot(tenant.id);
+        return {
+          tenantId: tenant.id,
+          tenantName: tenant.name,
+          slug: tenant.slug,
+          isActive: tenant.isActive,
+          appointmentsToday: metrics.appointmentsToday,
+          revenueThisMonth: metrics.revenueThisMonth,
+          pendingCommissions: metrics.pendingCommissions,
+          collaborators: metrics.collaborators,
+          services: metrics.services,
+        };
+      }),
+    );
 
     return {
       tenants,
@@ -280,6 +353,192 @@ export class AdminService {
       collaborators,
       services,
       appointments,
+      activeTenants: allTenants.filter((tenant) => tenant.isActive).length,
+      appointmentsToday: byTenant.reduce(
+        (sum, row) => sum + row.appointmentsToday,
+        0,
+      ),
+      revenueThisMonth: byTenant.reduce(
+        (sum, row) => sum + row.revenueThisMonth,
+        0,
+      ),
+      pendingCommissions: byTenant.reduce(
+        (sum, row) => sum + row.pendingCommissions,
+        0,
+      ),
+      byTenant,
     };
+  }
+
+  private async resolveTenantOrThrow(id: string): Promise<Tenant> {
+    const tenant = await this.tenantRepository.findOne({ where: { id } });
+    if (!tenant) {
+      throw new NotFoundException('Filial não encontrada');
+    }
+    return tenant;
+  }
+
+  private getTodayBounds() {
+    const today = DateTime.now().setZone('America/Sao_Paulo').startOf('day');
+    return {
+      start: today.toJSDate(),
+      end: today.endOf('day').toJSDate(),
+    };
+  }
+
+  async countAppointmentsToday(tenantId: string): Promise<number> {
+    const { start, end } = this.getTodayBounds();
+    return await this.appointmentRepo.count({
+      where: {
+        tenantId,
+        date: Between(start, end),
+        status: Not(AppointmentStatus.CANCELLED),
+      },
+    });
+  }
+
+  async getPendingCommissionsSum(tenantId: string): Promise<number> {
+    const result = await this.commissionRepository
+      .createQueryBuilder('commission')
+      .select('COALESCE(SUM(commission.amount), 0)', 'total')
+      .where('commission.tenantId = :tenantId', { tenantId })
+      .andWhere('commission.paid = :paid', { paid: false })
+      .getRawOne<{ total: string }>();
+
+    return Number(result?.total ?? 0);
+  }
+
+  async getMonthlyFinancialReport(
+    tenantId: string,
+    year: number,
+    month: number,
+  ): Promise<TenantFinancialReport> {
+    const { start, end } = getMonthPeriod(year, month);
+
+    const scheduledServices = await this.scheduledServiceRepository
+      .createQueryBuilder('scheduledService')
+      .leftJoinAndSelect('scheduledService.appointment', 'appointment')
+      .where('scheduledService.tenantId = :tenantId', { tenantId })
+      .andWhere('appointment.date BETWEEN :startDate AND :endDate', {
+        startDate: start,
+        endDate: end,
+      })
+      .getMany();
+
+    const paidCommissions = await this.commissionRepository.findByFilters(
+      tenantId,
+      {
+        paid: true,
+        startDate: start,
+        endDate: end,
+      },
+    );
+
+    const allCommissions = await this.commissionRepository.findByFilters(
+      tenantId,
+      {
+        startDate: start,
+        endDate: end,
+      },
+    );
+
+    return buildTenantFinancialReport(
+      scheduledServices,
+      paidCommissions,
+      allCommissions,
+      start,
+      end,
+    );
+  }
+
+  async getTenantMetricsSnapshot(
+    tenantId: string,
+  ): Promise<TenantMetricsSnapshot> {
+    const now = DateTime.now().setZone('America/Sao_Paulo');
+
+    const [
+      appointmentsToday,
+      pendingCommissions,
+      collaborators,
+      services,
+      appointments,
+      monthlyReport,
+    ] = await Promise.all([
+      this.countAppointmentsToday(tenantId),
+      this.getPendingCommissionsSum(tenantId),
+      this.collaboratorRepo.count({ where: { tenantId } }),
+      this.serviceRepo.count({ where: { tenantId } }),
+      this.appointmentRepo.count({ where: { tenantId } }),
+      this.getMonthlyFinancialReport(tenantId, now.year, now.month),
+    ]);
+
+    return {
+      appointmentsToday,
+      revenueThisMonth: monthlyReport.totalPaid,
+      pendingCommissions,
+      collaborators,
+      services,
+      appointments,
+    };
+  }
+
+  async getTenantDetail(id: string): Promise<TenantDetail> {
+    const tenant = await this.resolveTenantOrThrow(id);
+    const metrics = await this.getTenantMetricsSnapshot(id);
+    return { ...tenant, metrics };
+  }
+
+  async getTenantAppointments(
+    tenantId: string,
+    filters: {
+      date?: string;
+      startDate?: string;
+      endDate?: string;
+    },
+  ): Promise<Appointment[]> {
+    await this.resolveTenantOrThrow(tenantId);
+
+    if (filters.startDate && filters.endDate) {
+      return await this.appointmentRepository.findByDateRange(
+        parseDateString(filters.startDate),
+        endOfDay(filters.endDate),
+        tenantId,
+      );
+    }
+
+    const dateString =
+      filters.date ??
+      DateTime.now().setZone('America/Sao_Paulo').toFormat('yyyy-MM-dd');
+    return await this.appointmentRepository.findByDate(
+      parseDateString(dateString),
+      tenantId,
+    );
+  }
+
+  async getTenantCommissions(
+    tenantId: string,
+    filters: {
+      paid?: boolean;
+      startDate?: Date;
+      endDate?: Date;
+      collaboratorId?: string;
+    },
+  ): Promise<Commission[]> {
+    await this.resolveTenantOrThrow(tenantId);
+
+    if (Object.keys(filters).length === 0) {
+      return await this.commissionRepository.findByFilters(tenantId, {});
+    }
+
+    return await this.commissionRepository.findByFilters(tenantId, filters);
+  }
+
+  async getTenantSummary(
+    tenantId: string,
+    year: number,
+    month: number,
+  ): Promise<TenantFinancialReport> {
+    await this.resolveTenantOrThrow(tenantId);
+    return await this.getMonthlyFinancialReport(tenantId, year, month);
   }
 }

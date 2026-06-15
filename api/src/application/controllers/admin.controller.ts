@@ -7,6 +7,7 @@ import { SuperAdminGuard } from '@common/guards/super-admin.guard';
 import { AdminService } from '@domain/services/admin.service';
 import { AccessTokenPayload } from '@domain/services/auth.types';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -21,6 +22,10 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
+import { DateTime } from 'luxon';
+import { VALIDATION_CONSTANTS } from '../../common/constants/validation.constants';
+import { validateDateFormat } from '../../common/utils/date-validation.util';
+import { endOfDay, parseDateString } from '../../utils/date.util';
 
 @ApiTags('Admin')
 @Controller('admin')
@@ -74,6 +79,116 @@ export class AdminController {
       dto,
       this.auditContext(user, req),
     );
+  }
+
+  @Get('tenants/:id')
+  @ApiOperation({ summary: 'Detalhe da filial com métricas' })
+  async getTenantDetail(@Param('id') id: string) {
+    return await this.adminService.getTenantDetail(id);
+  }
+
+  @Get('tenants/:id/appointments')
+  @ApiOperation({ summary: 'Agendamentos de uma filial' })
+  @ApiQuery({ name: 'date', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  async getTenantAppointments(
+    @Param('id') id: string,
+    @Query('date') date?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    if (date) {
+      validateDateFormat(date);
+    }
+    if (startDate) {
+      validateDateFormat(startDate);
+    }
+    if (endDate) {
+      validateDateFormat(endDate);
+    }
+
+    return await this.adminService.getTenantAppointments(id, {
+      date,
+      startDate,
+      endDate,
+    });
+  }
+
+  @Get('tenants/:id/commissions')
+  @ApiOperation({ summary: 'Comissões de uma filial' })
+  @ApiQuery({ name: 'paid', required: false, type: Boolean })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiQuery({ name: 'collaboratorId', required: false, type: String })
+  async getTenantCommissions(
+    @Param('id') id: string,
+    @Query('paid') paid?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('collaboratorId') collaboratorId?: string,
+  ) {
+    const filters: {
+      paid?: boolean;
+      startDate?: Date;
+      endDate?: Date;
+      collaboratorId?: string;
+    } = {};
+
+    if (paid !== undefined) {
+      filters.paid = paid === 'true';
+    }
+
+    if (startDate) {
+      validateDateFormat(startDate);
+      filters.startDate = parseDateString(startDate);
+    }
+
+    if (endDate) {
+      validateDateFormat(endDate);
+      filters.endDate = endOfDay(endDate);
+    }
+
+    if (collaboratorId) {
+      filters.collaboratorId = collaboratorId;
+    }
+
+    return await this.adminService.getTenantCommissions(id, filters);
+  }
+
+  @Get('tenants/:id/summary')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resumo financeiro mensal de uma filial' })
+  @ApiQuery({ name: 'year', required: false, type: Number })
+  @ApiQuery({ name: 'month', required: false, type: Number })
+  async getTenantSummary(
+    @Param('id') id: string,
+    @Query('year') yearParam?: string,
+    @Query('month') monthParam?: string,
+  ) {
+    const now = DateTime.now().setZone('America/Sao_Paulo');
+    const year = yearParam ? parseInt(yearParam, 10) : now.year;
+    const month = monthParam ? parseInt(monthParam, 10) : now.month;
+
+    if (Number.isNaN(year) || Number.isNaN(month)) {
+      throw new BadRequestException('Ano ou mês inválido');
+    }
+
+    if (
+      month < VALIDATION_CONSTANTS.MONTH.MIN ||
+      month > VALIDATION_CONSTANTS.MONTH.MAX
+    ) {
+      throw new BadRequestException(VALIDATION_CONSTANTS.MONTH.MESSAGE);
+    }
+
+    if (
+      year < VALIDATION_CONSTANTS.YEAR.MIN ||
+      year > VALIDATION_CONSTANTS.YEAR.MAX
+    ) {
+      throw new BadRequestException(VALIDATION_CONSTANTS.YEAR.MESSAGE);
+    }
+
+    return await this.adminService.getTenantSummary(id, year, month);
   }
 
   @Get('users')
