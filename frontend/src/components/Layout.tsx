@@ -19,8 +19,11 @@ import {
   IconUserCircle,
   IconUsers,
 } from "@tabler/icons-react";
+import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useOperationalBranding } from "../hooks/useOperationalBranding";
+import { getNavbarBackground } from "../utils/theme.util";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -32,7 +35,12 @@ const navigationItems = [
   { icon: IconUserCircle, label: "Clientes", path: "/clients" },
   { icon: IconScissors, label: "Serviços", path: "/services" },
   { icon: IconCalendar, label: "Agendamentos", path: "/appointments" },
-  { icon: IconCurrencyDollar, label: "Comissões", path: "/commissions" },
+  {
+    icon: IconCurrencyDollar,
+    label: "Comissões",
+    path: "/commissions",
+    requiresCommissions: true,
+  },
   { icon: IconChartBar, label: "Relatórios", path: "/financial-reports" },
 ];
 
@@ -40,6 +48,15 @@ export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { branding, commissionsEnabled } = useOperationalBranding();
+
+  const visibleNavigationItems = useMemo(
+    () =>
+      navigationItems.filter(
+        (item) => !item.requiresCommissions || commissionsEnabled,
+      ),
+    [commissionsEnabled],
+  );
 
   const handleLogout = async () => {
     await logout();
@@ -56,13 +73,16 @@ export function Layout({ children }: LayoutProps) {
         height: 35,
       }}
     >
-      <AppShell.Navbar p="md" style={{ backgroundColor: "#faf5ff" }}>
+      <AppShell.Navbar
+        p="md"
+        style={{ backgroundColor: getNavbarBackground(branding.accentColor) }}
+      >
         <Center mb="xl">
-          <Avatar src="/logo.png" size={48} radius="md" />
+          <Avatar src={branding.logoUrl || "/logo.png"} size={48} radius="md" />
         </Center>
 
         <Stack justify="center" gap={0} style={{ flex: 1 }}>
-          {navigationItems.map((item) => {
+          {visibleNavigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
 
@@ -84,10 +104,10 @@ export function Layout({ children }: LayoutProps) {
                     justifyContent: "center",
                     borderRadius: "8px",
                     backgroundColor: isActive
-                      ? "var(--mantine-color-pink-0)"
+                      ? "var(--mantine-color-brand-0)"
                       : "transparent",
                     color: isActive
-                      ? "var(--mantine-color-pink-6)"
+                      ? "var(--mantine-color-brand-6)"
                       : "var(--mantine-color-gray-7)",
                     transition:
                       "background-color 150ms ease, color 150ms ease",
@@ -145,9 +165,9 @@ export function Layout({ children }: LayoutProps) {
         style={{ backgroundColor: "#fff", borderTop: "1px solid #e9ecef" }}
       >
         <Group justify="center" align="center" gap="md">
-          {user?.tenantName && (
+          {(user?.tenantSettings?.branding.displayName || user?.tenantName) && (
             <Text size="sm" c="dimmed">
-              {user.tenantName}
+              {user?.tenantSettings?.branding.displayName || user?.tenantName}
             </Text>
           )}
           <Text size="sm" c="dimmed">
@@ -156,7 +176,7 @@ export function Layout({ children }: LayoutProps) {
               href="https://fernnandez-dev.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
-              c="pink"
+              c="brand"
               fw={500}
             >
               fernnnadez

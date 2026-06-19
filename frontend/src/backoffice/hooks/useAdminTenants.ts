@@ -27,8 +27,11 @@ export const useUpdateTenant = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateTenantDto }) =>
       adminService.updateTenant(id, data),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] });
+      queryClient.invalidateQueries({
+        queryKey: ['admin', 'tenants', variables.id],
+      });
     },
   });
 };

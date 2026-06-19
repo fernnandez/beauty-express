@@ -3,13 +3,16 @@ import type { Appointment, Commission } from '../types';
 import type {
   AdminUser,
   CreateAdminUserDto,
+  CreatePortalDto,
   CreateTenantDto,
   DashboardStats,
+  Portal,
   Tenant,
   TenantCommissionsFilters,
   TenantDetail,
   TenantFinancialReport,
   UpdateAdminUserDto,
+  UpdatePortalDto,
   UpdateTenantDto,
 } from '../types/admin.types';
 
@@ -21,6 +24,21 @@ export const adminService = {
 
   listTenants: async (): Promise<Tenant[]> => {
     const response = await adminApi.get<Tenant[]>('/admin/tenants');
+    return response.data;
+  },
+
+  listPortals: async (): Promise<Portal[]> => {
+    const response = await adminApi.get<Portal[]>('/admin/portals');
+    return response.data;
+  },
+
+  createPortal: async (dto: CreatePortalDto): Promise<Portal> => {
+    const response = await adminApi.post<Portal>('/admin/portals', dto);
+    return response.data;
+  },
+
+  updatePortal: async (id: string, dto: UpdatePortalDto): Promise<Portal> => {
+    const response = await adminApi.patch<Portal>(`/admin/portals/${id}`, dto);
     return response.data;
   },
 

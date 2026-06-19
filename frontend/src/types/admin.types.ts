@@ -1,10 +1,22 @@
-import type { FinancialReport } from '../services/financial-report.service';
-import type { UserRole } from './auth.types';
+import type { LoginBranding } from './branding.types';
+import type { TenantSettings } from './tenant-settings.types';
+
+export interface Portal {
+  id: string;
+  slug: string;
+  host: string;
+  loginBranding: LoginBranding;
+  isActive: boolean;
+  createdAt?: string;
+}
 
 export interface Tenant {
   id: string;
   slug: string;
   name: string;
+  portalId: string;
+  settings?: TenantSettings;
+  portal?: Portal;
   isActive: boolean;
 }
 
@@ -40,12 +52,12 @@ export interface TenantCommissionsFilters {
   collaboratorId?: string;
 }
 
-export type TenantFinancialReport = FinancialReport;
+export type TenantFinancialReport = import('../services/financial-report.service').FinancialReport;
 
 export interface AdminUser {
   id: string;
   email: string;
-  role: UserRole;
+  role: import('./auth.types').UserRole;
   tenantId: string | null;
   isActive: boolean;
   createdAt: string;
@@ -65,29 +77,46 @@ export interface DashboardStats {
   byTenant: TenantDashboardRow[];
 }
 
+export interface CreatePortalDto {
+  slug: string;
+  host: string;
+  loginBranding: LoginBranding;
+  isActive?: boolean;
+}
+
+export interface UpdatePortalDto {
+  slug?: string;
+  host?: string;
+  loginBranding?: Partial<LoginBranding>;
+  isActive?: boolean;
+}
+
 export interface CreateTenantDto {
   slug: string;
   name: string;
+  portalId: string;
   isActive?: boolean;
 }
 
 export interface UpdateTenantDto {
   name?: string;
   slug?: string;
+  portalId?: string;
+  settings?: Partial<TenantSettings>;
   isActive?: boolean;
 }
 
 export interface CreateAdminUserDto {
   email: string;
   password: string;
-  role: Exclude<UserRole, 'super_admin'>;
+  role: Exclude<import('./auth.types').UserRole, 'super_admin'>;
   tenantId: string;
 }
 
 export interface UpdateAdminUserDto {
   email?: string;
   password?: string;
-  role?: Exclude<UserRole, 'super_admin'>;
+  role?: Exclude<import('./auth.types').UserRole, 'super_admin'>;
   tenantId?: string;
   isActive?: boolean;
 }

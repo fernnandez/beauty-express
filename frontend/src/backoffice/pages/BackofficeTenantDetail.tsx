@@ -37,6 +37,7 @@ import {
   useAdminTenantDetail,
   useAdminTenantSummary,
 } from '../hooks/useAdminTenantDetail';
+import { TenantConfigTab } from '../components/TenantConfigTab';
 
 const tableStyles = {
   th: { backgroundColor: '#1e293b', color: '#e2e8f0' },
@@ -566,13 +567,17 @@ export function BackofficeTenantDetail() {
           ))}
         </SimpleGrid>
 
-        <Tabs defaultValue="summary" color="indigo">
+        <Tabs defaultValue="config" color="indigo">
           <Tabs.List>
+            <Tabs.Tab value="config">Configuração</Tabs.Tab>
             <Tabs.Tab value="summary">Resumo financeiro</Tabs.Tab>
             <Tabs.Tab value="appointments">Agendamentos</Tabs.Tab>
             <Tabs.Tab value="commissions">Comissões</Tabs.Tab>
           </Tabs.List>
 
+          <Tabs.Panel value="config" pt="lg">
+            <TenantConfigTab tenant={tenant} />
+          </Tabs.Panel>
           <Tabs.Panel value="summary" pt="lg">
             <TenantSummaryTab tenantId={id} />
           </Tabs.Panel>

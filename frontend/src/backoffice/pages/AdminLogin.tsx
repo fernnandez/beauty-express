@@ -19,7 +19,7 @@ import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import { getErrorMessage } from '../../utils/error.util';
-import type { LoginDto } from '../../types/auth.types';
+import type { AdminLoginDto } from '../../types/auth.types';
 
 export function AdminLogin() {
   const { login, isAuthenticated, isLoading } = useAdminAuth();
@@ -28,7 +28,7 @@ export function AdminLogin() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const form = useForm<LoginDto>({
+  const form = useForm<AdminLoginDto>({
     initialValues: {
       email: '',
       password: '',

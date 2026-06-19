@@ -9,13 +9,13 @@ import {
 } from 'react';
 import { adminAuthStorage } from '../services/admin-auth-storage';
 import { adminAuthService } from '../services/admin-auth.service';
-import type { AuthUser, LoginDto } from '../types/auth.types';
+import type { AuthUser, AdminLoginDto } from '../types/auth.types';
 
 interface AdminAuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (dto: LoginDto) => Promise<void>;
+  login: (dto: AdminLoginDto) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -50,7 +50,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     bootstrap();
   }, [bootstrap]);
 
-  const login = useCallback(async (dto: LoginDto) => {
+  const login = useCallback(async (dto: AdminLoginDto) => {
     const response = await adminAuthService.login(dto);
     if (response.user.role !== 'super_admin') {
       throw new Error('Acesso restrito ao super admin');

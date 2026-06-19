@@ -13,7 +13,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   if (isLoading) {
     return (
       <Center h="100vh">
-        <Loader color="pink" />
+        <Loader color="brand" />
       </Center>
     );
   }

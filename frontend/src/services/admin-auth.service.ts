@@ -1,8 +1,8 @@
 import { adminApi } from '../config/admin-api';
-import type { AuthTokensResponse, AuthUser, LoginDto } from '../types/auth.types';
+import type { AuthTokensResponse, AuthUser, AdminLoginDto } from '../types/auth.types';
 
 export const adminAuthService = {
-  login: async (dto: LoginDto): Promise<AuthTokensResponse> => {
+  login: async (dto: AdminLoginDto): Promise<AuthTokensResponse> => {
     const response = await adminApi.post<AuthTokensResponse>(
       '/auth/admin/login',
       dto,

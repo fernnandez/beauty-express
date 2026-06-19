@@ -5,6 +5,7 @@ import { AdminAuthProvider } from '../contexts/AdminAuthContext';
 import { BackofficeLayout } from './components/BackofficeLayout';
 import { AdminLogin } from './pages/AdminLogin';
 import { BackofficeDashboard } from './pages/BackofficeDashboard';
+import { BackofficePortals } from './pages/BackofficePortals';
 import { BackofficeTenants } from './pages/BackofficeTenants';
 import { BackofficeTenantDetail } from './pages/BackofficeTenantDetail';
 import { BackofficeUsers } from './pages/BackofficeUsers';
@@ -29,6 +30,7 @@ export function BackofficeApp() {
             }
           >
             <Route index element={<BackofficeDashboard />} />
+            <Route path="portals" element={<BackofficePortals />} />
             <Route path="tenants" element={<BackofficeTenants />} />
             <Route path="tenants/:id" element={<BackofficeTenantDetail />} />
             <Route path="users" element={<BackofficeUsers />} />

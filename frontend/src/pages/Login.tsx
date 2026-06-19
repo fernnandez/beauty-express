@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Center,
+  Loader,
   Paper,
   PasswordInput,
   Stack,
@@ -16,12 +17,16 @@ import { notifications } from '@mantine/notifications';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useLoginPortal } from '../contexts/LoginPortalContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getErrorMessage } from '../utils/error.util';
+import { createLoginBackground } from '../utils/theme.util';
 import type { LoginDto } from '../types/auth.types';
 
 export function Login() {
   const { login, isAuthenticated, isLoading } = useAuth();
+  const { branding, isLoading: portalLoading, error: portalError, portalHost } =
+    useLoginPortal();
   const navigate = useNavigate();
   const location = useLocation();
   const [submitting, setSubmitting] = useState(false);
@@ -31,6 +36,7 @@ export function Login() {
     initialValues: {
       email: '',
       password: '',
+      portalHost,
     },
     validate: {
       email: (value) => (/^\S+@\S+$/.test(value) ? null : 'E-mail inválido'),
@@ -45,12 +51,28 @@ export function Login() {
     return <Navigate to={redirectTo} replace />;
   }
 
+  if (portalLoading || isLoading) {
+    return (
+      <Center
+        mih="100vh"
+        style={{
+          background: createLoginBackground(
+            branding.primaryColor,
+            branding.accentColor,
+          ),
+        }}
+      >
+        <Loader color="brand" />
+      </Center>
+    );
+  }
+
   const handleSubmit = form.onSubmit(async (values) => {
     setSubmitting(true);
     setError(null);
 
     try {
-      await login(values);
+      await login({ ...values, portalHost });
       notifications.show({
         title: 'Bem-vindo',
         message: 'Login realizado com sucesso',
@@ -71,21 +93,33 @@ export function Login() {
     <Center
       mih="100vh"
       style={{
-        background:
-          'linear-gradient(135deg, #fdf2f8 0%, #faf5ff 50%, #fefefe 100%)',
+        background: createLoginBackground(
+          branding.primaryColor,
+          branding.accentColor,
+        ),
       }}
     >
       <Paper shadow="md" radius="lg" p="xl" w={420} withBorder>
         <Stack gap="lg">
           <Stack gap="xs" align="center">
-            <Avatar src="/logo.png" size={64} radius="md" />
+            <Avatar src={branding.logoUrl || '/logo.png'} size={64} radius="md" />
             <Title order={2} ta="center">
-              Maria Borboleta
+              {branding.displayName}
             </Title>
             <Text c="dimmed" size="sm" ta="center">
               Entre com seu e-mail e senha
             </Text>
           </Stack>
+
+          {portalError && (
+            <Alert
+              icon={<IconAlertCircle size={16} />}
+              color="yellow"
+              variant="light"
+            >
+              {portalError}
+            </Alert>
+          )}
 
           {error && (
             <Alert
@@ -111,7 +145,7 @@ export function Login() {
                 autoComplete="current-password"
                 {...form.getInputProps('password')}
               />
-              <Button type="submit" loading={submitting} fullWidth color="pink">
+              <Button type="submit" loading={submitting} fullWidth color="brand">
                 Entrar
               </Button>
             </Stack>
