@@ -5,6 +5,7 @@ import { Client } from '@domain/entities/client.entity';
 import { Appointment } from '@domain/entities/appointment.entity';
 import { Commission } from '@domain/entities/commission.entity';
 import { ScheduledService } from '@domain/entities/scheduled-service.entity';
+import { Portal } from '@domain/entities/portal.entity';
 import { Tenant } from '@domain/entities/tenant.entity';
 import { User } from '@domain/entities/user.entity';
 import { AdminAuditLog } from '@domain/entities/admin-audit-log.entity';
@@ -12,6 +13,7 @@ import { RefreshToken } from '@domain/entities/refresh-token.entity';
 import { DataSourceOptions } from 'typeorm';
 
 export const entities = [
+  Portal,
   Tenant,
   User,
   RefreshToken,

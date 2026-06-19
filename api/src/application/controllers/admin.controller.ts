@@ -1,5 +1,7 @@
+import { CreatePortalDto } from '@application/dtos/admin/create-portal.dto';
 import { CreateTenantDto } from '@application/dtos/admin/create-tenant.dto';
 import { CreateUserDto } from '@application/dtos/admin/create-user.dto';
+import { UpdatePortalDto } from '@application/dtos/admin/update-portal.dto';
 import { UpdateTenantDto } from '@application/dtos/admin/update-tenant.dto';
 import { UpdateUserDto } from '@application/dtos/admin/update-user.dto';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
@@ -44,6 +46,47 @@ export class AdminController {
   @ApiOperation({ summary: 'Estatísticas consolidadas do backoffice' })
   async dashboardStats() {
     return await this.adminService.getDashboardStats();
+  }
+
+  @Get('portals')
+  @ApiOperation({ summary: 'Listar portais de login' })
+  async listPortals() {
+    return await this.adminService.listPortals();
+  }
+
+  @Get('portals/:id')
+  @ApiOperation({ summary: 'Detalhe do portal' })
+  async getPortal(@Param('id') id: string) {
+    return await this.adminService.getPortal(id);
+  }
+
+  @Post('portals')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Criar portal de login' })
+  async createPortal(
+    @Body() dto: CreatePortalDto,
+    @CurrentUser() user: AccessTokenPayload,
+    @Req() req: Request,
+  ) {
+    return await this.adminService.createPortal(
+      dto,
+      this.auditContext(user, req),
+    );
+  }
+
+  @Patch('portals/:id')
+  @ApiOperation({ summary: 'Atualizar portal de login' })
+  async updatePortal(
+    @Param('id') id: string,
+    @Body() dto: UpdatePortalDto,
+    @CurrentUser() user: AccessTokenPayload,
+    @Req() req: Request,
+  ) {
+    return await this.adminService.updatePortal(
+      id,
+      dto,
+      this.auditContext(user, req),
+    );
   }
 
   @Get('tenants')

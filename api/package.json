@@ -19,6 +19,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "ts-node -r tsconfig-paths/register src/scripts/seed.ts",
+    "change-super-admin-password": "ts-node -r tsconfig-paths/register src/scripts/change-super-admin-password.ts",
+    "change-super-admin-password:prod": "node -r ./dist/bootstrap-paths.js dist/scripts/change-super-admin-password.js",
     "db:reset": "ts-node -r tsconfig-paths/register src/scripts/reset-db.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",

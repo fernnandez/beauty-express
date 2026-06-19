@@ -1,4 +1,5 @@
 import { UserRole } from '@domain/entities/user-role.enum';
+import { TenantSettingsResponse } from '@domain/types/tenant-settings.types';
 
 export interface AccessTokenPayload {
   sub: string;
@@ -20,4 +21,5 @@ export interface AuthUserResponse {
   role: UserRole;
   tenantId: string | null;
   tenantName?: string;
+  tenantSettings?: TenantSettingsResponse;
 }

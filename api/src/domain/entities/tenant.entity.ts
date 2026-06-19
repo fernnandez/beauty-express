@@ -1,4 +1,12 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { TenantSettings } from '../types/tenant-settings.types';
+import { Portal } from './portal.entity';
 
 @Entity('tenants')
 export class Tenant {
@@ -10,6 +18,16 @@ export class Tenant {
 
   @Column()
   name: string;
+
+  @Column({ type: 'uuid' })
+  portalId: string;
+
+  @ManyToOne(() => Portal, (portal) => portal.tenants)
+  @JoinColumn({ name: 'portalId' })
+  portal?: Portal;
+
+  @Column({ type: 'jsonb', default: {} })
+  settings: TenantSettings;
 
   @Column({ default: true })
   isActive: boolean;

@@ -4,18 +4,12 @@ import {
   IsBoolean,
   IsOptional,
   IsString,
-  IsUUID,
   Matches,
   ValidateNested,
 } from 'class-validator';
-import { PartialTenantSettingsDto } from './tenant-settings.dto';
+import { PartialBrandingDto } from './branding.dto';
 
-export class UpdateTenantDto {
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  name?: string;
-
+export class UpdatePortalDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
@@ -26,14 +20,17 @@ export class UpdateTenantDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsUUID()
-  portalId?: string;
+  @IsString()
+  @Matches(/^[a-z0-9.-]+$/, {
+    message: 'host inválido (use apenas domínio, sem protocolo)',
+  })
+  host?: string;
 
-  @ApiProperty({ required: false, type: PartialTenantSettingsDto })
+  @ApiProperty({ required: false, type: PartialBrandingDto })
   @IsOptional()
   @ValidateNested()
-  @Type(() => PartialTenantSettingsDto)
-  settings?: PartialTenantSettingsDto;
+  @Type(() => PartialBrandingDto)
+  loginBranding?: PartialBrandingDto;
 
   @ApiProperty({ required: false })
   @IsOptional()

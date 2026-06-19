@@ -4,6 +4,7 @@ import { NotFoundException } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminAuditService } from './admin-audit.service';
 import { TenantRepository } from '../repositories/tenant.repository';
+import { PortalRepository } from '../repositories/portal.repository';
 import { UserRepository } from '../repositories/user.repository';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
@@ -13,6 +14,7 @@ import { Service } from '../entities/service.entity';
 import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
 import { Tenant } from '../entities/tenant.entity';
 import { ScheduledServiceStatus } from '../entities/scheduled-service.entity';
+import { defaultTenantSettings } from './tenant-settings.util';
 
 describe('AdminService', () => {
   let service: AdminService;
@@ -21,7 +23,14 @@ describe('AdminService', () => {
     id: 'tenant-1',
     slug: 'paulista',
     name: 'Maria Borboleta — Paulista',
+    portalId: 'portal-1',
+    settings: defaultTenantSettings('Maria Borboleta — Paulista'),
     isActive: true,
+  };
+
+  const mockPortalRepository = {
+    find: jest.fn(),
+    findOne: jest.fn(),
   };
 
   const mockTenantRepository = {
@@ -79,6 +88,7 @@ describe('AdminService', () => {
       providers: [
         AdminService,
         { provide: TenantRepository, useValue: mockTenantRepository },
+        { provide: PortalRepository, useValue: mockPortalRepository },
         { provide: UserRepository, useValue: mockUserRepository },
         { provide: AdminAuditService, useValue: mockAdminAuditService },
         {
@@ -159,6 +169,8 @@ describe('AdminService', () => {
         id: 'tenant-2',
         slug: 'recife',
         name: 'Maria Borboleta — Recife',
+        portalId: 'portal-1',
+        settings: defaultTenantSettings('Maria Borboleta — Recife'),
         isActive: false,
       };
 
