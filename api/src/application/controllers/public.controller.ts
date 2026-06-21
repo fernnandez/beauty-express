@@ -15,4 +15,11 @@ export class PublicController {
   async resolvePortal(@Query('host') host: string) {
     return await this.portalService.resolveByHost(host);
   }
+
+  @Public()
+  @Get('portals')
+  @ApiOperation({ summary: 'Listar portais ativos (seletor de login em dev)' })
+  async listPortals() {
+    return await this.portalService.listActivePortals();
+  }
 }

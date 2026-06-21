@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -8,7 +9,12 @@ import {
 } from 'react';
 import { portalService } from '../services/portal.service';
 import type { LoginBranding } from '../types/branding.types';
-import { getPortalHost } from '../utils/portal-host.util';
+import type { PortalResolveResponse } from '../types/branding.types';
+import {
+  getPortalHost,
+  isDevPortalPickerEnabled,
+  setDevPortalHostOverride,
+} from '../utils/portal-host.util';
 import { DEFAULT_LOGIN_BRANDING } from '../utils/theme.util';
 
 interface LoginPortalContextValue {
@@ -16,15 +22,63 @@ interface LoginPortalContextValue {
   isLoading: boolean;
   error: string | null;
   portalHost: string;
+  showPortalPicker: boolean;
+  availablePortals: PortalResolveResponse[];
+  setPortalHost: (host: string) => void;
 }
 
 const LoginPortalContext = createContext<LoginPortalContextValue | null>(null);
 
 export function LoginPortalProvider({ children }: { children: ReactNode }) {
-  const portalHost = getPortalHost();
+  const showPortalPicker = isDevPortalPickerEnabled();
+  const [portalHost, setPortalHostState] = useState(() => getPortalHost());
   const [branding, setBranding] = useState<LoginBranding>(DEFAULT_LOGIN_BRANDING);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [availablePortals, setAvailablePortals] = useState<
+    PortalResolveResponse[]
+  >([]);
+
+  const setPortalHost = useCallback(
+    (host: string) => {
+      if (showPortalPicker) {
+        setDevPortalHostOverride(host);
+      }
+      setPortalHostState(host);
+    },
+    [showPortalPicker],
+  );
+
+  useEffect(() => {
+    if (!showPortalPicker) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadPortals = async () => {
+      try {
+        const portals = await portalService.listActive();
+        if (cancelled) {
+          return;
+        }
+
+        setAvailablePortals(
+          portals.filter((portal) => portal.host !== 'localhost'),
+        );
+      } catch {
+        if (!cancelled) {
+          setAvailablePortals([]);
+        }
+      }
+    };
+
+    void loadPortals();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showPortalPicker]);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,8 +120,19 @@ export function LoginPortalProvider({ children }: { children: ReactNode }) {
       isLoading,
       error,
       portalHost,
+      showPortalPicker,
+      availablePortals,
+      setPortalHost,
     }),
-    [branding, isLoading, error, portalHost],
+    [
+      branding,
+      isLoading,
+      error,
+      portalHost,
+      showPortalPicker,
+      availablePortals,
+      setPortalHost,
+    ],
   );
 
   return (

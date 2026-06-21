@@ -18,4 +18,11 @@ export const portalService = {
     );
     return response.data;
   },
+
+  listActive: async (): Promise<PortalResolveResponse[]> => {
+    const response = await publicApi.get<PortalResolveResponse[]>(
+      '/public/portals',
+    );
+    return response.data;
+  },
 };

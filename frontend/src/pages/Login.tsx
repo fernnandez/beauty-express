@@ -7,6 +7,7 @@ import {
   Loader,
   Paper,
   PasswordInput,
+  Select,
   Stack,
   Text,
   TextInput,
@@ -25,8 +26,15 @@ import type { LoginDto } from '../types/auth.types';
 
 export function Login() {
   const { login, isAuthenticated, isLoading } = useAuth();
-  const { branding, isLoading: portalLoading, error: portalError, portalHost } =
-    useLoginPortal();
+  const {
+    branding,
+    isLoading: portalLoading,
+    error: portalError,
+    portalHost,
+    showPortalPicker,
+    availablePortals,
+    setPortalHost,
+  } = useLoginPortal();
   const navigate = useNavigate();
   const location = useLocation();
   const [submitting, setSubmitting] = useState(false);
@@ -133,6 +141,22 @@ export function Login() {
 
           <Box component="form" onSubmit={handleSubmit}>
             <Stack gap="md">
+              {showPortalPicker && availablePortals.length > 0 && (
+                <Select
+                  label="Portal (dev local)"
+                  description="Escolha o cliente para testar no localhost"
+                  value={portalHost}
+                  onChange={(value) => {
+                    if (value) {
+                      setPortalHost(value);
+                    }
+                  }}
+                  data={availablePortals.map((portal) => ({
+                    value: portal.host,
+                    label: `${portal.loginBranding.displayName} (${portal.host})`,
+                  }))}
+                />
+              )}
               <TextInput
                 label="E-mail"
                 placeholder="seu@email.com"
