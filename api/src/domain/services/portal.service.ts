@@ -33,6 +33,16 @@ export class PortalService {
     const normalizedHost = normalizePortalHost(host);
     let portal = await this.portalRepository.findByHost(normalizedHost);
 
+    if (!portal && normalizedHost.startsWith('www.')) {
+      portal = await this.portalRepository.findByHost(
+        normalizedHost.slice(4),
+      );
+    }
+
+    if (!portal && !normalizedHost.startsWith('www.')) {
+      portal = await this.portalRepository.findByHost(`www.${normalizedHost}`);
+    }
+
     if (!portal) {
       const alias = PORTAL_HOST_ALIASES[normalizedHost];
       if (alias) {

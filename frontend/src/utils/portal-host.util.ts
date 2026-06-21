@@ -25,23 +25,35 @@ export function setDevPortalHostOverride(host: string): void {
   sessionStorage.setItem(DEV_PORTAL_HOST_KEY, host.trim());
 }
 
+function normalizeBrowserHostname(hostname: string): string {
+  const lower = hostname.trim().toLowerCase();
+
+  if (lower === '127.0.0.1') {
+    return 'localhost';
+  }
+
+  if (lower.startsWith('www.')) {
+    return lower.slice(4);
+  }
+
+  return lower;
+}
+
 export function getPortalHost(): string {
   const devOverride = getDevPortalHostOverride();
   if (devOverride) {
     return devOverride;
   }
 
-  const override = import.meta.env.VITE_PORTAL_HOST?.trim();
-  if (override) {
-    return override;
+  const hostname = normalizeBrowserHostname(window.location.hostname);
+
+  // Em localhost, permite override via .env ou seletor de portal (dev).
+  if (hostname === 'localhost') {
+    const envOverride = import.meta.env.VITE_PORTAL_HOST?.trim();
+    return envOverride || hostname;
   }
 
-  const hostname = window.location.hostname.trim().toLowerCase();
-
-  if (hostname === '127.0.0.1') {
-    return 'localhost';
-  }
-
+  // Produção: sempre o host da URL (suporta vários domínios no mesmo deploy).
   return hostname;
 }
 
