@@ -26,19 +26,30 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { DateTime } from "luxon";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { useCollaborators } from "../hooks/useCollaborators";
+import { useNavigate } from "react-router-dom";
 import {
   useCommissions,
   useMarkCommissionsAsPaid,
   useMarkCommissionsAsUnpaid,
 } from "../hooks/useCommissions";
+import { useOperationalBranding } from "../hooks/useOperationalBranding";
 import { useNotifications } from "../hooks/useNotifications";
 import { formatDate } from "../utils/appointment.utils";
 import { formatPrice, sumMoney, toMoney } from "../utils/money.util";
 
 export function Commissions() {
+  const navigate = useNavigate();
+  const { commissionsEnabled } = useOperationalBranding();
+
+  useEffect(() => {
+    if (!commissionsEnabled) {
+      navigate("/", { replace: true });
+    }
+  }, [commissionsEnabled, navigate]);
+
   const [activeTab, setActiveTab] = useState<string>("pending");
   const [selectedCommissions, setSelectedCommissions] = useState<Set<string>>(
     new Set()
@@ -107,7 +118,10 @@ export function Commissions() {
   }, [activeTab, statusFilter, startDate, endDate, collaboratorFilter]);
 
   // Usa os filtros do backend - a aba "pending" já força paid=false nos filtros
-  const { data: commissions, isLoading } = useCommissions(filters);
+  const { data: commissions, isLoading } = useCommissions(
+    filters,
+    commissionsEnabled,
+  );
   const { data: collaborators } = useCollaborators();
   const markAsPaidMutation = useMarkCommissionsAsPaid();
   const markAsUnpaidMutation = useMarkCommissionsAsUnpaid();
@@ -206,10 +220,14 @@ export function Commissions() {
     }
   };
 
+  if (!commissionsEnabled) {
+    return null;
+  }
+
   return (
     <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
       <Group gap="md" mb="xl">
-        <Title order={1} c="pink">
+        <Title order={1} c="brand">
           Comissões
         </Title>
       </Group>

@@ -33,6 +33,7 @@ import { useState } from "react";
 import { useAppointment } from "../../hooks/useAppointments";
 import { useCollaborators } from "../../hooks/useCollaborators";
 import { useNotifications } from "../../hooks/useNotifications";
+import { useOperationalBranding } from "../../hooks/useOperationalBranding";
 import {
   useCancelScheduledService,
   useCreateScheduledService,
@@ -115,6 +116,7 @@ export function AppointmentDetailModal({
     collaboratorId: undefined,
     price: undefined,
   });
+  const { commissionsEnabled } = useOperationalBranding();
 
   const { data: services } = useServices();
   const { data: collaborators } = useCollaborators();
@@ -275,7 +277,8 @@ export function AppointmentDetailModal({
           </Badge>
         </Group>
 
-        {appointment.status === AppointmentStatus.COMPLETED &&
+        {commissionsEnabled &&
+          appointment.status === AppointmentStatus.COMPLETED &&
           !canEditAppointment && (
             <Alert
               icon={<IconInfoCircle size={16} />}
@@ -334,7 +337,7 @@ export function AppointmentDetailModal({
               })()}
             </Text>
             {appointment.startTime && appointment.endTime && (
-              <Text size="sm" fw={500} c="pink" mt={4}>
+              <Text size="sm" fw={500} c="brand" mt={4}>
                 {appointment.startTime} - {appointment.endTime}
               </Text>
             )}
@@ -411,8 +414,9 @@ export function AppointmentDetailModal({
                         </ActionIcon>
                       </>
                     )}
-                    {appointment.editability?.services[service.id]
-                      ?.commissionPaid &&
+                    {commissionsEnabled &&
+                      appointment.editability?.services[service.id]
+                        ?.commissionPaid &&
                       service.status === ScheduledServiceStatus.COMPLETED && (
                         <Badge color="orange" size="xs" variant="light">
                           Comissão paga

@@ -1,144 +1,212 @@
 import {
+  Alert,
   Card,
   Container,
   Group,
+  Loader,
+  SegmentedControl,
+  Select,
   SimpleGrid,
   Stack,
   Text,
-  Title,
   ThemeIcon,
-  Loader,
-  Alert,
+  Title,
 } from "@mantine/core";
 import { MonthPickerInput } from "@mantine/dates";
-import { IconAlertCircle, IconCurrencyDollar, IconTrendingUp, IconTrendingDown, IconReceipt, IconCash } from "@tabler/icons-react";
+import {
+  IconAlertCircle,
+  IconCash,
+  IconCurrencyDollar,
+  IconReceipt,
+  IconTrendingDown,
+  IconTrendingUp,
+} from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import { useMemo, useState } from "react";
 import { useFinancialReports } from "../hooks/useFinancialReports";
+import { useOperationalBranding } from "../hooks/useOperationalBranding";
+import {
+  type FinancialReportPeriodType,
+  type FortnightHalf,
+  resolveFinancialReportPeriod,
+} from "../utils/financial-report-period.util";
 import { formatPrice, toMoney } from "../utils/money.util";
 
-function getMonthName(month: number): string {
-  const months = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
-  ];
-  return months[month - 1];
+const COMMISSION_REPORT_CARD_TITLES = new Set([
+  "Comissões Pagas",
+  "Comissões Previstas",
+  "Valor Líquido",
+  "Valor Líquido Previsto",
+]);
+
+const SP_ZONE = "America/Sao_Paulo";
+
+const PERIOD_OPTIONS: { value: FinancialReportPeriodType; label: string }[] = [
+  { value: "fortnight", label: "Quinzena" },
+  { value: "month", label: "Mês" },
+];
+
+const FORTNIGHT_OPTIONS = [
+  { value: "first", label: "1ª quinzena (1–15)" },
+  { value: "second", label: "2ª quinzena (16–fim)" },
+];
+
+function toReferenceDate(value: string | Date | null): Date {
+  if (!value) {
+    return DateTime.now().setZone(SP_ZONE).toJSDate();
+  }
+
+  const parsed =
+    typeof value === "string"
+      ? DateTime.fromISO(value, { zone: SP_ZONE })
+      : DateTime.fromJSDate(value, { zone: SP_ZONE });
+
+  if (parsed.isValid) {
+    return parsed.toJSDate();
+  }
+
+  return DateTime.now().setZone(SP_ZONE).toJSDate();
 }
 
 export function FinancialReports() {
-  const [selectedDate, setSelectedDate] = useState<Date | null>(
-    new Date() // Inicia com o mês atual
+  const { commissionsEnabled } = useOperationalBranding();
+  const [periodType, setPeriodType] =
+    useState<FinancialReportPeriodType>("month");
+  const [referenceDate, setReferenceDate] = useState<Date>(() =>
+    DateTime.now().setZone(SP_ZONE).toJSDate(),
+  );
+  const [fortnightHalf, setFortnightHalf] = useState<FortnightHalf>("first");
+
+  const period = useMemo(
+    () =>
+      resolveFinancialReportPeriod(periodType, referenceDate, fortnightHalf),
+    [periodType, referenceDate, fortnightHalf],
   );
 
-  // Usa Luxon para extrair ano e mês de forma segura
-  const { year, month } = useMemo(() => {
-    let currentDate: DateTime;
-    
-    if (selectedDate) {
-      currentDate = DateTime.fromJSDate(selectedDate, { zone: "America/Sao_Paulo" });
-      if (!currentDate.isValid) {
-        currentDate = DateTime.now().setZone("America/Sao_Paulo");
-      }
-    } else {
-      currentDate = DateTime.now().setZone("America/Sao_Paulo");
+  const { data: report, isLoading, error } = useFinancialReports(
+    period.startDate,
+    period.endDate,
+  );
+
+  const cards = useMemo(() => {
+    const allCards = [
+      {
+        title: "Total Agendado",
+        value: toMoney(report?.totalScheduled),
+        icon: IconReceipt,
+        color: "blue",
+        description: "Valor total dos serviços agendados",
+      },
+      {
+        title: "Serviços Pagos",
+        value: toMoney(report?.totalPaid),
+        icon: IconCash,
+        color: "green",
+        description: "Valor dos serviços já pagos",
+      },
+      {
+        title: "Serviços Não Pagos",
+        value: toMoney(report?.totalUnpaid),
+        icon: IconTrendingDown,
+        color: "orange",
+        description: "Valor dos serviços pendentes",
+      },
+      {
+        title: "Comissões Pagas",
+        value: toMoney(report?.totalCommissionsPaid),
+        icon: IconCurrencyDollar,
+        color: "violet",
+        description: "Total de comissões pagas",
+      },
+      {
+        title: "Comissões Previstas",
+        value: toMoney(report?.totalCommissionsExpected),
+        icon: IconCurrencyDollar,
+        color: "indigo",
+        description: "Total de comissões previstas (pagas + não pagas)",
+      },
+      {
+        title: "Valor Líquido",
+        value: toMoney(report?.netAmount),
+        icon: IconTrendingUp,
+        color: toMoney(report?.netAmount) >= 0 ? "teal" : "red",
+        description: "Valor líquido (pagos - comissões pagas)",
+      },
+      {
+        title: "Valor Líquido Previsto",
+        value: toMoney(report?.netAmountExpected),
+        icon: IconTrendingUp,
+        color: toMoney(report?.netAmountExpected) >= 0 ? "cyan" : "red",
+        description: "Valor líquido previsto (pagos - todas as comissões)",
+      },
+    ];
+
+    if (!commissionsEnabled) {
+      return allCards.filter(
+        (card) => !COMMISSION_REPORT_CARD_TITLES.has(card.title),
+      );
     }
-    
-    return {
-      year: currentDate.year,
-      month: currentDate.month, // Luxon usa 1-12
-    };
-  }, [selectedDate]);
 
-  const { data: report, isLoading, error } = useFinancialReports(year, month);
-
-  const cards = [
-    {
-      title: "Total Agendado",
-      value: toMoney(report?.totalScheduled),
-      icon: IconReceipt,
-      color: "blue",
-      description: "Valor total dos serviços agendados",
-    },
-    {
-      title: "Serviços Pagos",
-      value: toMoney(report?.totalPaid),
-      icon: IconCash,
-      color: "green",
-      description: "Valor dos serviços já pagos",
-    },
-    {
-      title: "Serviços Não Pagos",
-      value: toMoney(report?.totalUnpaid),
-      icon: IconTrendingDown,
-      color: "orange",
-      description: "Valor dos serviços pendentes",
-    },
-    {
-      title: "Comissões Pagas",
-      value: toMoney(report?.totalCommissionsPaid),
-      icon: IconCurrencyDollar,
-      color: "violet",
-      description: "Total de comissões pagas",
-    },
-    {
-      title: "Comissões Previstas",
-      value: toMoney(report?.totalCommissionsExpected),
-      icon: IconCurrencyDollar,
-      color: "indigo",
-      description: "Total de comissões previstas (pagas + não pagas)",
-    },
-    {
-      title: "Valor Líquido",
-      value: toMoney(report?.netAmount),
-      icon: IconTrendingUp,
-      color: toMoney(report?.netAmount) >= 0 ? "teal" : "red",
-      description: "Valor líquido (pagos - comissões pagas)",
-    },
-    {
-      title: "Valor Líquido Previsto",
-      value: toMoney(report?.netAmountExpected),
-      icon: IconTrendingUp,
-      color: toMoney(report?.netAmountExpected) >= 0 ? "cyan" : "red",
-      description: "Valor líquido previsto (pagos - todas as comissões)",
-    },
-  ];
+    return allCards;
+  }, [report, commissionsEnabled]);
 
   return (
     <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
       <Stack gap="lg">
-        <Group justify="space-between" align="center">
-          <Title order={1} c="pink">
+        <Group justify="space-between" align="flex-end" wrap="wrap">
+          <Title order={1} c="brand">
             Relatórios Financeiros
           </Title>
-          <MonthPickerInput
-            label="Selecione o mês"
-            placeholder="Escolha o mês"
-            value={selectedDate}
-            onChange={(value: string | null) => {
-              // Garante que sempre temos um Date válido usando Luxon
-              if (value) {
-                const dateValue = DateTime.fromISO(value, {
-                  zone: "America/Sao_Paulo",
-                }).toJSDate();
-                setSelectedDate(dateValue);
-              } else {
-                setSelectedDate(DateTime.now().setZone("America/Sao_Paulo").toJSDate());
+
+          <Stack gap="sm" align="flex-end">
+            <SegmentedControl
+              value={periodType}
+              onChange={(value) =>
+                setPeriodType(value as FinancialReportPeriodType)
               }
-            }}
-            valueFormat="MMMM [de] YYYY"
-            clearable={false}
-            style={{ maxWidth: 300 }}
-          />
+              data={PERIOD_OPTIONS}
+            />
+
+            <Group align="flex-end" wrap="wrap">
+              {periodType === "fortnight" && (
+                <>
+                  <MonthPickerInput
+                    label="Mês"
+                    placeholder="Escolha o mês"
+                    value={referenceDate}
+                    onChange={(value) =>
+                      setReferenceDate(toReferenceDate(value))
+                    }
+                    valueFormat="MMMM [de] YYYY"
+                    clearable={false}
+                    style={{ minWidth: 220 }}
+                  />
+                  <Select
+                    label="Quinzena"
+                    data={FORTNIGHT_OPTIONS}
+                    value={fortnightHalf}
+                    onChange={(value) =>
+                      setFortnightHalf((value as FortnightHalf) ?? "first")
+                    }
+                    allowDeselect={false}
+                    style={{ minWidth: 220 }}
+                  />
+                </>
+              )}
+
+              {periodType === "month" && (
+                <MonthPickerInput
+                  label="Mês"
+                  placeholder="Escolha o mês"
+                  value={referenceDate}
+                  onChange={(value) => setReferenceDate(toReferenceDate(value))}
+                  valueFormat="MMMM [de] YYYY"
+                  clearable={false}
+                  style={{ minWidth: 220 }}
+                />
+              )}
+            </Group>
+          </Stack>
         </Group>
 
         {error && (
@@ -158,7 +226,7 @@ export function FinancialReports() {
         ) : (
           <>
             <Text size="lg" c="dimmed" mb="md">
-              Relatório de {getMonthName(month)} de {year}
+              Relatório de {period.label}
             </Text>
 
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
@@ -200,11 +268,11 @@ export function FinancialReports() {
                   <Text size="sm" c="dimmed">
                     Período:{" "}
                     {DateTime.fromISO(report.period.startDate, {
-                      zone: "America/Sao_Paulo",
+                      zone: SP_ZONE,
                     }).toFormat("dd/MM/yyyy")}{" "}
                     até{" "}
                     {DateTime.fromISO(report.period.endDate, {
-                      zone: "America/Sao_Paulo",
+                      zone: SP_ZONE,
                     }).toFormat("dd/MM/yyyy")}
                   </Text>
                 </Stack>
@@ -216,4 +284,3 @@ export function FinancialReports() {
     </Container>
   );
 }
-

@@ -72,14 +72,14 @@ export function Services() {
       <Stack gap="md" mb="xl">
         <Group justify="space-between" wrap="wrap">
           <Group gap="md">
-            <Title order={1} c="pink">
+            <Title order={1} c="brand">
               Serviços
             </Title>
           </Group>
           <Button
             leftSection={<IconPlus size={16} />}
             onClick={() => setCreateModalOpened(true)}
-            color="pink"
+            color="brand"
             size="md"
           >
             Novo Serviço

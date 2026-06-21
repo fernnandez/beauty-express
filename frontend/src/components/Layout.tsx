@@ -23,7 +23,7 @@ import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useOperationalBranding } from "../hooks/useOperationalBranding";
-import { getNavbarBackground } from "../utils/theme.util";
+import { getNavbarBackground, withAlpha } from "../utils/theme.util";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -104,10 +104,10 @@ export function Layout({ children }: LayoutProps) {
                     justifyContent: "center",
                     borderRadius: "8px",
                     backgroundColor: isActive
-                      ? "var(--mantine-color-brand-0)"
+                      ? withAlpha(branding.primaryColor, 0.14)
                       : "transparent",
                     color: isActive
-                      ? "var(--mantine-color-brand-6)"
+                      ? branding.primaryColor
                       : "var(--mantine-color-gray-7)",
                     transition:
                       "background-color 150ms ease, color 150ms ease",
@@ -176,7 +176,7 @@ export function Layout({ children }: LayoutProps) {
               href="https://fernnandez-dev.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
-              c="brand"
+              c={branding.primaryColor}
               fw={500}
             >
               fernnnadez

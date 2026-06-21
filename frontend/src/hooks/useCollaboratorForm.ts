@@ -8,8 +8,11 @@ import {
 } from "../utils/collaborator.utils";
 
 export const useCollaboratorForm = (
-  initialValues?: Partial<CreateCollaboratorDto | UpdateCollaboratorDto>
+  initialValues?: Partial<CreateCollaboratorDto | UpdateCollaboratorDto>,
+  options?: { commissionsEnabled?: boolean },
 ) => {
+  const commissionsEnabled = options?.commissionsEnabled !== false;
+
   const form = useForm<CreateCollaboratorDto | UpdateCollaboratorDto>({
     initialValues: {
       name: "",
@@ -22,7 +25,9 @@ export const useCollaboratorForm = (
       name: validateCollaboratorName,
       phone: validateCollaboratorPhone,
       area: validateCollaboratorArea,
-      commissionPercentage: validateCommissionPercentage,
+      ...(commissionsEnabled
+        ? { commissionPercentage: validateCommissionPercentage }
+        : {}),
     },
   });
 

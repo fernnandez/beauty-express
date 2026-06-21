@@ -21,6 +21,7 @@ import {
 import { useAppointmentForm } from "../../hooks/useAppointmentForm";
 import { useCreateAppointment } from "../../hooks/useAppointments";
 import { useNotifications } from "../../hooks/useNotifications";
+import { useOperationalBranding } from "../../hooks/useOperationalBranding";
 import { ClientSelector } from "../client/ClientSelector";
 import { TIME_OPTIONS, formatPrice } from "../../utils/appointment.utils";
 import { ServiceFormItem } from "./ServiceFormItem";
@@ -35,6 +36,7 @@ export function AppointmentCreateModal({
   onClose,
 }: AppointmentCreateModalProps) {
   const createMutation = useCreateAppointment();
+  const { commissionsEnabled } = useOperationalBranding();
   const { showSuccess, showError } = useNotifications();
   const {
     form,
@@ -119,7 +121,9 @@ export function AppointmentCreateModal({
               variant="light"
             >
               Agendamentos no passado exigem serviço e colaborador em cada item.
-              O registro será concluído automaticamente para gerar as comissões.
+              {commissionsEnabled
+                ? " O registro será concluído automaticamente para gerar as comissões."
+                : " O registro será concluído automaticamente."}
             </Alert>
           )}
           <Group grow>

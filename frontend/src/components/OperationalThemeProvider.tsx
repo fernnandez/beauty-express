@@ -1,6 +1,5 @@
 import { MantineProvider } from '@mantine/core';
 import { useMemo, type ReactNode } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { useOperationalBranding } from '../hooks/useOperationalBranding';
 import { createBrandingTheme } from '../utils/theme.util';
 
@@ -11,13 +10,23 @@ interface OperationalThemeProviderProps {
 export function OperationalThemeProvider({
   children,
 }: OperationalThemeProviderProps) {
-  const { isAuthenticated } = useAuth();
   const { branding } = useOperationalBranding();
 
   const theme = useMemo(
-    () => createBrandingTheme(isAuthenticated ? branding.primaryColor : undefined),
-    [branding.primaryColor, isAuthenticated],
+    () => createBrandingTheme(branding.primaryColor),
+    [branding.primaryColor],
   );
 
-  return <MantineProvider theme={theme}>{children}</MantineProvider>;
+  return (
+    <MantineProvider
+      theme={theme}
+      key={branding.primaryColor}
+      cssVariablesSelector=":root"
+      getRootElement={() => document.documentElement}
+    >
+      <div data-mantine-color-scheme="light" style={{ minHeight: '100vh' }}>
+        {children}
+      </div>
+    </MantineProvider>
+  );
 }

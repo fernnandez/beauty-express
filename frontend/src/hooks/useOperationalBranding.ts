@@ -36,5 +36,13 @@ export function useOperationalBranding(): {
       settings,
       commissionsEnabled: settings.features.commissionsEnabled,
     };
-  }, [user?.tenantSettings]);
+  }, [
+    user?.id,
+    user?.tenantSettings?.branding.displayName,
+    user?.tenantSettings?.branding.primaryColor,
+    user?.tenantSettings?.branding.accentColor,
+    user?.tenantSettings?.branding.logoUrl,
+    user?.tenantSettings?.features.commissionsEnabled,
+    user?.tenantSettings?.features.financialReportsMode,
+  ]);
 }

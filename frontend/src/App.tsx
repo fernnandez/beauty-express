@@ -1,5 +1,5 @@
 import { DatesProvider } from "@mantine/dates";
-import { MantineProvider } from "@mantine/core";
+import { createTheme, MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
@@ -21,9 +21,11 @@ import { FinancialReports } from "./pages/FinancialReports";
 import { BackofficeApp } from "./backoffice/BackofficeApp";
 import { Login } from "./pages/Login";
 import { Services } from "./pages/Services";
-import { createBrandingTheme } from "./utils/theme.util";
 
-const rootTheme = createBrandingTheme();
+const rootTheme = createTheme({
+  primaryColor: "gray",
+  defaultRadius: "md",
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {

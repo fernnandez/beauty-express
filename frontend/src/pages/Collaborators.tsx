@@ -31,11 +31,13 @@ import {
   useUpdateCollaborator,
 } from "../hooks/useCollaborators";
 import { useNotifications } from "../hooks/useNotifications";
+import { useOperationalBranding } from "../hooks/useOperationalBranding";
 import { MESSAGES } from "../constants/messages.constants";
 import type { Collaborator } from "../types";
 import { toMoney } from "../utils/money.util";
 
 export function Collaborators() {
+  const { commissionsEnabled } = useOperationalBranding();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm] = useDebouncedValue(searchTerm, 500);
   const { data: collaborators, isLoading } = useCollaborators(
@@ -92,14 +94,14 @@ export function Collaborators() {
       <Stack gap="md" mb="xl">
         <Group justify="space-between" wrap="wrap">
           <Group gap="md">
-            <Title order={1} c="pink">
+            <Title order={1} c="brand">
               Colaboradores
             </Title>
           </Group>
           <Button
             leftSection={<IconPlus size={16} />}
             onClick={() => setCreateModalOpened(true)}
-            color="pink"
+            color="brand"
             size="md"
           >
             Novo Colaborador
@@ -150,7 +152,7 @@ export function Collaborators() {
                 <Table.Th>Nome</Table.Th>
                 <Table.Th>Área de Atuação</Table.Th>
                 <Table.Th>Telefone</Table.Th>
-                <Table.Th>Comissão</Table.Th>
+                {commissionsEnabled && <Table.Th>Comissão</Table.Th>}
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Ações</Table.Th>
               </Table.Tr>
@@ -161,7 +163,11 @@ export function Collaborators() {
                   <Table.Td>{collaborator.name}</Table.Td>
                   <Table.Td>{collaborator.area}</Table.Td>
                   <Table.Td>{collaborator.phone}</Table.Td>
-                  <Table.Td>{toMoney(collaborator.commissionPercentage)}%</Table.Td>
+                  {commissionsEnabled && (
+                    <Table.Td>
+                      {toMoney(collaborator.commissionPercentage)}%
+                    </Table.Td>
+                  )}
                   <Table.Td>
                     <Badge color={collaborator.isActive ? "green" : "red"}>
                       {collaborator.isActive ? "Ativo" : "Inativo"}

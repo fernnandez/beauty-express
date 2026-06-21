@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppointments } from "../hooks/useAppointments";
 import { useCollaborators } from "../hooks/useCollaborators";
 import { useCommissions } from "../hooks/useCommissions";
+import { useOperationalBranding } from "../hooks/useOperationalBranding";
 import { useServices } from "../hooks/useServices";
 
 const dashboardCards = [
@@ -48,22 +49,28 @@ const dashboardCards = [
     icon: IconCurrencyDollar,
     path: "/commissions",
     color: "orange",
+    requiresCommissions: true,
   },
   {
     title: "Relatórios Financeiros",
     description: "Visualizar relatórios financeiros",
     icon: IconChartBar,
     path: "/financial-reports",
-    color: "pink",
+    color: "brand",
   },
 ];
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const { commissionsEnabled } = useOperationalBranding();
   const { data: collaborators } = useCollaborators();
   const { data: services } = useServices();
   const { data: appointments } = useAppointments();
-  const { data: commissions } = useCommissions();
+  const { data: commissions } = useCommissions(undefined, commissionsEnabled);
+
+  const visibleCards = dashboardCards.filter(
+    (card) => !card.requiresCommissions || commissionsEnabled,
+  );
 
   const getCount = (path: string) => {
     switch (path) {
@@ -85,13 +92,13 @@ export function Dashboard() {
   return (
     <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
       <Group gap="md" mb="xl">
-        <Title order={1} c="pink">
+        <Title order={1} c="brand">
           Dashboard
         </Title>
       </Group>
 
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
-        {dashboardCards.map((card) => {
+        {visibleCards.map((card) => {
           const Icon = card.icon;
           return (
             <Card

@@ -140,14 +140,14 @@ export function Appointments() {
     <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
       <Group justify="space-between" mb="xl">
         <Group gap="md">
-          <Title order={1} c="pink">
+          <Title order={1} c="brand">
             Agendamentos
           </Title>
         </Group>
         <Button
           leftSection={<IconPlus size={16} />}
           onClick={() => setCreateModalOpened(true)}
-          color="pink"
+          color="brand"
         >
           Novo Agendamento
         </Button>

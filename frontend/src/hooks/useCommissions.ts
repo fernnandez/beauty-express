@@ -1,15 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { commissionService } from '../services/commission.service';
 
-export const useCommissions = (filters?: {
-  paid?: boolean;
-  startDate?: string;
-  endDate?: string;
-  collaboratorId?: string;
-}) => {
+export const useCommissions = (
+  filters?: {
+    paid?: boolean;
+    startDate?: string;
+    endDate?: string;
+    collaboratorId?: string;
+  },
+  enabled = true,
+) => {
   return useQuery({
     queryKey: ['commissions', filters],
     queryFn: () => commissionService.findAll(filters),
+    enabled,
   });
 };
 

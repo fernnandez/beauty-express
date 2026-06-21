@@ -10,6 +10,7 @@ import {
 import { useCollaboratorForm } from "../../hooks/useCollaboratorForm";
 import { useCreateCollaborator } from "../../hooks/useCollaborators";
 import { useNotifications } from "../../hooks/useNotifications";
+import { useOperationalBranding } from "../../hooks/useOperationalBranding";
 import { MESSAGES } from "../../constants/messages.constants";
 import { COLLABORATOR_AREAS } from "../../utils/collaborator.utils";
 import type { CreateCollaboratorDto } from "../../types";
@@ -24,12 +25,20 @@ export function CollaboratorCreateModal({
   onClose,
 }: CollaboratorCreateModalProps) {
   const createMutation = useCreateCollaborator();
-  const { form, resetForm } = useCollaboratorForm();
+  const { commissionsEnabled } = useOperationalBranding();
+  const { form, resetForm } = useCollaboratorForm(undefined, {
+    commissionsEnabled,
+  });
   const { showSuccess, showError } = useNotifications();
 
   const handleSubmit = async (values: CreateCollaboratorDto) => {
     try {
-      await createMutation.mutateAsync(values);
+      await createMutation.mutateAsync({
+        ...values,
+        commissionPercentage: commissionsEnabled
+          ? values.commissionPercentage
+          : 0,
+      });
       showSuccess(MESSAGES.SUCCESS.CREATE.COLLABORATOR);
       resetForm();
       onClose();
@@ -79,18 +88,20 @@ export function CollaboratorCreateModal({
             {...form.getInputProps("area")}
           />
 
-          <NumberInput
-            label="Percentual de Comissão"
-            placeholder="0"
-            min={0}
-            max={100}
-            decimalScale={2}
-            required
-            {...form.getInputProps("commissionPercentage")}
-          />
+          {commissionsEnabled && (
+            <NumberInput
+              label="Percentual de Comissão"
+              placeholder="0"
+              min={0}
+              max={100}
+              decimalScale={2}
+              required
+              {...form.getInputProps("commissionPercentage")}
+            />
+          )}
 
           <Group justify="flex-end" mt="md">
-            <Button variant="subtle" onClick={handleClose}>
+            <Button variant="default" color="gray" type="button" onClick={handleClose}>
               Cancelar
             </Button>
             <Button type="submit" loading={createMutation.isPending}>

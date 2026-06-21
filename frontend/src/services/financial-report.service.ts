@@ -15,6 +15,16 @@ export interface FinancialReport {
 }
 
 export const financialReportService = {
+  getReport: async (
+    startDate: string,
+    endDate: string,
+  ): Promise<FinancialReport> => {
+    const response = await api.get<FinancialReport>(
+      `/financial-reports/period?startDate=${startDate}&endDate=${endDate}`,
+    );
+    return response.data;
+  },
+
   getMonthlyReport: async (
     year: number,
     month: number,

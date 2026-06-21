@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import { useCollaboratorForm } from "../../hooks/useCollaboratorForm";
 import { useUpdateCollaborator } from "../../hooks/useCollaborators";
 import { useNotifications } from "../../hooks/useNotifications";
+import { useOperationalBranding } from "../../hooks/useOperationalBranding";
 import { MESSAGES } from "../../constants/messages.constants";
 import { COLLABORATOR_AREAS } from "../../utils/collaborator.utils";
 import type { Collaborator, UpdateCollaboratorDto } from "../../types";
@@ -28,7 +29,8 @@ export function CollaboratorEditModal({
   collaborator,
 }: CollaboratorEditModalProps) {
   const updateMutation = useUpdateCollaborator();
-  const { form } = useCollaboratorForm();
+  const { commissionsEnabled } = useOperationalBranding();
+  const { form } = useCollaboratorForm(undefined, { commissionsEnabled });
   const { showSuccess, showError } = useNotifications();
 
   // Atualiza o formulário quando o colaborador muda ou o modal abre
@@ -51,7 +53,12 @@ export function CollaboratorEditModal({
     try {
       await updateMutation.mutateAsync({
         id: collaborator.id,
-        data: values,
+        data: {
+          ...values,
+          commissionPercentage: commissionsEnabled
+            ? values.commissionPercentage
+            : 0,
+        },
       });
       showSuccess(MESSAGES.SUCCESS.UPDATE.COLLABORATOR);
       onClose();
@@ -92,15 +99,17 @@ export function CollaboratorEditModal({
             {...form.getInputProps("area")}
           />
 
-          <NumberInput
-            label="Percentual de Comissão"
-            placeholder="0"
-            min={0}
-            max={100}
-            decimalScale={2}
-            required
-            {...form.getInputProps("commissionPercentage")}
-          />
+          {commissionsEnabled && (
+            <NumberInput
+              label="Percentual de Comissão"
+              placeholder="0"
+              min={0}
+              max={100}
+              decimalScale={2}
+              required
+              {...form.getInputProps("commissionPercentage")}
+            />
+          )}
 
           <Switch
             label="Ativo"
@@ -109,7 +118,7 @@ export function CollaboratorEditModal({
           />
 
           <Group justify="flex-end" mt="md">
-            <Button variant="subtle" onClick={onClose}>
+            <Button variant="default" color="gray" type="button" onClick={onClose}>
               Cancelar
             </Button>
             <Button type="submit" loading={updateMutation.isPending}>

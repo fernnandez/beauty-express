@@ -1,11 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { financialReportService } from '../services/financial-report.service';
 
-export function useFinancialReports(year: number, month: number) {
+export function useFinancialReports(startDate: string, endDate: string) {
   return useQuery({
-    queryKey: ['financialReports', year, month],
-    queryFn: () => financialReportService.getMonthlyReport(year, month),
-    enabled: year > 0 && month > 0 && month <= 12,
+    queryKey: ['financialReports', startDate, endDate],
+    queryFn: () => financialReportService.getReport(startDate, endDate),
+    enabled: Boolean(startDate && endDate),
   });
 }
-

@@ -128,7 +128,7 @@ export function AppointmentListView({
                         {formatDate(appointment.date)}
                       </Text>
                       {appointment.startTime && appointment.endTime && (
-                        <Text size="xs" c="pink" fw={500}>
+                        <Text size="xs" c="brand" fw={500}>
                           {appointment.startTime} - {appointment.endTime}
                         </Text>
                       )}
