@@ -7,7 +7,7 @@ import {
   Scope,
 } from '@nestjs/common';
 import {
-  isValidBrazilianPhone,
+  isValidPhone,
   preparePhoneForStorage,
 } from '../../common/utils/phone.util';
 import { Client } from '../entities/client.entity';
@@ -32,9 +32,9 @@ export class ClientService {
   }
 
   private validatePhone(phone: string): { phone: string; phoneNormalized: string } {
-    if (!isValidBrazilianPhone(phone)) {
+    if (!isValidPhone(phone)) {
       throw new BadRequestException(
-        'Telefone inválido. Use DDD + número com 10 ou 11 dígitos.',
+        'Telefone inválido. Use DDD + número (BR) ou internacional com +.',
       );
     }
 

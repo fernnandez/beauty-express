@@ -113,7 +113,7 @@ export function ClientSelector({
         />
         <TextInput
           label="Telefone do Cliente"
-          placeholder="(11) 99999-9999"
+          placeholder="(11) 99999-9999 ou +351912345678"
           required
           leftSection={<IconPhone size={16} />}
           value={values.clientPhone}

@@ -67,7 +67,7 @@ export function ClientEditModal({
           />
           <TextInput
             label="Telefone"
-            placeholder="(11) 99999-9999"
+            placeholder="(11) 99999-9999 ou +351912345678"
             required
             leftSection={<IconPhone size={16} />}
             value={form.values.phone}

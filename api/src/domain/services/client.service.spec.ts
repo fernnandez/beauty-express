@@ -81,6 +81,31 @@ describe('ClientService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('should create a client with international phone', async () => {
+      const internationalClient: Client = {
+        ...baseClient,
+        id: 'client-intl',
+        phone: '+351912345678',
+        phoneNormalized: '351912345678',
+      };
+
+      mockRepository.findByPhoneNormalized.mockResolvedValue(null);
+      mockRepository.save.mockResolvedValue(internationalClient);
+
+      const result = await service.createClient({
+        name: 'João Portugal',
+        phone: '+351 912 345 678',
+      });
+
+      expect(result.phone).toBe('+351912345678');
+      expect(mockRepository.save).toHaveBeenCalledWith({
+        tenantId: TENANT_ID_MOCK,
+        name: 'João Portugal',
+        phone: '+351912345678',
+        phoneNormalized: '351912345678',
+      });
+    });
+
     it('should reject duplicate phone', async () => {
       mockRepository.findByPhoneNormalized.mockResolvedValue(baseClient);
 
