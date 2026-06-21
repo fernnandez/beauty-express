@@ -17,7 +17,8 @@ import { ServiceRepository } from '../repositories/service.repository';
 import { ScheduledServiceService } from './scheduled-service.service';
 import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
 import { TenantContextService } from './tenant-context.service';
-import { mockTenantContextService } from '../../test/tenant-context.mock';
+import { mockTenantContextService, mockTenantSettingsService } from '../../test/tenant-context.mock';
+import { TenantSettingsService } from './tenant-settings.service';
 
 describe('ScheduledServiceService', () => {
   let service: ScheduledServiceService;
@@ -88,6 +89,10 @@ describe('ScheduledServiceService', () => {
         {
           provide: AppointmentRepository,
           useValue: mockAppointmentRepository,
+        },
+        {
+          provide: TenantSettingsService,
+          useValue: mockTenantSettingsService,
         },
       ],
     }).compile();

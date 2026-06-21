@@ -9,6 +9,7 @@ import { TenantRepository } from '@domain/repositories/tenant.repository';
 import { UserRepository } from '@domain/repositories/user.repository';
 import { AuthService } from '@domain/services/auth.service';
 import { TenantContextService } from '@domain/services/tenant-context.service';
+import { TenantSettingsService } from '@domain/services/tenant-settings.service';
 import { PortalModule } from './portal.module';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
@@ -33,6 +34,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     TenantRepository,
     RefreshTokenRepository,
     TenantContextService,
+    TenantSettingsService,
   ],
   exports: [
     AuthService,
@@ -41,6 +43,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     TenantContextService,
     UserRepository,
     TenantRepository,
+    TenantSettingsService,
   ],
 })
 export class AuthModule {}

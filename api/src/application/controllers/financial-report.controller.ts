@@ -10,7 +10,10 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { VALIDATION_CONSTANTS } from '../../common/constants/validation.constants';
+import { formatDateToString, parseDateString } from '../../utils/date.util';
 import { FinancialReportDto } from '../dtos/financial-report/financial-report.dto';
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 @ApiTags('Financial Reports')
 @Controller('financial-reports')
@@ -62,5 +65,55 @@ export class FinancialReportController {
     }
 
     return await this.financialReportService.getMonthlyReport(year, month);
+  }
+
+  @Get('period')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get financial report for a date range',
+    description:
+      'Returns financial report for appointments between startDate and endDate (inclusive)',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: true,
+    type: String,
+    description: 'Start date (yyyy-mm-dd)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: true,
+    type: String,
+    description: 'End date (yyyy-mm-dd)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Financial report retrieved successfully',
+    type: FinancialReportDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid date range' })
+  async getPeriodReport(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ): Promise<FinancialReportDto> {
+    if (!DATE_PATTERN.test(startDate) || !DATE_PATTERN.test(endDate)) {
+      throw new BadRequestException(
+        'Invalid date format. Expected yyyy-mm-dd for startDate and endDate',
+      );
+    }
+
+    const start = parseDateString(startDate);
+    const end = parseDateString(endDate);
+
+    if (start > end) {
+      throw new BadRequestException(
+        'startDate must be less than or equal to endDate',
+      );
+    }
+
+    return await this.financialReportService.getReportForPeriod(
+      formatDateToString(start),
+      formatDateToString(end),
+    );
   }
 }

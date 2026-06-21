@@ -22,6 +22,7 @@ describe('FinancialReportController', () => {
 
   const mockFinancialReportService = {
     getMonthlyReport: jest.fn(),
+    getReportForPeriod: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -105,6 +106,38 @@ describe('FinancialReportController', () => {
       // Teste ano máximo
       await controller.getMonthlyReport(2100, 6);
       expect(service.getMonthlyReport).toHaveBeenCalledWith(2100, 6);
+    });
+  });
+
+  describe('getPeriodReport', () => {
+    it('should return report for valid date range', async () => {
+      mockFinancialReportService.getReportForPeriod.mockResolvedValue(mockReport);
+
+      const result = await controller.getPeriodReport('2024-12-01', '2024-12-15');
+
+      expect(result).toEqual(mockReport);
+      expect(service.getReportForPeriod).toHaveBeenCalledWith(
+        '2024-12-01',
+        '2024-12-15',
+      );
+    });
+
+    it('should throw error for invalid date format', async () => {
+      await expect(
+        controller.getPeriodReport('2024/12/01', '2024-12-15'),
+      ).rejects.toThrow(
+        'Invalid date format. Expected yyyy-mm-dd for startDate and endDate',
+      );
+
+      expect(service.getReportForPeriod).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when startDate is after endDate', async () => {
+      await expect(
+        controller.getPeriodReport('2024-12-20', '2024-12-01'),
+      ).rejects.toThrow('startDate must be less than or equal to endDate');
+
+      expect(service.getReportForPeriod).not.toHaveBeenCalled();
     });
   });
 });

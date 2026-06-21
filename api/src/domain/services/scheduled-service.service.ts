@@ -18,6 +18,7 @@ import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { ServiceRepository } from '../repositories/service.repository';
 import { TenantContextService } from './tenant-context.service';
+import { TenantSettingsService } from './tenant-settings.service';
 
 @Injectable({ scope: Scope.REQUEST })
 export class ScheduledServiceService {
@@ -28,6 +29,7 @@ export class ScheduledServiceService {
     private commissionRepository: CommissionRepository,
     private appointmentRepository: AppointmentRepository,
     private tenantContext: TenantContextService,
+    private tenantSettingsService: TenantSettingsService,
   ) {}
 
   private getTenantId(): string {
@@ -90,6 +92,12 @@ export class ScheduledServiceService {
       return null;
     }
 
+    const tenantId = this.getTenantId();
+
+    if (!(await this.tenantSettingsService.areCommissionsEnabled(tenantId))) {
+      return null;
+    }
+
     if (!scheduledService.collaboratorId) {
       throw new BadRequestException(
         'Completed scheduled service must have a collaborator assigned',
@@ -98,7 +106,6 @@ export class ScheduledServiceService {
 
     await this.assertCommissionNotPaid(scheduledService.id);
 
-    const tenantId = this.getTenantId();
     const collaborator = await this.collaboratorRepository.findById(
       scheduledService.collaboratorId,
       tenantId,

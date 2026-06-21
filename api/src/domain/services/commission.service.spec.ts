@@ -11,7 +11,8 @@ import { ScheduledServiceRepository } from '../repositories/scheduled-service.re
 import { CommissionService } from './commission.service';
 import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
 import { TenantContextService } from './tenant-context.service';
-import { mockTenantContextService } from '../../test/tenant-context.mock';
+import { mockTenantContextService, mockTenantSettingsService } from '../../test/tenant-context.mock';
+import { TenantSettingsService } from './tenant-settings.service';
 
 describe('CommissionService', () => {
   let service: CommissionService;
@@ -76,6 +77,10 @@ describe('CommissionService', () => {
         {
           provide: CollaboratorRepository,
           useValue: mockCollaboratorRepository,
+        },
+        {
+          provide: TenantSettingsService,
+          useValue: mockTenantSettingsService,
         },
       ],
     }).compile();

@@ -35,16 +35,13 @@ export class FinancialReportService {
     return this.tenantContext.requireTenantId();
   }
 
-  async getMonthlyReport(
-    year: number,
-    month: number,
+  async getReportForPeriod(
+    startDate: string,
+    endDate: string,
   ): Promise<FinancialReport> {
     const tenantId = this.getTenantId();
-    const startDate = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0);
-
     const start = startOfDay(startDate);
-    const end = endOfDay(lastDay);
+    const end = endOfDay(endDate);
 
     const scheduledServices = await this.scheduledServiceRepository
       .createQueryBuilder('scheduledService')
@@ -114,5 +111,18 @@ export class FinancialReportService {
         endDate: formatDateToString(end),
       },
     };
+  }
+
+  async getMonthlyReport(
+    year: number,
+    month: number,
+  ): Promise<FinancialReport> {
+    const startDate = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+
+    return this.getReportForPeriod(
+      formatDateToString(startDate),
+      formatDateToString(lastDay),
+    );
   }
 }

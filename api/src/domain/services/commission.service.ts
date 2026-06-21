@@ -11,6 +11,7 @@ import { CollaboratorRepository } from '../repositories/collaborator.repository'
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { TenantContextService } from './tenant-context.service';
+import { TenantSettingsService } from './tenant-settings.service';
 import {
   AppointmentEditability,
   ScheduledServiceEditability,
@@ -24,14 +25,22 @@ export class CommissionService {
     private scheduledServiceRepository: ScheduledServiceRepository,
     private collaboratorRepository: CollaboratorRepository,
     private tenantContext: TenantContextService,
+    private tenantSettingsService: TenantSettingsService,
   ) {}
 
   private getTenantId(): string {
     return this.tenantContext.requireTenantId();
   }
 
-  async calculateCommission(scheduledServiceId: string): Promise<Commission> {
+  async calculateCommission(
+    scheduledServiceId: string,
+  ): Promise<Commission | null> {
     const tenantId = this.getTenantId();
+
+    if (!(await this.tenantSettingsService.areCommissionsEnabled(tenantId))) {
+      return null;
+    }
+
     const scheduledService = await this.scheduledServiceRepository.findById(
       scheduledServiceId,
       tenantId,
@@ -108,20 +117,9 @@ export class CommissionService {
 
     for (const scheduledService of scheduledServices) {
       if (scheduledService.status === ScheduledServiceStatus.COMPLETED) {
-        try {
-          const commission = await this.calculateCommission(
-            scheduledService.id,
-          );
+        const commission = await this.calculateCommission(scheduledService.id);
+        if (commission) {
           commissions.push(commission);
-        } catch {
-          const existing =
-            await this.commissionRepository.findByScheduledServiceId(
-              scheduledService.id,
-              tenantId,
-            );
-          if (existing) {
-            commissions.push(existing);
-          }
         }
       }
     }
