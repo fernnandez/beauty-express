@@ -126,7 +126,6 @@ export function BrandingFormFields({
 }: BrandingFormFieldsProps) {
   const displayNamePath = getFieldPath(prefix, 'displayName');
   const logoUrlPath = getFieldPath(prefix, 'logoUrl');
-  const faviconUrlPath = getFieldPath(prefix, 'faviconUrl');
   const primaryColorPath = getFieldPath(prefix, 'primaryColor');
   const accentColorPath = getFieldPath(prefix, 'accentColor');
 
@@ -145,7 +144,7 @@ export function BrandingFormFields({
         <TextInput
           label="URL do logo"
           placeholder="/logo.png ou https://..."
-          description="Caminho relativo ou URL absoluta"
+          description="Usado na interface e como favicon da aba do navegador"
           style={{ flex: 1 }}
           styles={backofficeInputStyles}
           {...form.getInputProps(logoUrlPath)}
@@ -162,12 +161,6 @@ export function BrandingFormFields({
           />
         </Stack>
       </Group>
-      <TextInput
-        label="URL do favicon"
-        placeholder="Opcional"
-        styles={backofficeInputStyles}
-        {...form.getInputProps(faviconUrlPath)}
-      />
       <Group grow align="flex-start">
         <ColorInput
           label="Cor primária"

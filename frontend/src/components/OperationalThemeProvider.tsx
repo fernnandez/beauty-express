@@ -1,5 +1,6 @@
 import { MantineProvider } from '@mantine/core';
 import { useMemo, type ReactNode } from 'react';
+import { useDocumentBranding } from '../hooks/useDocumentBranding';
 import { useOperationalBranding } from '../hooks/useOperationalBranding';
 import { createBrandingTheme } from '../utils/theme.util';
 
@@ -11,6 +12,7 @@ export function OperationalThemeProvider({
   children,
 }: OperationalThemeProviderProps) {
   const { branding } = useOperationalBranding();
+  useDocumentBranding(branding);
 
   const theme = useMemo(
     () => createBrandingTheme(branding.primaryColor),
