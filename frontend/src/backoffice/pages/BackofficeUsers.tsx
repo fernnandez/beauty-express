@@ -29,6 +29,7 @@ import {
   useUpdateAdminUser,
 } from '../hooks/useAdminUsers';
 import { getErrorMessage } from '../../utils/error.util';
+import { backofficeAccent } from '../utils/backoffice-theme.util';
 import type {
   AdminUser,
   CreateAdminUserDto,
@@ -177,12 +178,12 @@ export function BackofficeUsers() {
     <Container style={{ maxWidth: '95%' }} px={{ base: 'xs', sm: 'md' }}>
       <Stack gap="md" mb="xl">
         <Group justify="space-between" wrap="wrap">
-          <Title order={1} c="indigo.3">
+          <Title order={1} c="gray.3">
             Usuários
           </Title>
           <Button
             leftSection={<IconPlus size={16} />}
-            color="indigo"
+            color={backofficeAccent}
             onClick={() => setCreateOpened(true)}
             disabled={activeTenantOptions.length === 0}
           >
@@ -192,7 +193,7 @@ export function BackofficeUsers() {
 
         {isLoading ? (
           <Group justify="center" py="xl">
-            <Loader color="indigo" />
+            <Loader color={backofficeAccent} />
           </Group>
         ) : (
           <ScrollArea>
@@ -219,7 +220,7 @@ export function BackofficeUsers() {
                   <Table.Tr key={user.id}>
                     <Table.Td>{user.email}</Table.Td>
                     <Table.Td>
-                      <Badge color={user.role === 'super_admin' ? 'indigo' : 'blue'}>
+                      <Badge color={user.role === 'super_admin' ? 'gray' : 'blue'}>
                         {ROLE_LABELS[user.role]}
                       </Badge>
                     </Table.Td>
@@ -239,7 +240,7 @@ export function BackofficeUsers() {
                       <Tooltip label="Editar">
                         <ActionIcon
                           variant="subtle"
-                          color="indigo"
+                          color={backofficeAccent}
                           onClick={() => handleEdit(user)}
                         >
                           <IconEdit size={18} />
@@ -288,7 +289,7 @@ export function BackofficeUsers() {
               <Button variant="default" onClick={() => setCreateOpened(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" color="indigo" loading={createMutation.isPending}>
+              <Button type="submit" color={backofficeAccent} loading={createMutation.isPending}>
                 Criar usuário
               </Button>
             </Group>
@@ -332,7 +333,7 @@ export function BackofficeUsers() {
 
             <Switch
               label="Usuário ativo"
-              color="indigo"
+              color={backofficeAccent}
               {...editForm.getInputProps('isActive', { type: 'checkbox' })}
             />
 
@@ -346,7 +347,7 @@ export function BackofficeUsers() {
               >
                 Cancelar
               </Button>
-              <Button type="submit" color="indigo" loading={updateMutation.isPending}>
+              <Button type="submit" color={backofficeAccent} loading={updateMutation.isPending}>
                 Salvar
               </Button>
             </Group>

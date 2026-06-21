@@ -9,9 +9,10 @@ import { BackofficePortals } from './pages/BackofficePortals';
 import { BackofficeTenants } from './pages/BackofficeTenants';
 import { BackofficeTenantDetail } from './pages/BackofficeTenantDetail';
 import { BackofficeUsers } from './pages/BackofficeUsers';
+import { backofficeAccent } from './utils/backoffice-theme.util';
 
 const backofficeTheme = {
-  primaryColor: 'indigo' as const,
+  primaryColor: backofficeAccent,
   defaultRadius: 'md' as const,
   colorScheme: 'dark' as const,
 };

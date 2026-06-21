@@ -1,16 +1,17 @@
 import {
   Anchor,
   AppShell,
-  Avatar,
   Center,
   Group,
   Stack,
   Text,
+  ThemeIcon,
   Tooltip,
   UnstyledButton,
 } from '@mantine/core';
 import {
   IconBuildingStore,
+  IconCalendarEvent,
   IconHome,
   IconLogout,
   IconUsers,
@@ -18,6 +19,10 @@ import {
 } from '@tabler/icons-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
+import {
+  BACKOFFICE_NAME,
+  backofficeColors,
+} from '../utils/backoffice-theme.util';
 
 const navigationItems = [
   { icon: IconHome, label: 'Dashboard', path: '/backoffice' },
@@ -48,9 +53,13 @@ export function BackofficeLayout() {
       navbar={{ width: 80, breakpoint: 'sm' }}
       footer={{ height: 35 }}
     >
-      <AppShell.Navbar p="md" style={{ backgroundColor: '#1e1b4b' }}>
+      <AppShell.Navbar p="md" style={{ backgroundColor: backofficeColors.navbar }}>
         <Center mb="xl">
-          <Avatar src="/logo.png" size={48} radius="md" />
+          <Tooltip label={BACKOFFICE_NAME} position="right" withArrow>
+            <ThemeIcon size={48} radius="md" color="gray" variant="light">
+              <IconCalendarEvent size={26} stroke={1.5} />
+            </ThemeIcon>
+          </Tooltip>
         </Center>
 
         <Stack justify="center" gap={0} style={{ flex: 1 }}>
@@ -76,16 +85,18 @@ export function BackofficeLayout() {
                     justifyContent: 'center',
                     borderRadius: '8px',
                     backgroundColor: active
-                      ? 'rgba(99, 102, 241, 0.25)'
+                      ? backofficeColors.navActiveBg
                       : 'transparent',
-                    color: active ? '#a5b4fc' : '#c7d2fe',
+                    color: active
+                      ? backofficeColors.navTextActive
+                      : backofficeColors.navText,
                     transition:
                       'background-color 150ms ease, color 150ms ease',
                   }}
                   onMouseEnter={(e) => {
                     if (!active) {
                       e.currentTarget.style.backgroundColor =
-                        'rgba(99, 102, 241, 0.15)';
+                        backofficeColors.navHoverBg;
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -111,7 +122,7 @@ export function BackofficeLayout() {
               alignItems: 'center',
               justifyContent: 'center',
               borderRadius: '8px',
-              color: '#c7d2fe',
+              color: backofficeColors.navText,
             }}
           >
             <IconLogout size={22} stroke={1.5} />
@@ -121,7 +132,7 @@ export function BackofficeLayout() {
 
       <AppShell.Main
         style={{
-          backgroundColor: '#0f172a',
+          backgroundColor: backofficeColors.bg,
           width: '100%',
           maxWidth: '100%',
           minHeight: '100vh',
@@ -133,7 +144,10 @@ export function BackofficeLayout() {
 
       <AppShell.Footer
         py="xs"
-        style={{ backgroundColor: '#1e293b', borderTop: '1px solid #334155' }}
+        style={{
+          backgroundColor: backofficeColors.surface,
+          borderTop: `1px solid ${backofficeColors.border}`,
+        }}
       >
         <Group justify="center" align="center" gap="md">
           {user?.email && (
@@ -142,12 +156,12 @@ export function BackofficeLayout() {
             </Text>
           )}
           <Text size="sm" c="dimmed">
-            Backoffice ·{' '}
+            {BACKOFFICE_NAME} ·{' '}
             <Anchor
               href="https://fernnandez-dev.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
-              c="indigo"
+              c="gray.4"
               fw={500}
             >
               fernnnadez

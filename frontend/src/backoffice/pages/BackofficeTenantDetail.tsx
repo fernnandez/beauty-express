@@ -6,6 +6,7 @@ import {
   Group,
   Loader,
   ScrollArea,
+  Select,
   SimpleGrid,
   Stack,
   Table,
@@ -25,7 +26,6 @@ import {
   IconTrendingDown,
   IconTrendingUp,
 } from '@tabler/icons-react';
-import { DateTime } from 'luxon';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppointmentStatus, type Appointment } from '../../types';
@@ -38,16 +38,20 @@ import {
   useAdminTenantSummary,
 } from '../hooks/useAdminTenantDetail';
 import { TenantConfigTab } from '../components/TenantConfigTab';
+import {
+  datePickerToApiString,
+  parseMonthFromPicker,
+  todayDateString,
+} from '../utils/backoffice-date.util';
+import {
+  backofficeAccent,
+  backofficeCardStyle,
+  backofficeTableStyles,
+  backofficeTabsProps,
+} from '../utils/backoffice-theme.util';
 
-const tableStyles = {
-  th: { backgroundColor: '#1e293b', color: '#e2e8f0' },
-  td: { backgroundColor: '#0f172a', color: '#f1f5f9' },
-};
-
-const cardStyle = {
-  borderColor: '#334155',
-  backgroundColor: '#1e293b',
-};
+const tableStyles = backofficeTableStyles;
+const cardStyle = backofficeCardStyle;
 
 const statusColors: Record<AppointmentStatus, string> = {
   agendado: 'blue',
@@ -80,18 +84,14 @@ function getMonthName(month: number): string {
 }
 
 function TenantSummaryTab({ tenantId }: { tenantId: string }) {
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [selectedMonth, setSelectedMonth] = useState<Date | string | null>(
+    () => todayDateString(),
+  );
 
-  const { year, month } = useMemo(() => {
-    const currentDate = selectedDate
-      ? DateTime.fromJSDate(selectedDate, { zone: 'America/Sao_Paulo' })
-      : DateTime.now().setZone('America/Sao_Paulo');
-
-    return {
-      year: currentDate.year,
-      month: currentDate.month,
-    };
-  }, [selectedDate]);
+  const { year, month } = useMemo(
+    () => parseMonthFromPicker(selectedMonth),
+    [selectedMonth],
+  );
 
   const { data: report, isLoading } = useAdminTenantSummary(tenantId, year, month);
 
@@ -124,7 +124,7 @@ function TenantSummaryTab({ tenantId }: { tenantId: string }) {
       title: 'Comissões Previstas',
       value: toMoney(report?.totalCommissionsExpected),
       icon: IconCurrencyDollar,
-      color: 'indigo',
+      color: 'gray',
     },
     {
       title: 'Valor Líquido',
@@ -141,8 +141,8 @@ function TenantSummaryTab({ tenantId }: { tenantId: string }) {
           Relatório de {getMonthName(month)} de {year}
         </Text>
         <MonthPickerInput
-          value={selectedDate}
-          onChange={(value) => setSelectedDate(value as Date | null)}
+          value={selectedMonth}
+          onChange={setSelectedMonth}
           placeholder="Selecione o mês"
           valueFormat="MM/YYYY"
           style={{ maxWidth: 200 }}
@@ -151,7 +151,7 @@ function TenantSummaryTab({ tenantId }: { tenantId: string }) {
 
       {isLoading ? (
         <Group justify="center" py="xl">
-          <Loader color="indigo" />
+          <Loader color={backofficeAccent} />
         </Group>
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
@@ -182,43 +182,65 @@ function TenantSummaryTab({ tenantId }: { tenantId: string }) {
 }
 
 function TenantAppointmentsTab({ tenantId }: { tenantId: string }) {
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-
-  const dateFilter = useMemo(() => {
-    if (!selectedDate) {
-      return DateTime.now().setZone('America/Sao_Paulo').toFormat('yyyy-MM-dd');
-    }
-    return DateTime.fromJSDate(selectedDate, {
-      zone: 'America/Sao_Paulo',
-    }).toFormat('yyyy-MM-dd');
-  }, [selectedDate]);
+  const [selectedDate, setSelectedDate] = useState<string>(todayDateString);
+  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | null>(
+    null,
+  );
 
   const { data: appointments, isLoading } = useAdminTenantAppointments(
     tenantId,
-    dateFilter,
+    selectedDate,
   );
+
+  const filteredAppointments = useMemo(() => {
+    const list = appointments ?? [];
+    if (!statusFilter) {
+      return list;
+    }
+    return list.filter((appointment) => appointment.status === statusFilter);
+  }, [appointments, statusFilter]);
 
   const getTotalPrice = (appointment: Appointment) =>
     sumMoney(appointment.scheduledServices?.map((service) => service.price) ?? []);
 
   return (
     <Stack gap="md">
-      <DatePickerInput
-        label="Data"
-        value={selectedDate}
-        onChange={(value) => setSelectedDate(value as Date | null)}
-        leftSection={<IconCalendar size={16} />}
-        valueFormat="DD/MM/YYYY"
-        style={{ maxWidth: 280 }}
-      />
+      <Group wrap="wrap" align="flex-end">
+        <DatePickerInput
+          label="Data"
+          value={selectedDate}
+          onChange={(value) => {
+            const next = datePickerToApiString(value);
+            setSelectedDate(next);
+          }}
+          leftSection={<IconCalendar size={16} />}
+          valueFormat="DD/MM/YYYY"
+          style={{ maxWidth: 280 }}
+        />
+        <Select
+          label="Status"
+          placeholder="Todos"
+          clearable
+          data={[
+            { value: AppointmentStatus.SCHEDULED, label: 'Agendado' },
+            { value: AppointmentStatus.COMPLETED, label: 'Concluído' },
+            { value: AppointmentStatus.CANCELLED, label: 'Cancelado' },
+          ]}
+          value={statusFilter}
+          onChange={(value) =>
+            setStatusFilter(value as AppointmentStatus | null)
+          }
+          style={{ maxWidth: 200 }}
+        />
+      </Group>
 
       {isLoading ? (
         <Group justify="center" py="xl">
-          <Loader color="indigo" />
+          <Loader color={backofficeAccent} />
         </Group>
-      ) : !appointments?.length ? (
+      ) : !filteredAppointments.length ? (
         <Text c="dimmed" ta="center" py="xl">
-          Nenhum agendamento nesta data
+          Nenhum agendamento encontrado para os filtros selecionados
         </Text>
       ) : (
         <ScrollArea>
@@ -239,7 +261,7 @@ function TenantAppointmentsTab({ tenantId }: { tenantId: string }) {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {appointments.map((appointment) => (
+              {filteredAppointments.map((appointment) => (
                 <Table.Tr key={appointment.id}>
                   <Table.Td>
                     {appointment.startTime} – {appointment.endTime}
@@ -271,8 +293,8 @@ function TenantAppointmentsTab({ tenantId }: { tenantId: string }) {
 function TenantCommissionsTab({ tenantId }: { tenantId: string }) {
   const [activeTab, setActiveTab] = useState<string>('pending');
   const [searchTerm, setSearchTerm] = useState('');
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<Date | string | null>(null);
+  const [endDate, setEndDate] = useState<Date | string | null>(null);
 
   const filters = useMemo(() => {
     const filterObj: {
@@ -288,15 +310,11 @@ function TenantCommissionsTab({ tenantId }: { tenantId: string }) {
     }
 
     if (startDate) {
-      filterObj.startDate = DateTime.fromJSDate(startDate, {
-        zone: 'America/Sao_Paulo',
-      }).toFormat('yyyy-MM-dd');
+      filterObj.startDate = datePickerToApiString(startDate);
     }
 
     if (endDate) {
-      filterObj.endDate = DateTime.fromJSDate(endDate, {
-        zone: 'America/Sao_Paulo',
-      }).toFormat('yyyy-MM-dd');
+      filterObj.endDate = datePickerToApiString(endDate);
     }
 
     return Object.keys(filterObj).length > 0 ? filterObj : undefined;
@@ -340,7 +358,11 @@ function TenantCommissionsTab({ tenantId }: { tenantId: string }) {
 
   return (
     <Stack gap="md">
-      <Tabs value={activeTab} onChange={(value) => setActiveTab(value ?? 'pending')}>
+      <Tabs
+        value={activeTab}
+        onChange={(value) => setActiveTab(value ?? 'pending')}
+        {...backofficeTabsProps}
+      >
         <Tabs.List>
           <Tabs.Tab value="pending">Pendentes</Tabs.Tab>
           <Tabs.Tab value="paid">Pagas</Tabs.Tab>
@@ -352,7 +374,7 @@ function TenantCommissionsTab({ tenantId }: { tenantId: string }) {
         <DatePickerInput
           placeholder="Data inicial"
           value={startDate}
-          onChange={(value) => setStartDate(value as Date | null)}
+          onChange={setStartDate}
           leftSection={<IconCalendar size={16} />}
           valueFormat="DD/MM/YYYY"
           clearable
@@ -361,7 +383,7 @@ function TenantCommissionsTab({ tenantId }: { tenantId: string }) {
         <DatePickerInput
           placeholder="Data final"
           value={endDate}
-          onChange={(value) => setEndDate(value as Date | null)}
+          onChange={setEndDate}
           leftSection={<IconCalendar size={16} />}
           valueFormat="DD/MM/YYYY"
           clearable
@@ -402,7 +424,7 @@ function TenantCommissionsTab({ tenantId }: { tenantId: string }) {
 
       {isLoading ? (
         <Group justify="center" py="xl">
-          <Loader color="indigo" />
+          <Loader color={backofficeAccent} />
         </Group>
       ) : commissionsToShow.length === 0 ? (
         <Text c="dimmed" ta="center" py="xl">
@@ -466,7 +488,7 @@ export function BackofficeTenantDetail() {
     return (
       <Container style={{ maxWidth: '95%' }} px={{ base: 'xs', sm: 'md' }}>
         <Group justify="center" py="xl">
-          <Loader color="indigo" />
+          <Loader color={backofficeAccent} />
         </Group>
       </Container>
     );
@@ -479,7 +501,7 @@ export function BackofficeTenantDetail() {
           <Text c="red">Filial não encontrada</Text>
           <Button
             variant="subtle"
-            color="indigo"
+            color={backofficeAccent}
             leftSection={<IconArrowLeft size={16} />}
             onClick={() => navigate('/backoffice/tenants')}
           >
@@ -530,7 +552,7 @@ export function BackofficeTenantDetail() {
           <Stack gap="xs">
             <Button
               variant="subtle"
-              color="indigo"
+              color={backofficeAccent}
               leftSection={<IconArrowLeft size={16} />}
               onClick={() => navigate('/backoffice/tenants')}
               w="fit-content"
@@ -539,7 +561,7 @@ export function BackofficeTenantDetail() {
               Voltar
             </Button>
             <Group gap="sm">
-              <Title order={1} c="indigo.3">
+              <Title order={1} c="gray.3">
                 {tenant.name}
               </Title>
               <Badge color={tenant.isActive ? 'green' : 'gray'}>
@@ -567,7 +589,7 @@ export function BackofficeTenantDetail() {
           ))}
         </SimpleGrid>
 
-        <Tabs defaultValue="config" color="indigo">
+        <Tabs defaultValue="config" {...backofficeTabsProps}>
           <Tabs.List>
             <Tabs.Tab value="config">Configuração</Tabs.Tab>
             <Tabs.Tab value="summary">Resumo financeiro</Tabs.Tab>

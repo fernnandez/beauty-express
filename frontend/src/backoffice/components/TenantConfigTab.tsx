@@ -23,6 +23,13 @@ import {
 import { getErrorMessage } from '../../utils/error.util';
 import type { TenantDetail, UpdateTenantDto } from '../../types/admin.types';
 import type { TenantSettings } from '../../types/tenant-settings.types';
+import {
+  backofficeAccent,
+  backofficeCardStyle,
+  backofficeDividerStyles,
+  backofficeInputStyles,
+  backofficeSelectStyles,
+} from '../utils/backoffice-theme.util';
 
 type TenantConfigFormValues = {
   name: string;
@@ -84,11 +91,11 @@ export function TenantConfigTab({ tenant }: { tenant: TenantDetail }) {
   });
 
   return (
-    <Card padding="lg" radius="md" withBorder style={{ borderColor: '#334155', backgroundColor: '#1e293b' }}>
+    <Card padding="lg" radius="md" withBorder style={backofficeCardStyle}>
       <form onSubmit={handleSubmit}>
         <Stack gap="lg">
           <Stack gap="xs">
-            <Title order={3} c="indigo.3">
+            <Title order={3} c="gray.3">
               Configuração da filial
             </Title>
             <Text size="sm" c="dimmed">
@@ -97,13 +104,22 @@ export function TenantConfigTab({ tenant }: { tenant: TenantDetail }) {
           </Stack>
 
           <Group grow align="flex-start">
-            <TextInput label="Nome" {...form.getInputProps('name')} />
-            <TextInput label="Slug" {...form.getInputProps('slug')} />
+            <TextInput
+              label="Nome"
+              styles={backofficeInputStyles}
+              {...form.getInputProps('name')}
+            />
+            <TextInput
+              label="Slug"
+              styles={backofficeInputStyles}
+              {...form.getInputProps('slug')}
+            />
           </Group>
 
           <Select
             label="Portal de login"
             description="Subdomínio por onde os usuários desta filial fazem login"
+            styles={backofficeSelectStyles}
             data={(portals ?? []).map((portal) => ({
               value: portal.id,
               label: `${portal.loginBranding.displayName} (${portal.host})`,
@@ -111,11 +127,23 @@ export function TenantConfigTab({ tenant }: { tenant: TenantDetail }) {
             {...form.getInputProps('portalId')}
           />
 
-          <Divider label="Branding da área logada" labelPosition="center" />
+          <Divider
+            label="Branding da área logada"
+            labelPosition="center"
+            styles={backofficeDividerStyles}
+          />
 
-          <BrandingFormFields form={form} prefix="settings.branding" />
+          <BrandingFormFields
+            form={form}
+            prefix="settings.branding"
+            previewVariant="operational"
+          />
 
-          <Divider label="Funcionalidades" labelPosition="center" />
+          <Divider
+            label="Funcionalidades"
+            labelPosition="center"
+            styles={backofficeDividerStyles}
+          />
 
           <TenantFeaturesFormFields form={form} prefix="settings.features" />
 
@@ -127,7 +155,7 @@ export function TenantConfigTab({ tenant }: { tenant: TenantDetail }) {
             >
               Desfazer
             </Button>
-            <Button type="submit" color="indigo" loading={updateMutation.isPending}>
+            <Button type="submit" color={backofficeAccent} loading={updateMutation.isPending}>
               Salvar configurações
             </Button>
           </Group>

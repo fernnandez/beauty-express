@@ -27,23 +27,22 @@ import { useNavigate } from "react-router-dom";
 import { formatPrice, toMoney } from "../../utils/money.util";
 import { useAdminDashboard } from "../hooks/useAdminDashboard";
 import type { TenantDashboardRow } from "../../types/admin.types";
+import {
+  BACKOFFICE_TAGLINE,
+  backofficeAccent,
+  backofficeCardStyle,
+  backofficeTableStyles,
+} from "../utils/backoffice-theme.util";
 
-const cardStyle = {
-  borderColor: "#334155",
-  backgroundColor: "#1e293b",
-};
-
-const tableStyles = {
-  th: { backgroundColor: "#1e293b", color: "#e2e8f0" },
-  td: { backgroundColor: "#0f172a", color: "#f1f5f9" },
-};
+const cardStyle = backofficeCardStyle;
+const tableStyles = backofficeTableStyles;
 
 const kpiCards = [
   {
     key: "activeTenants" as const,
     title: "Filiais ativas",
     icon: IconBuildingStore,
-    color: "indigo",
+    color: "gray",
     format: "number" as const,
     path: "/backoffice/tenants",
   },
@@ -78,7 +77,7 @@ const inventoryCards = [
     key: "tenants" as const,
     title: "Filiais",
     icon: IconBuildingStore,
-    color: "indigo",
+    color: "gray",
     path: "/backoffice/tenants",
   },
   {
@@ -127,17 +126,17 @@ export function BackofficeDashboard() {
     <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
       <Stack gap="xl" mb="xl">
         <Stack gap="xs">
-          <Title order={1} c="indigo.3">
+          <Title order={1} c="gray.3">
             Dashboard consolidado
           </Title>
           <Text c="dimmed">
-            Visão geral de todas as filiais Maria Borboleta
+            {BACKOFFICE_TAGLINE} — visão geral de todas as filiais
           </Text>
         </Stack>
 
         {isLoading ? (
           <Group justify="center" py="xl">
-            <Loader color="indigo" />
+            <Loader color={backofficeAccent} />
           </Group>
         ) : (
           <Stack gap="xl">
@@ -182,7 +181,7 @@ export function BackofficeDashboard() {
             </SimpleGrid>
 
             <Stack gap="md">
-              <Title order={3} c="indigo.3">
+              <Title order={3} c="gray.3">
                 Comparativo por filial
               </Title>
               <ScrollArea>
@@ -241,7 +240,7 @@ export function BackofficeDashboard() {
                           <Tooltip label="Ver detalhes">
                             <ActionIcon
                               variant="subtle"
-                              color="indigo"
+                              color={backofficeAccent}
                               onClick={() =>
                                 navigate(
                                   `/backoffice/tenants/${tenant.tenantId}`,
@@ -260,7 +259,7 @@ export function BackofficeDashboard() {
             </Stack>
 
             <Stack gap="md">
-              <Title order={3} c="indigo.3">
+              <Title order={3} c="gray.3">
                 Inventário da plataforma
               </Title>
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">

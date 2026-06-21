@@ -1,7 +1,6 @@
 import {
   Alert,
   Anchor,
-  Avatar,
   Box,
   Button,
   Center,
@@ -10,16 +9,25 @@ import {
   Stack,
   Text,
   TextInput,
+  ThemeIcon,
   Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconAlertCircle } from '@tabler/icons-react';
+import { IconAlertCircle, IconCalendarEvent } from '@tabler/icons-react';
 import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import { getErrorMessage } from '../../utils/error.util';
 import type { AdminLoginDto } from '../../types/auth.types';
+import {
+  BACKOFFICE_NAME,
+  BACKOFFICE_TAGLINE,
+  backofficeAccent,
+  backofficeCardStyle,
+  backofficeInputStyles,
+  backofficeLoginGradient,
+} from '../utils/backoffice-theme.util';
 
 export function AdminLogin() {
   const { login, isAuthenticated, isLoading } = useAdminAuth();
@@ -53,9 +61,9 @@ export function AdminLogin() {
     try {
       await login(values);
       notifications.show({
-        title: 'Backoffice',
+        title: BACKOFFICE_NAME,
         message: 'Login realizado com sucesso',
-        color: 'indigo',
+        color: backofficeAccent,
       });
       const redirectTo =
         (location.state as { from?: string } | null)?.from || '/backoffice';
@@ -71,7 +79,7 @@ export function AdminLogin() {
     <Center
       mih="100vh"
       style={{
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%)',
+        background: backofficeLoginGradient,
       }}
     >
       <Paper
@@ -80,15 +88,20 @@ export function AdminLogin() {
         p="xl"
         w={420}
         withBorder
-        style={{ borderColor: '#334155', backgroundColor: '#1e293b' }}
+        style={backofficeCardStyle}
       >
         <Stack gap="lg">
           <Stack gap="xs" align="center">
-            <Avatar src="/logo.png" size={64} radius="md" />
+            <ThemeIcon size={64} radius="md" color={backofficeAccent} variant="light">
+              <IconCalendarEvent size={34} stroke={1.5} />
+            </ThemeIcon>
             <Title order={2} ta="center" c="white">
-              Backoffice
+              {BACKOFFICE_NAME}
             </Title>
             <Text c="dimmed" size="sm" ta="center">
+              {BACKOFFICE_TAGLINE}
+            </Text>
+            <Text c="dimmed" size="xs" ta="center">
               Acesso exclusivo para super admin
             </Text>
           </Stack>
@@ -107,21 +120,23 @@ export function AdminLogin() {
             <Stack gap="md">
               <TextInput
                 label="E-mail"
-                placeholder="owner@beautyexpress.com"
+                placeholder="admin@exemplo.com"
                 autoComplete="username"
+                styles={backofficeInputStyles}
                 {...form.getInputProps('email')}
               />
               <PasswordInput
                 label="Senha"
                 placeholder="Sua senha"
                 autoComplete="current-password"
+                styles={backofficeInputStyles}
                 {...form.getInputProps('password')}
               />
               <Button
                 type="submit"
                 loading={submitting}
                 fullWidth
-                color="indigo"
+                color={backofficeAccent}
               >
                 Entrar no backoffice
               </Button>
@@ -130,7 +145,7 @@ export function AdminLogin() {
 
           <Text size="sm" ta="center" c="dimmed">
             App operacional?{' '}
-            <Anchor component={Link} to="/login" c="indigo">
+            <Anchor component={Link} to="/login" c="gray.4">
               Fazer login na filial
             </Anchor>
           </Text>

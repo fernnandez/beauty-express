@@ -28,6 +28,7 @@ import {
 } from '../hooks/useAdminTenants';
 import { useAdminPortals } from '../hooks/useAdminPortals';
 import { getErrorMessage } from '../../utils/error.util';
+import { backofficeAccent } from '../utils/backoffice-theme.util';
 import type { CreateTenantDto, Tenant, UpdateTenantDto } from '../../types/admin.types';
 
 export function BackofficeTenants() {
@@ -86,7 +87,7 @@ export function BackofficeTenants() {
       notifications.show({
         title: 'Filial atualizada',
         message: tenant.isActive ? 'Filial desativada' : 'Filial ativada',
-        color: 'indigo',
+        color: backofficeAccent,
       });
     } catch (error) {
       notifications.show({
@@ -144,12 +145,12 @@ export function BackofficeTenants() {
     <Container style={{ maxWidth: '95%' }} px={{ base: 'xs', sm: 'md' }}>
       <Stack gap="md" mb="xl">
         <Group justify="space-between" wrap="wrap">
-          <Title order={1} c="indigo.3">
+          <Title order={1} c="gray.3">
             Filiais
           </Title>
           <Button
             leftSection={<IconPlus size={16} />}
-            color="indigo"
+            color={backofficeAccent}
             onClick={() => setCreateOpened(true)}
           >
             Nova filial
@@ -158,7 +159,7 @@ export function BackofficeTenants() {
 
         {isLoading ? (
           <Group justify="center" py="xl">
-            <Loader color="indigo" />
+            <Loader color={backofficeAccent} />
           </Group>
         ) : (
           <ScrollArea>
@@ -203,7 +204,7 @@ export function BackofficeTenants() {
                     <Table.Td>
                       <Switch
                         checked={tenant.isActive}
-                        color="indigo"
+                        color={backofficeAccent}
                         disabled={updateMutation.isPending}
                         onChange={() => handleToggleActive(tenant)}
                       />
@@ -213,7 +214,7 @@ export function BackofficeTenants() {
                         <Tooltip label="Ver detalhes">
                           <ActionIcon
                             variant="subtle"
-                            color="indigo"
+                            color={backofficeAccent}
                             onClick={() => navigate(`/backoffice/tenants/${tenant.id}`)}
                           >
                             <IconEye size={18} />
@@ -222,7 +223,7 @@ export function BackofficeTenants() {
                         <Tooltip label="Editar">
                           <ActionIcon
                             variant="subtle"
-                            color="indigo"
+                            color={backofficeAccent}
                             onClick={() => handleEdit(tenant)}
                           >
                             <IconEdit size={18} />
@@ -248,7 +249,7 @@ export function BackofficeTenants() {
           <Stack gap="md">
             <TextInput
               label="Nome"
-              placeholder="Maria Borboleta — Nova Unidade"
+              placeholder="Nova filial — ex: Unidade Centro"
               {...createForm.getInputProps('name')}
             />
             <TextInput
@@ -270,7 +271,7 @@ export function BackofficeTenants() {
               <Button variant="default" onClick={() => setCreateOpened(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" color="indigo" loading={createMutation.isPending}>
+              <Button type="submit" color={backofficeAccent} loading={createMutation.isPending}>
                 Criar filial
               </Button>
             </Group>
@@ -308,7 +309,7 @@ export function BackofficeTenants() {
               >
                 Cancelar
               </Button>
-              <Button type="submit" color="indigo" loading={updateMutation.isPending}>
+              <Button type="submit" color={backofficeAccent} loading={updateMutation.isPending}>
                 Salvar
               </Button>
             </Group>

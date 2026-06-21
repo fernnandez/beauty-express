@@ -28,6 +28,7 @@ import {
 } from '../hooks/useAdminPortals';
 import { normalizeBranding } from '../utils/settings.util';
 import { getErrorMessage } from '../../utils/error.util';
+import { backofficeAccent } from '../utils/backoffice-theme.util';
 import type { CreatePortalDto, Portal, UpdatePortalDto } from '../../types/admin.types';
 import type { LoginBranding } from '../../types/branding.types';
 
@@ -158,7 +159,7 @@ export function BackofficePortals() {
       notifications.show({
         title: 'Portal atualizado',
         message: portal.isActive ? 'Portal desativado' : 'Portal ativado',
-        color: 'indigo',
+        color: backofficeAccent,
       });
     } catch (error) {
       notifications.show({
@@ -174,7 +175,7 @@ export function BackofficePortals() {
       <Stack gap="md" mb="xl">
         <Group justify="space-between" wrap="wrap">
           <Stack gap={4}>
-            <Title order={1} c="indigo.3">
+            <Title order={1} c="gray.3">
               Portais de login
             </Title>
             <Text c="dimmed" size="sm">
@@ -183,7 +184,7 @@ export function BackofficePortals() {
           </Stack>
           <Button
             leftSection={<IconPlus size={16} />}
-            color="indigo"
+            color={backofficeAccent}
             onClick={() => {
               createForm.setValues(toFormValues());
               setCreateOpened(true);
@@ -195,7 +196,7 @@ export function BackofficePortals() {
 
         {isLoading ? (
           <Group justify="center" py="xl">
-            <Loader color="indigo" />
+            <Loader color={backofficeAccent} />
           </Group>
         ) : (
           <ScrollArea>
@@ -240,7 +241,7 @@ export function BackofficePortals() {
                     <Table.Td>
                       <Switch
                         checked={portal.isActive}
-                        color="indigo"
+                        color={backofficeAccent}
                         disabled={updateMutation.isPending}
                         onChange={() => handleToggleActive(portal)}
                       />
@@ -249,7 +250,7 @@ export function BackofficePortals() {
                       <Tooltip label="Editar portal">
                         <ActionIcon
                           variant="subtle"
-                          color="indigo"
+                          color={backofficeAccent}
                           onClick={() => {
                             setSelectedPortal(portal);
                             setEditOpened(true);
@@ -289,12 +290,16 @@ export function BackofficePortals() {
               {...createForm.getInputProps('host')}
             />
             <Divider label="Branding do login" labelPosition="center" />
-            <BrandingFormFields form={createForm} prefix="loginBranding" />
+            <BrandingFormFields
+              form={createForm}
+              prefix="loginBranding"
+              previewVariant="login"
+            />
             <Group justify="flex-end">
               <Button variant="default" onClick={() => setCreateOpened(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" color="indigo" loading={createMutation.isPending}>
+              <Button type="submit" color={backofficeAccent} loading={createMutation.isPending}>
                 Criar portal
               </Button>
             </Group>
@@ -321,7 +326,11 @@ export function BackofficePortals() {
               {...editForm.getInputProps('isActive', { type: 'checkbox' })}
             />
             <Divider label="Branding do login" labelPosition="center" />
-            <BrandingFormFields form={editForm} prefix="loginBranding" />
+            <BrandingFormFields
+              form={editForm}
+              prefix="loginBranding"
+              previewVariant="login"
+            />
             <Group justify="flex-end">
               <Button
                 variant="default"
@@ -332,7 +341,7 @@ export function BackofficePortals() {
               >
                 Cancelar
               </Button>
-              <Button type="submit" color="indigo" loading={updateMutation.isPending}>
+              <Button type="submit" color={backofficeAccent} loading={updateMutation.isPending}>
                 Salvar portal
               </Button>
             </Group>
