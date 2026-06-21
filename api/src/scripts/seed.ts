@@ -31,7 +31,15 @@ const PORTAL_BARBearia_ID = 'b1000001-0001-4000-8000-000000000003';
 const TENANT_PAULISTA_ID = 'c1000001-0001-4000-8000-000000000001';
 const TENANT_RECIFE_ID = 'c1000001-0001-4000-8000-000000000002';
 const TENANT_BOAVIAGEM_ID = 'c1000001-0001-4000-8000-000000000003';
+const TENANT_BARBearia_ID = 'c1000001-0001-4000-8000-000000000004';
 const DEMO_TENANT_ID = TENANT_PAULISTA_ID;
+
+const BARBearia_LOGIN_BRANDING = {
+  ...defaultLoginBranding('Barbearia Lucas'),
+  logoUrl: '/lucas.jpeg',
+  primaryColor: '#1a1a2e',
+  accentColor: '#f5f5f5',
+};
 
 async function seed() {
   const dbConfig = getDatabaseConfig();
@@ -85,11 +93,7 @@ async function seed() {
       id: PORTAL_BARBearia_ID,
       slug: 'barbearia',
       host: 'barbearia.fernnandez.com',
-      loginBranding: {
-        ...defaultLoginBranding('Barbearia Lucas'),
-        primaryColor: '#1a1a2e',
-        accentColor: '#f5f5f5',
-      },
+      loginBranding: BARBearia_LOGIN_BRANDING,
       isActive: true,
     },
   ]);
@@ -139,6 +143,25 @@ async function seed() {
       }),
       isActive: true,
     },
+    {
+      id: TENANT_BARBearia_ID,
+      slug: 'barbearia-lucas',
+      name: 'Barbearia Lucas',
+      portalId: PORTAL_BARBearia_ID,
+      settings: defaultTenantSettings('Barbearia Lucas', {
+        branding: {
+          displayName: 'Barbearia Lucas',
+          logoUrl: '/lucas.jpeg',
+          primaryColor: '#1a1a2e',
+          accentColor: '#f5f5f5',
+        },
+        features: {
+          commissionsEnabled: false,
+          financialReportsMode: 'revenue_only',
+        },
+      }),
+      isActive: true,
+    },
   ]);
   console.log(`✅ ${tenants.length} filiais criadas\n`);
 
@@ -177,6 +200,14 @@ async function seed() {
       passwordHash: adminPassword,
       role: UserRole.ADMIN,
       tenantId: TENANT_BOAVIAGEM_ID,
+      isActive: true,
+    },
+    {
+      id: 'd1000001-0001-4000-8000-000000000005',
+      email: 'admin@barbearia.fernnandez.com',
+      passwordHash: adminPassword,
+      role: UserRole.ADMIN,
+      tenantId: TENANT_BARBearia_ID,
       isActive: true,
     },
   ]);
@@ -353,6 +384,61 @@ async function seed() {
     })),
   );
   console.log(`✅ ${savedServices.length} serviços criados\n`);
+
+  console.log('💈 Criando dados da Barbearia Lucas (sem comissões)...');
+  const barbeariaCollaborators = await collaboratorRepository.save([
+    {
+      id: 'a0000001-0001-4000-8000-000000000008',
+      name: 'Lucas Ferreira',
+      phone: '(11) 98765-4401',
+      area: 'Barbeiro',
+      commissionPercentage: 0,
+      isActive: true,
+      tenantId: TENANT_BARBearia_ID,
+    },
+    {
+      id: 'a0000001-0001-4000-8000-000000000009',
+      name: 'Rafael Mendes',
+      phone: '(11) 98765-4402',
+      area: 'Barbeiro',
+      commissionPercentage: 0,
+      isActive: true,
+      tenantId: TENANT_BARBearia_ID,
+    },
+  ]);
+
+  const barbeariaServices = await serviceRepository.save([
+    {
+      id: 'b0000001-0001-4000-8000-000000000016',
+      name: 'Corte Masculino',
+      defaultPrice: 45.0,
+      description: 'Corte tradicional ou degradê',
+      tenantId: TENANT_BARBearia_ID,
+    },
+    {
+      id: 'b0000001-0001-4000-8000-000000000017',
+      name: 'Barba',
+      defaultPrice: 35.0,
+      description: 'Barba completa com toalha quente',
+      tenantId: TENANT_BARBearia_ID,
+    },
+    {
+      id: 'b0000001-0001-4000-8000-000000000018',
+      name: 'Corte + Barba',
+      defaultPrice: 70.0,
+      description: 'Pacote corte e barba',
+      tenantId: TENANT_BARBearia_ID,
+    },
+  ]);
+
+  const lucasBarbeiro = barbeariaCollaborators[0];
+  const rafaelBarbeiro = barbeariaCollaborators[1];
+  lucasBarbeiro.services = barbeariaServices;
+  rafaelBarbeiro.services = barbeariaServices;
+  await collaboratorRepository.save([lucasBarbeiro, rafaelBarbeiro]);
+  console.log(
+    `✅ ${barbeariaCollaborators.length} colaboradores e ${barbeariaServices.length} serviços da barbearia\n`,
+  );
 
   // Associa colaboradores aos serviços
   console.log('🔗 Associando colaboradores aos serviços...');
@@ -1152,7 +1238,13 @@ async function seed() {
     '   Recife:     admin@recife.mariaborboleta.com / Senha123! (slug: recife)',
   );
   console.log(
-    '   Boa Viagem: admin@boaviagem.mariaborboleta.com / Senha123! (slug: boaviagem)\n',
+    '   Boa Viagem: admin@boaviagem.mariaborboleta.com / Senha123! (slug: boaviagem)',
+  );
+  console.log(
+    '   Barbearia:  admin@barbearia.fernnandez.com / Senha123! (slug: barbearia-lucas, sem comissões)',
+  );
+  console.log(
+    '               Portal: barbearia.fernnandez.com (dev: VITE_PORTAL_HOST=barbearia.fernnandez.com)\n',
   );
 
   await dataSource.destroy();
