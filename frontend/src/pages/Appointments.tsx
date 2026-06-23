@@ -13,9 +13,11 @@ import {
   useAppointments,
   useCancelAppointment,
   useCompleteAppointment,
+  useReopenAppointment,
 } from "../hooks/useAppointments";
 import { appointmentService } from "../services/appointment.service";
 import type { Appointment } from "../types";
+import { MESSAGES } from "../constants/messages.constants";
 import { sumMoney } from "../utils/money.util";
 
 export function Appointments() {
@@ -28,11 +30,13 @@ export function Appointments() {
   const { data: appointments, isLoading } = useAppointments(selectedDate);
   const completeMutation = useCompleteAppointment();
   const cancelMutation = useCancelAppointment();
+  const reopenMutation = useReopenAppointment();
 
   const [createModalOpened, setCreateModalOpened] = useState(false);
   const [editModalOpened, setEditModalOpened] = useState(false);
   const [completeModalOpened, setCompleteModalOpened] = useState(false);
   const [cancelModalOpened, setCancelModalOpened] = useState(false);
+  const [reopenModalOpened, setReopenModalOpened] = useState(false);
   const [detailModalOpened, setDetailModalOpened] = useState(false);
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
@@ -45,6 +49,11 @@ export function Appointments() {
   const handleCancel = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setCancelModalOpened(true);
+  };
+
+  const handleReopen = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setReopenModalOpened(true);
   };
 
   const handleEdit = (appointment: Appointment) => {
@@ -125,6 +134,20 @@ export function Appointments() {
     } catch {
       showError("Erro ao cancelar agendamento");
       // Reabre o modal de detalhes mesmo em caso de erro
+      setDetailModalOpened(true);
+    }
+  };
+
+  const confirmReopen = async () => {
+    if (!selectedAppointment) return;
+
+    try {
+      await reopenMutation.mutateAsync(selectedAppointment.id);
+      showSuccess(MESSAGES.SUCCESS.REOPEN.APPOINTMENT);
+      setReopenModalOpened(false);
+      setDetailModalOpened(true);
+    } catch {
+      showError(MESSAGES.ERROR.REOPEN.APPOINTMENT);
       setDetailModalOpened(true);
     }
   };
@@ -228,6 +251,10 @@ export function Appointments() {
           setDetailModalOpened(false);
           if (selectedAppointment) handleCancel(selectedAppointment);
         }}
+        onReopen={() => {
+          setDetailModalOpened(false);
+          if (selectedAppointment) handleReopen(selectedAppointment);
+        }}
         onEdit={() => {
           // Não fecha o modal de detalhes, apenas abre o modal de edição
           if (selectedAppointment) handleEdit(selectedAppointment);
@@ -276,6 +303,22 @@ export function Appointments() {
         confirmLabel="Cancelar"
         confirmColor="red"
         loading={cancelMutation.isPending}
+      />
+
+      <ConfirmModal
+        opened={reopenModalOpened}
+        onClose={() => {
+          setReopenModalOpened(false);
+          if (selectedAppointment) {
+            setDetailModalOpened(true);
+          }
+        }}
+        onConfirm={confirmReopen}
+        title="Reverter Conclusão"
+        message="Tem certeza que deseja reverter a conclusão deste agendamento? O status voltará para agendado e as comissões não pagas serão removidas."
+        confirmLabel="Reverter"
+        confirmColor="orange"
+        loading={reopenMutation.isPending}
       />
     </Container>
   );

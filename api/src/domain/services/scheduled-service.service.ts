@@ -314,6 +314,39 @@ export class ScheduledServiceService {
     return savedService;
   }
 
+  async reopenScheduledService(id: string): Promise<ScheduledService> {
+    const tenantId = this.getTenantId();
+    const scheduledService = await this.scheduledServiceRepository.findById(
+      id,
+      tenantId,
+    );
+    if (!scheduledService) {
+      throw new NotFoundException('ScheduledService not found');
+    }
+
+    if (scheduledService.status !== ScheduledServiceStatus.COMPLETED) {
+      throw new BadRequestException(
+        'Can only reopen completed scheduled services',
+      );
+    }
+
+    await this.assertCommissionNotPaid(scheduledService.id);
+
+    scheduledService.status = ScheduledServiceStatus.PENDING;
+    const savedService =
+      await this.scheduledServiceRepository.save(scheduledService);
+
+    const commission = await this.commissionRepository.findByScheduledServiceId(
+      id,
+      tenantId,
+    );
+    if (commission && !commission.paid) {
+      await this.commissionRepository.delete({ id: commission.id, tenantId });
+    }
+
+    return savedService;
+  }
+
   async cancelScheduledService(id: string): Promise<ScheduledService> {
     const tenantId = this.getTenantId();
     const scheduledService = await this.scheduledServiceRepository.findById(

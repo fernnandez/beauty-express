@@ -27,6 +27,9 @@ export const MESSAGES = {
       APPOINTMENT: 'Agendamento concluído com sucesso!',
       SCHEDULED_SERVICE: 'Serviço concluído com sucesso!',
     },
+    REOPEN: {
+      APPOINTMENT: 'Conclusão do agendamento revertida com sucesso!',
+    },
     DEACTIVATE: {
       COLLABORATOR: 'Colaborador desativado com sucesso!',
     },
@@ -57,6 +60,9 @@ export const MESSAGES = {
     COMPLETE: {
       APPOINTMENT: 'Erro ao concluir agendamento',
       SCHEDULED_SERVICE: 'Erro ao concluir serviço',
+    },
+    REOPEN: {
+      APPOINTMENT: 'Erro ao reverter conclusão do agendamento',
     },
     DEACTIVATE: {
       COLLABORATOR: 'Erro ao desativar colaborador',

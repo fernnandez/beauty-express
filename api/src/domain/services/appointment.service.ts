@@ -19,6 +19,7 @@ import {
 import { validateTimeRange } from '../../common/utils/time.util';
 import { normalizeString } from '../../common/utils/string.util';
 import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
+import { ScheduledServiceStatus } from '../entities/scheduled-service.entity';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { CommissionService } from './commission.service';
@@ -281,6 +282,52 @@ export class AppointmentService {
     );
 
     return savedAppointment;
+  }
+
+  async reopenAppointment(appointmentId: string): Promise<Appointment> {
+    const tenantId = this.getTenantId();
+    const appointment = await this.appointmentRepository.findById(
+      appointmentId,
+      tenantId,
+    );
+    if (!appointment) {
+      throw new NotFoundException('Appointment not found');
+    }
+
+    if (appointment.status !== AppointmentStatus.COMPLETED) {
+      throw new BadRequestException(
+        'Can only reopen completed appointments',
+      );
+    }
+
+    await this.commissionService.assertAppointmentCommissionsEditable(
+      appointmentId,
+    );
+
+    const scheduledServices =
+      await this.scheduledServiceRepository.findByAppointmentId(
+        appointmentId,
+        tenantId,
+      );
+
+    const completedServices = scheduledServices.filter(
+      (service) => service.status === ScheduledServiceStatus.COMPLETED,
+    );
+
+    if (completedServices.length === 0) {
+      throw new BadRequestException(
+        'Appointment has no completed services to reopen',
+      );
+    }
+
+    for (const service of completedServices) {
+      await this.scheduledServiceService.reopenScheduledService(service.id);
+    }
+
+    appointment.status = AppointmentStatus.SCHEDULED;
+    await this.appointmentRepository.save(appointment);
+
+    return (await this.findById(appointmentId))!;
   }
 
   async cancelAppointment(appointmentId: string): Promise<Appointment> {

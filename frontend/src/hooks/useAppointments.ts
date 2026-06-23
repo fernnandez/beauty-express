@@ -99,3 +99,16 @@ export const useCancelAppointment = () => {
     },
   });
 };
+
+export const useReopenAppointment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => appointmentService.reopen(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments", id] });
+      queryClient.invalidateQueries({ queryKey: ["commissions"] });
+    },
+  });
+};

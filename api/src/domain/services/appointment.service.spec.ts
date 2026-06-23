@@ -43,12 +43,14 @@ describe('AppointmentService', () => {
     updateScheduledService: jest.fn(),
     cancelScheduledService: jest.fn(),
     completeScheduledService: jest.fn(),
+    reopenScheduledService: jest.fn(),
   };
 
   const mockCommissionService = {
     calculateCommissionsForAppointment: jest.fn(),
     getAppointmentEditability: jest.fn().mockResolvedValue({
       canEditAppointment: true,
+      canReopenAppointment: false,
       services: {},
     }),
     assertAppointmentCommissionsEditable: jest.fn(),
@@ -175,6 +177,7 @@ describe('AppointmentService', () => {
           ...appointmentWithServices,
           editability: {
             canEditAppointment: true,
+            canReopenAppointment: false,
             services: {},
           },
         }),
@@ -490,6 +493,7 @@ describe('AppointmentService', () => {
         ...mockAppointment,
         editability: {
           canEditAppointment: true,
+          canReopenAppointment: false,
           services: {},
         },
       });
@@ -767,6 +771,106 @@ describe('AppointmentService', () => {
       await expect(
         service.cancelAppointment(mockAppointment.id),
       ).rejects.toThrow('Cannot cancel completed appointments');
+    });
+  });
+
+  describe('reopenAppointment', () => {
+    const mockScheduledServices: ScheduledService[] = [
+      {
+        id: 'scheduled-1',
+        tenantId: TENANT_ID_MOCK,
+        appointmentId: 'appointment-1',
+        serviceId: 'service-1',
+        price: 50.0,
+        status: ScheduledServiceStatus.COMPLETED,
+      } as ScheduledService,
+    ];
+
+    const mockAppointment: Appointment = {
+      id: 'appointment-1',
+      tenantId: TENANT_ID_MOCK,
+      clientName: 'João Silva',
+      clientPhone: '11999999999',
+      date: new Date('2024-12-28'),
+      startTime: '09:00',
+      endTime: '11:00',
+      status: AppointmentStatus.COMPLETED,
+      scheduledServices: mockScheduledServices,
+    };
+
+    it('should reopen completed appointment', async () => {
+      const completedAppointment = {
+        ...mockAppointment,
+        status: AppointmentStatus.COMPLETED,
+      };
+
+      mockAppointmentRepository.findById
+        .mockResolvedValueOnce(completedAppointment)
+        .mockResolvedValueOnce({
+          ...completedAppointment,
+          status: AppointmentStatus.SCHEDULED,
+        });
+      mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue(
+        mockScheduledServices,
+      );
+      mockScheduledServiceService.reopenScheduledService.mockResolvedValue({
+        ...mockScheduledServices[0],
+        status: ScheduledServiceStatus.PENDING,
+      });
+      mockAppointmentRepository.save.mockResolvedValue({
+        ...completedAppointment,
+        status: AppointmentStatus.SCHEDULED,
+      });
+
+      const result = await service.reopenAppointment(completedAppointment.id);
+
+      expect(result.status).toBe(AppointmentStatus.SCHEDULED);
+      expect(
+        mockCommissionService.assertAppointmentCommissionsEditable,
+      ).toHaveBeenCalledWith(mockAppointment.id);
+      expect(
+        mockScheduledServiceService.reopenScheduledService,
+      ).toHaveBeenCalledWith('scheduled-1');
+    });
+
+    it('should throw error when appointment not found', async () => {
+      mockAppointmentRepository.findById.mockResolvedValue(null);
+
+      await expect(
+        service.reopenAppointment('non-existent-id'),
+      ).rejects.toThrow('Appointment not found');
+    });
+
+    it('should throw error when trying to reopen scheduled appointment', async () => {
+      const scheduledAppointment: Appointment = {
+        ...mockAppointment,
+        status: AppointmentStatus.SCHEDULED,
+      };
+
+      mockAppointmentRepository.findById.mockResolvedValue(scheduledAppointment);
+
+      await expect(
+        service.reopenAppointment(mockAppointment.id),
+      ).rejects.toThrow('Can only reopen completed appointments');
+    });
+
+    it('should throw error when appointment has no completed services', async () => {
+      const completedAppointment = {
+        ...mockAppointment,
+        status: AppointmentStatus.COMPLETED,
+      };
+
+      mockAppointmentRepository.findById.mockResolvedValue(completedAppointment);
+      mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue([
+        {
+          ...mockScheduledServices[0],
+          status: ScheduledServiceStatus.PENDING,
+        },
+      ]);
+
+      await expect(
+        service.reopenAppointment(mockAppointment.id),
+      ).rejects.toThrow('Appointment has no completed services to reopen');
     });
   });
 

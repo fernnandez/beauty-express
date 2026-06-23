@@ -35,6 +35,7 @@ describe('AppointmentController', () => {
     updateAppointment: jest.fn(),
     completeAppointment: jest.fn(),
     cancelAppointment: jest.fn(),
+    reopenAppointment: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -202,6 +203,26 @@ describe('AppointmentController', () => {
 
       expect(result).toEqual(cancelledAppointment);
       expect(service.cancelAppointment).toHaveBeenCalledWith(
+        mockAppointment.id,
+      );
+    });
+  });
+
+  describe('reopen', () => {
+    const reopenedAppointment: Appointment = {
+      ...mockAppointment,
+      status: AppointmentStatus.SCHEDULED,
+    };
+
+    it('should reopen a completed appointment', async () => {
+      mockAppointmentService.reopenAppointment.mockResolvedValue(
+        reopenedAppointment,
+      );
+
+      const result = await controller.reopen(mockAppointment.id);
+
+      expect(result).toEqual(reopenedAppointment);
+      expect(service.reopenAppointment).toHaveBeenCalledWith(
         mockAppointment.id,
       );
     });

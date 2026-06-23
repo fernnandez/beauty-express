@@ -22,6 +22,7 @@ import {
   IconNotes,
   IconPhone,
   IconPlus,
+  IconRotate,
   IconScissors,
   IconTrash,
   IconUser,
@@ -58,6 +59,7 @@ interface AppointmentDetailModalProps {
   appointment: Appointment | null;
   onComplete?: () => void;
   onCancel?: () => void;
+  onReopen?: () => void;
   onEdit?: () => void;
 }
 
@@ -93,6 +95,7 @@ export function AppointmentDetailModal({
   appointment: appointmentProp,
   onComplete,
   onCancel,
+  onReopen,
   onEdit,
 }: AppointmentDetailModalProps) {
   const [addServiceModalOpened, setAddServiceModalOpened] = useState(false);
@@ -144,6 +147,9 @@ export function AppointmentDetailModal({
   const canEditAppointment =
     appointment.editability?.canEditAppointment ??
     appointment.status === AppointmentStatus.SCHEDULED;
+
+  const canReopenAppointment =
+    appointment.editability?.canReopenAppointment ?? false;
 
   const canEditService = (service: ScheduledService) =>
     appointment.editability?.services[service.id]?.canEdit ??
@@ -476,11 +482,11 @@ export function AppointmentDetailModal({
         {/* Ações do Agendamento */}
         {(appointment.status === AppointmentStatus.SCHEDULED ||
           (appointment.status === AppointmentStatus.COMPLETED &&
-            canEditAppointment)) && (
+            (canEditAppointment || canReopenAppointment))) && (
           <>
             <Divider />
             <Group>
-              {onEdit && (
+              {onEdit && canEditAppointment && (
                 <Button
                   variant="light"
                   color="blue"
@@ -523,6 +529,21 @@ export function AppointmentDetailModal({
                   )}
                 </>
               )}
+              {appointment.status === AppointmentStatus.COMPLETED &&
+                canReopenAppointment &&
+                onReopen && (
+                  <Button
+                    variant="light"
+                    color="orange"
+                    leftSection={<IconRotate size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onReopen();
+                    }}
+                  >
+                    Reverter Conclusão
+                  </Button>
+                )}
             </Group>
           </>
         )}

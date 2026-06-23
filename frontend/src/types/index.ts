@@ -140,6 +140,7 @@ export interface ScheduledService {
 
 export interface AppointmentEditability {
   canEditAppointment: boolean;
+  canReopenAppointment: boolean;
   services: Record<
     string,
     {

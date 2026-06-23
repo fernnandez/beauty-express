@@ -93,4 +93,19 @@ export class AppointmentController {
   async cancel(@Param('id') id: string) {
     return await this.appointmentDomainService.cancelAppointment(id);
   }
+
+  @Put(':id/reopen')
+  @ApiOperation({ summary: 'Reopen a completed appointment' })
+  @ApiResponse({
+    status: 200,
+    description: 'Appointment reopened successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Appointment not found' })
+  @ApiResponse({
+    status: 400,
+    description: 'Appointment cannot be reopened (e.g. paid commissions)',
+  })
+  async reopen(@Param('id') id: string) {
+    return await this.appointmentDomainService.reopenAppointment(id);
+  }
 }

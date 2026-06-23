@@ -295,6 +295,9 @@ export class CommissionService {
       (appointmentStatus === AppointmentStatus.COMPLETED &&
         !hasPaidCommission);
 
-    return { canEditAppointment, services };
+    const canReopenAppointment =
+      appointmentStatus === AppointmentStatus.COMPLETED && !hasPaidCommission;
+
+    return { canEditAppointment, canReopenAppointment, services };
   }
 }

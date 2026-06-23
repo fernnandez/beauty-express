@@ -41,4 +41,9 @@ export const appointmentService = {
     const response = await api.put<Appointment>(`/appointments/${id}/cancel`);
     return response.data;
   },
+
+  reopen: async (id: string): Promise<Appointment> => {
+    const response = await api.put<Appointment>(`/appointments/${id}/reopen`);
+    return response.data;
+  },
 };
