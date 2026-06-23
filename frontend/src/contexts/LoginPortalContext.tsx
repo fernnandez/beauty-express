@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import axios from 'axios';
 import { portalService } from '../services/portal.service';
 import type { LoginBranding } from '../types/branding.types';
 import type { PortalResolveResponse } from '../types/branding.types';
@@ -95,9 +96,17 @@ export function LoginPortalProvider({ children }: { children: ReactNode }) {
             logoUrl: portal.loginBranding.logoUrl || '/logo.png',
           });
         }
-      } catch {
+      } catch (err) {
         if (!cancelled) {
-          setError('Portal não encontrado para este endereço.');
+          if (axios.isAxiosError(err) && !err.response) {
+            setError(
+              'Não foi possível carregar o portal. Verifique se a API está acessível e se o domínio está em CORS_ORIGIN.',
+            );
+          } else {
+            setError(
+              `Portal não encontrado para o endereço "${portalHost}".`,
+            );
+          }
           setBranding(DEFAULT_LOGIN_BRANDING);
         }
       } finally {

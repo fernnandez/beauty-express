@@ -148,8 +148,25 @@ export function AppointmentDetailModal({
     appointment.editability?.canEditAppointment ??
     appointment.status === AppointmentStatus.SCHEDULED;
 
-  const canReopenAppointment =
-    appointment.editability?.canReopenAppointment ?? false;
+  const canReopenAppointment = (() => {
+    if (appointment.status !== AppointmentStatus.COMPLETED) {
+      return false;
+    }
+
+    if (!commissionsEnabled) {
+      return true;
+    }
+
+    if (appointment.editability?.canReopenAppointment != null) {
+      return appointment.editability.canReopenAppointment;
+    }
+
+    if (appointment.editability?.canEditAppointment != null) {
+      return appointment.editability.canEditAppointment;
+    }
+
+    return false;
+  })();
 
   const canEditService = (service: ScheduledService) =>
     appointment.editability?.services[service.id]?.canEdit ??

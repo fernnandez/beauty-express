@@ -281,7 +281,7 @@ export class AppointmentService {
       savedAppointment.id,
     );
 
-    return savedAppointment;
+    return (await this.findById(appointmentId))!;
   }
 
   async reopenAppointment(appointmentId: string): Promise<Appointment> {

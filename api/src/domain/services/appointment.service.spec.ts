@@ -307,10 +307,12 @@ describe('AppointmentService', () => {
       mockScheduledServiceService.createScheduledService.mockResolvedValue(
         scheduledService,
       );
-      mockAppointmentRepository.findById.mockResolvedValue({
-        ...pastSavedAppointment,
-        scheduledServices: [scheduledService],
-      });
+      mockAppointmentRepository.findById
+        .mockResolvedValueOnce({
+          ...pastSavedAppointment,
+          scheduledServices: [scheduledService],
+        })
+        .mockResolvedValueOnce(completedAppointment);
       mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue([
         scheduledService,
       ]);
@@ -535,14 +537,18 @@ describe('AppointmentService', () => {
     };
 
     it('should complete appointment when all services are completed and have collaborators', async () => {
-      mockAppointmentRepository.findById.mockResolvedValue(mockAppointment);
+      const completedAppointment = {
+        ...mockAppointment,
+        status: AppointmentStatus.COMPLETED,
+      };
+
+      mockAppointmentRepository.findById
+        .mockResolvedValueOnce(mockAppointment)
+        .mockResolvedValueOnce(completedAppointment);
       mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue(
         mockScheduledServices,
       );
-      mockAppointmentRepository.save.mockResolvedValue({
-        ...mockAppointment,
-        status: AppointmentStatus.COMPLETED,
-      });
+      mockAppointmentRepository.save.mockResolvedValue(completedAppointment);
       mockCommissionService.calculateCommissionsForAppointment.mockResolvedValue(
         [],
       );
@@ -577,10 +583,16 @@ describe('AppointmentService', () => {
         status: ScheduledServiceStatus.COMPLETED,
       } as ScheduledService;
 
-      mockAppointmentRepository.findById.mockResolvedValue({
-        ...mockAppointment,
-        scheduledServices: incompleteServices,
-      });
+      mockAppointmentRepository.findById
+        .mockResolvedValueOnce({
+          ...mockAppointment,
+          scheduledServices: incompleteServices,
+        })
+        .mockResolvedValueOnce({
+          ...mockAppointment,
+          status: AppointmentStatus.COMPLETED,
+          scheduledServices: incompleteServices,
+        });
       mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue(
         incompleteServices,
       );
@@ -682,10 +694,16 @@ describe('AppointmentService', () => {
         } as ScheduledService,
       ];
 
-      mockAppointmentRepository.findById.mockResolvedValue({
-        ...mockAppointment,
-        scheduledServices: mixedServices,
-      });
+      mockAppointmentRepository.findById
+        .mockResolvedValueOnce({
+          ...mockAppointment,
+          scheduledServices: mixedServices,
+        })
+        .mockResolvedValueOnce({
+          ...mockAppointment,
+          status: AppointmentStatus.COMPLETED,
+          scheduledServices: mixedServices,
+        });
       mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue(
         mixedServices,
       );
