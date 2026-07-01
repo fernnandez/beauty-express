@@ -231,7 +231,11 @@ export function Commissions() {
   }
 
   return (
-    <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
+    <Container
+      style={{ maxWidth: "95%" }}
+      px={{ base: "xs", sm: "md" }}
+      pb="xl"
+    >
       <Group gap="md" mb="xl">
         <Title order={1} c="brand">
           Comissões
@@ -520,7 +524,7 @@ export function Commissions() {
                 </Table.Tbody>
               </Table>
             </ScrollArea>
-            <Group justify="space-between" mt="md">
+            <Group justify="space-between" mt="md" mb="sm" wrap="wrap" gap="sm">
               <Text size="sm" c="dimmed">
                 {commissionsData?.total ?? 0} comissão(ões) encontrada(s)
                 {isFetching ? " · atualizando..." : ""}

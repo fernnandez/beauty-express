@@ -70,7 +70,7 @@ export function Layout({ children }: LayoutProps) {
         breakpoint: "sm",
       }}
       footer={{
-        height: 35,
+        height: { base: 56, lg: 42 },
       }}
     >
       <AppShell.Navbar
@@ -156,6 +156,7 @@ export function Layout({ children }: LayoutProps) {
           maxWidth: "100%",
         }}
         pt="md"
+        pb="md"
       >
         {children}
       </AppShell.Main>
@@ -164,7 +165,27 @@ export function Layout({ children }: LayoutProps) {
         py="xs"
         style={{ backgroundColor: "#fff", borderTop: "1px solid #e9ecef" }}
       >
-        <Group justify="center" align="center" gap="md">
+        <Stack gap={2} align="center" hiddenFrom="lg">
+          {(user?.tenantSettings?.branding.displayName || user?.tenantName) && (
+            <Text size="xs" c="dimmed" ta="center">
+              {user?.tenantSettings?.branding.displayName || user?.tenantName}
+            </Text>
+          )}
+          <Text size="xs" c="dimmed" ta="center">
+            Made by{" "}
+            <Anchor
+              href="https://fernnandez-dev.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              c={branding.primaryColor}
+              fw={500}
+            >
+              fernnnadez
+            </Anchor>
+          </Text>
+        </Stack>
+
+        <Group justify="center" align="center" gap="md" visibleFrom="lg">
           {(user?.tenantSettings?.branding.displayName || user?.tenantName) && (
             <Text size="sm" c="dimmed">
               {user?.tenantSettings?.branding.displayName || user?.tenantName}
