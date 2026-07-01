@@ -5,6 +5,7 @@ import {
   Checkbox,
   Container,
   Group,
+  MultiSelect,
   Paper,
   ScrollArea,
   Select,
@@ -54,9 +55,7 @@ export function Commissions() {
   const [selectedCommissions, setSelectedCommissions] = useState<Set<string>>(
     new Set()
   );
-  const [collaboratorFilter, setCollaboratorFilter] = useState<string | null>(
-    null
-  );
+  const [collaboratorFilter, setCollaboratorFilter] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(
     undefined
@@ -72,7 +71,7 @@ export function Commissions() {
       paid?: boolean;
       startDate?: string;
       endDate?: string;
-      collaboratorId?: string;
+      collaboratorIds?: string[];
     } = {};
 
     // Se estiver na aba "pending", força paid=false
@@ -110,8 +109,8 @@ export function Commissions() {
       }
       filterObj.endDate = dateString;
     }
-    if (collaboratorFilter) {
-      filterObj.collaboratorId = collaboratorFilter;
+    if (collaboratorFilter.length > 0) {
+      filterObj.collaboratorIds = collaboratorFilter;
     }
 
     return Object.keys(filterObj).length > 0 ? filterObj : undefined;
@@ -252,8 +251,8 @@ export function Commissions() {
           {/* Filtros e Ações */}
           <Stack gap="md" mb="md">
             <Group>
-              <Select
-                placeholder="Filtrar por colaborador"
+              <MultiSelect
+                placeholder="Filtrar por colaborador(es)"
                 data={
                   collaborators?.map((c) => ({
                     value: c.id,
@@ -263,8 +262,9 @@ export function Commissions() {
                 value={collaboratorFilter}
                 onChange={setCollaboratorFilter}
                 clearable
+                searchable
                 leftSection={<IconUser size={16} />}
-                style={{ flex: 1, maxWidth: 250 }}
+                style={{ flex: 1, maxWidth: 320 }}
               />
               {activeTab === "all" && (
                 <Select
@@ -313,7 +313,7 @@ export function Commissions() {
               {(statusFilter !== undefined ||
                 startDate ||
                 endDate ||
-                collaboratorFilter) && (
+                collaboratorFilter.length > 0) && (
                 <ActionIcon
                   variant="light"
                   color="gray"
@@ -321,7 +321,7 @@ export function Commissions() {
                     setStatusFilter(undefined);
                     setStartDate(null);
                     setEndDate(null);
-                    setCollaboratorFilter(null);
+                    setCollaboratorFilter([]);
                   }}
                   title="Limpar filtros"
                 >
@@ -426,7 +426,8 @@ export function Commissions() {
                     <Table.Th>Serviço</Table.Th>
                     <Table.Th>Agendamento</Table.Th>
                     <Table.Th>Percentual</Table.Th>
-                    <Table.Th>Valor</Table.Th>
+                    <Table.Th>Valor do serviço</Table.Th>
+                    <Table.Th>Comissão</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -490,6 +491,13 @@ export function Commissions() {
                       </Table.Td>
                       <Table.Td>
                         <Text size="sm">{toMoney(commission.percentage)}%</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm" c="dimmed">
+                          {formatPrice(
+                            commission.scheduledService?.price ?? 0,
+                          )}
+                        </Text>
                       </Table.Td>
                       <Table.Td>
                         <Group gap="xs">

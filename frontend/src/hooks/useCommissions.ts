@@ -6,7 +6,7 @@ export const useCommissions = (
     paid?: boolean;
     startDate?: string;
     endDate?: string;
-    collaboratorId?: string;
+    collaboratorIds?: string[];
   },
   enabled = true,
 ) => {

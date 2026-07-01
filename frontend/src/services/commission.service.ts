@@ -6,7 +6,7 @@ export const commissionService = {
     paid?: boolean;
     startDate?: string;
     endDate?: string;
-    collaboratorId?: string;
+    collaboratorIds?: string[];
   }): Promise<Commission[]> => {
     const params = new URLSearchParams();
     
@@ -19,9 +19,9 @@ export const commissionService = {
     if (filters?.endDate) {
       params.append('endDate', filters.endDate);
     }
-    if (filters?.collaboratorId) {
-      params.append('collaboratorId', filters.collaboratorId);
-    }
+    filters?.collaboratorIds?.forEach((collaboratorId) => {
+      params.append('collaboratorId', collaboratorId);
+    });
 
     const queryString = params.toString();
     const url = queryString ? `/commissions?${queryString}` : '/commissions';

@@ -441,12 +441,12 @@ describe('CommissionService', () => {
       );
 
       const result = await service.findAll({
-        collaboratorId: 'collaborator-1',
+        collaboratorIds: ['collaborator-1'],
       });
 
       expect(result).toEqual(collaboratorCommissions);
       expect(mockCommissionRepository.findByFilters).toHaveBeenCalledWith(TENANT_ID_MOCK, {
-        collaboratorId: 'collaborator-1',
+        collaboratorIds: ['collaborator-1'],
       });
     });
 

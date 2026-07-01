@@ -131,7 +131,7 @@ export class CommissionService {
     paid?: boolean;
     startDate?: Date;
     endDate?: Date;
-    collaboratorId?: string;
+    collaboratorIds?: string[];
   }): Promise<Commission[]> {
     const tenantId = this.getTenantId();
 
@@ -140,7 +140,7 @@ export class CommissionService {
       (filters.paid !== undefined ||
         filters.startDate ||
         filters.endDate ||
-        filters.collaboratorId)
+        filters.collaboratorIds?.length)
     ) {
       return await this.commissionRepository.findByFilters(tenantId, filters);
     }

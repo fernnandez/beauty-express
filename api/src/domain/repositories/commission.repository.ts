@@ -75,7 +75,7 @@ export class CommissionRepository extends Repository<Commission> {
       paid?: boolean;
       startDate?: Date;
       endDate?: Date;
-      collaboratorId?: string;
+      collaboratorIds?: string[];
     },
   ): Promise<Commission[]> {
     const queryBuilder = this.createQueryBuilder('commission')
@@ -107,10 +107,13 @@ export class CommissionRepository extends Repository<Commission> {
       });
     }
 
-    if (filters.collaboratorId) {
-      queryBuilder.andWhere('commission.collaboratorId = :collaboratorId', {
-        collaboratorId: filters.collaboratorId,
-      });
+    if (filters.collaboratorIds?.length) {
+      queryBuilder.andWhere(
+        'commission.collaboratorId IN (:...collaboratorIds)',
+        {
+          collaboratorIds: filters.collaboratorIds,
+        },
+      );
     }
 
     queryBuilder

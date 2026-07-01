@@ -42,20 +42,21 @@ export class CommissionController {
     name: 'collaboratorId',
     required: false,
     type: String,
-    description: 'Filter by collaborator ID',
+    isArray: true,
+    description: 'Filter by one or more collaborator IDs',
   })
   @ApiResponse({ status: 200, description: 'List of commissions' })
   async findAll(
     @Query('paid') paid?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('collaboratorId') collaboratorId?: string,
+    @Query('collaboratorId') collaboratorId?: string | string[],
   ) {
     const filters: {
       paid?: boolean;
       startDate?: Date;
       endDate?: Date;
-      collaboratorId?: string;
+      collaboratorIds?: string[];
     } = {};
 
     if (paid !== undefined) {
@@ -73,7 +74,9 @@ export class CommissionController {
     }
 
     if (collaboratorId) {
-      filters.collaboratorId = collaboratorId;
+      filters.collaboratorIds = Array.isArray(collaboratorId)
+        ? collaboratorId
+        : [collaboratorId];
     }
 
     return await this.commissionDomainService.findAll(

@@ -135,7 +135,24 @@ describe('CommissionController', () => {
       );
 
       expect(result).toEqual(mockCommissions);
-      expect(service.findAll).toHaveBeenCalledWith({ collaboratorId });
+      expect(service.findAll).toHaveBeenCalledWith({
+        collaboratorIds: [collaboratorId],
+      });
+    });
+
+    it('should filter by multiple collaboratorIds', async () => {
+      const collaboratorIds = ['collaborator-1', 'collaborator-2'];
+      mockCommissionService.findAll.mockResolvedValue(mockCommissions);
+
+      const result = await controller.findAll(
+        undefined,
+        undefined,
+        undefined,
+        collaboratorIds,
+      );
+
+      expect(result).toEqual(mockCommissions);
+      expect(service.findAll).toHaveBeenCalledWith({ collaboratorIds });
     });
 
     it('should combine multiple filters', async () => {
@@ -156,7 +173,7 @@ describe('CommissionController', () => {
         paid: true,
         startDate: parseDateString(startDate),
         endDate: endOfDay(endDate),
-        collaboratorId,
+        collaboratorIds: [collaboratorId],
       });
     });
   });
