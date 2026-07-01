@@ -30,6 +30,7 @@ describe('CommissionService', () => {
     findById: jest.fn(),
     findByScheduledServiceId: jest.fn(),
     findByFilters: jest.fn(),
+    findPaginated: jest.fn(),
     findManyByIds: jest.fn(),
     update: jest.fn(),
     createQueryBuilder: jest.fn(),
@@ -365,107 +366,99 @@ describe('CommissionService', () => {
   });
 
   describe('findAll', () => {
-    const mockCommissions: Commission[] = [
-      {
-        id: 'commission-1',
-        tenantId: TENANT_ID_MOCK,
-        collaboratorId: 'collaborator-1',
-        scheduledServiceId: 'scheduled-1',
-        amount: 10.0,
-        percentage: 10,
-        paid: false,
+    const mockListResult = {
+      items: [
+        {
+          id: 'commission-1',
+          tenantId: TENANT_ID_MOCK,
+          collaboratorId: 'collaborator-1',
+          scheduledServiceId: 'scheduled-1',
+          amount: 10.0,
+          percentage: 10,
+          paid: false,
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 50,
+      summary: {
+        totalAmount: 10,
+        pendingAmount: 10,
+        paidAmount: 0,
       },
-      {
-        id: 'commission-2',
-        tenantId: TENANT_ID_MOCK,
-        collaboratorId: 'collaborator-2',
-        scheduledServiceId: 'scheduled-2',
-        amount: 15.0,
-        percentage: 15,
-        paid: true,
-      },
-    ];
+    };
 
-    it('should return all commissions when no filters', async () => {
-      mockQueryBuilder.getMany.mockResolvedValue(mockCommissions);
+    it('should return paginated commissions when no filters', async () => {
+      mockCommissionRepository.findPaginated.mockResolvedValue(mockListResult);
 
       const result = await service.findAll();
 
-      expect(result).toEqual(mockCommissions);
-      expect(mockCommissionRepository.createQueryBuilder).toHaveBeenCalledWith(
-        'commission',
+      expect(result).toEqual(mockListResult);
+      expect(mockCommissionRepository.findPaginated).toHaveBeenCalledWith(
+        TENANT_ID_MOCK,
+        {},
+        1,
+        50,
       );
-      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
-        'commission.collaborator',
-        'collaborator',
-      );
-      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
-        'commission.scheduledService',
-        'scheduledService',
-      );
-      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
-        'scheduledService.service',
-        'service',
-      );
-      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
-        'scheduledService.appointment',
-        'appointment',
-      );
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        'appointment.date',
-        'DESC',
-      );
-      expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith(
-        'appointment.startTime',
-        'DESC',
-      );
-      expect(mockQueryBuilder.getMany).toHaveBeenCalled();
     });
 
     it('should filter by paid status', async () => {
-      const paidCommissions = [mockCommissions[1]];
-      mockCommissionRepository.findByFilters.mockResolvedValue(paidCommissions);
+      mockCommissionRepository.findPaginated.mockResolvedValue(mockListResult);
 
       const result = await service.findAll({ paid: true });
 
-      expect(result).toEqual(paidCommissions);
-      expect(mockCommissionRepository.findByFilters).toHaveBeenCalledWith(TENANT_ID_MOCK, {
-        paid: true,
-      });
+      expect(result).toEqual(mockListResult);
+      expect(mockCommissionRepository.findPaginated).toHaveBeenCalledWith(
+        TENANT_ID_MOCK,
+        { paid: true },
+        1,
+        50,
+      );
     });
 
     it('should filter by collaborator', async () => {
-      const collaboratorCommissions = [mockCommissions[0]];
-      mockCommissionRepository.findByFilters.mockResolvedValue(
-        collaboratorCommissions,
-      );
+      mockCommissionRepository.findPaginated.mockResolvedValue(mockListResult);
 
       const result = await service.findAll({
         collaboratorIds: ['collaborator-1'],
       });
 
-      expect(result).toEqual(collaboratorCommissions);
-      expect(mockCommissionRepository.findByFilters).toHaveBeenCalledWith(TENANT_ID_MOCK, {
-        collaboratorIds: ['collaborator-1'],
-      });
+      expect(result).toEqual(mockListResult);
+      expect(mockCommissionRepository.findPaginated).toHaveBeenCalledWith(
+        TENANT_ID_MOCK,
+        { collaboratorIds: ['collaborator-1'] },
+        1,
+        50,
+      );
     });
 
     it('should filter by date range', async () => {
       const startDate = new Date('2024-12-01');
       const endDate = new Date('2024-12-31');
-      const filteredCommissions = [mockCommissions[0]];
-
-      mockCommissionRepository.findByFilters.mockResolvedValue(
-        filteredCommissions,
-      );
+      mockCommissionRepository.findPaginated.mockResolvedValue(mockListResult);
 
       const result = await service.findAll({ startDate, endDate });
 
-      expect(result).toEqual(filteredCommissions);
-      expect(mockCommissionRepository.findByFilters).toHaveBeenCalledWith(TENANT_ID_MOCK, {
-        startDate,
-        endDate,
-      });
+      expect(result).toEqual(mockListResult);
+      expect(mockCommissionRepository.findPaginated).toHaveBeenCalledWith(
+        TENANT_ID_MOCK,
+        { startDate, endDate },
+        1,
+        50,
+      );
+    });
+
+    it('should pass custom pagination params', async () => {
+      mockCommissionRepository.findPaginated.mockResolvedValue(mockListResult);
+
+      await service.findAll(undefined, 2, 25);
+
+      expect(mockCommissionRepository.findPaginated).toHaveBeenCalledWith(
+        TENANT_ID_MOCK,
+        {},
+        2,
+        25,
+      );
     });
   });
 

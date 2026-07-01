@@ -5,6 +5,7 @@ import { Commission } from '@domain/entities/commission.entity';
 import { MarkCommissionsDto } from '../dtos/commission/mark-commissions.dto';
 import { parseDateString, endOfDay } from '../../utils/date.util';
 import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
+import { CommissionListResult } from '@domain/repositories/commission-list.types';
 
 describe('CommissionController', () => {
   let controller: CommissionController;
@@ -18,6 +19,18 @@ describe('CommissionController', () => {
     amount: 10.0,
     percentage: 10,
     paid: false,
+  };
+
+  const mockListResult: CommissionListResult = {
+    items: [mockCommission],
+    total: 1,
+    page: 1,
+    limit: 50,
+    summary: {
+      totalAmount: 10,
+      pendingAmount: 10,
+      paidAmount: 0,
+    },
   };
 
   const mockCommissionService = {
@@ -48,45 +61,47 @@ describe('CommissionController', () => {
   });
 
   describe('findAll', () => {
-    const mockCommissions: Commission[] = [mockCommission];
-
-    it('should return all commissions when no filters', async () => {
-      mockCommissionService.findAll.mockResolvedValue(mockCommissions);
+    it('should return paginated commissions when no filters', async () => {
+      mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
       const result = await controller.findAll();
 
-      expect(result).toEqual(mockCommissions);
-      expect(service.findAll).toHaveBeenCalledWith(undefined);
+      expect(result).toEqual(mockListResult);
+      expect(service.findAll).toHaveBeenCalledWith(undefined, 1, 50);
     });
 
     it('should filter by paid status', async () => {
-      mockCommissionService.findAll.mockResolvedValue(mockCommissions);
+      mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
       const result = await controller.findAll('true');
 
-      expect(result).toEqual(mockCommissions);
-      expect(service.findAll).toHaveBeenCalledWith({ paid: true });
+      expect(result).toEqual(mockListResult);
+      expect(service.findAll).toHaveBeenCalledWith({ paid: true }, 1, 50);
     });
 
     it('should filter by unpaid status', async () => {
-      mockCommissionService.findAll.mockResolvedValue(mockCommissions);
+      mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
       const result = await controller.findAll('false');
 
-      expect(result).toEqual(mockCommissions);
-      expect(service.findAll).toHaveBeenCalledWith({ paid: false });
+      expect(result).toEqual(mockListResult);
+      expect(service.findAll).toHaveBeenCalledWith({ paid: false }, 1, 50);
     });
 
     it('should filter by startDate', async () => {
       const startDate = '2024-12-01';
-      mockCommissionService.findAll.mockResolvedValue(mockCommissions);
+      mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
       const result = await controller.findAll(undefined, startDate);
 
-      expect(result).toEqual(mockCommissions);
-      expect(service.findAll).toHaveBeenCalledWith({
-        startDate: parseDateString(startDate),
-      });
+      expect(result).toEqual(mockListResult);
+      expect(service.findAll).toHaveBeenCalledWith(
+        {
+          startDate: parseDateString(startDate),
+        },
+        1,
+        50,
+      );
     });
 
     it('should throw error when startDate format is invalid', async () => {
@@ -101,14 +116,18 @@ describe('CommissionController', () => {
 
     it('should filter by endDate', async () => {
       const endDate = '2024-12-31';
-      mockCommissionService.findAll.mockResolvedValue(mockCommissions);
+      mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
       const result = await controller.findAll(undefined, undefined, endDate);
 
-      expect(result).toEqual(mockCommissions);
-      expect(service.findAll).toHaveBeenCalledWith({
-        endDate: endOfDay(endDate),
-      });
+      expect(result).toEqual(mockListResult);
+      expect(service.findAll).toHaveBeenCalledWith(
+        {
+          endDate: endOfDay(endDate),
+        },
+        1,
+        50,
+      );
     });
 
     it('should throw error when endDate format is invalid', async () => {
@@ -125,7 +144,7 @@ describe('CommissionController', () => {
 
     it('should filter by collaboratorId', async () => {
       const collaboratorId = 'collaborator-1';
-      mockCommissionService.findAll.mockResolvedValue(mockCommissions);
+      mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
       const result = await controller.findAll(
         undefined,
@@ -134,15 +153,19 @@ describe('CommissionController', () => {
         collaboratorId,
       );
 
-      expect(result).toEqual(mockCommissions);
-      expect(service.findAll).toHaveBeenCalledWith({
-        collaboratorIds: [collaboratorId],
-      });
+      expect(result).toEqual(mockListResult);
+      expect(service.findAll).toHaveBeenCalledWith(
+        {
+          collaboratorIds: [collaboratorId],
+        },
+        1,
+        50,
+      );
     });
 
     it('should filter by multiple collaboratorIds', async () => {
       const collaboratorIds = ['collaborator-1', 'collaborator-2'];
-      mockCommissionService.findAll.mockResolvedValue(mockCommissions);
+      mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
       const result = await controller.findAll(
         undefined,
@@ -151,15 +174,19 @@ describe('CommissionController', () => {
         collaboratorIds,
       );
 
-      expect(result).toEqual(mockCommissions);
-      expect(service.findAll).toHaveBeenCalledWith({ collaboratorIds });
+      expect(result).toEqual(mockListResult);
+      expect(service.findAll).toHaveBeenCalledWith(
+        { collaboratorIds },
+        1,
+        50,
+      );
     });
 
     it('should combine multiple filters', async () => {
       const startDate = '2024-12-01';
       const endDate = '2024-12-31';
       const collaboratorId = 'collaborator-1';
-      mockCommissionService.findAll.mockResolvedValue(mockCommissions);
+      mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
       const result = await controller.findAll(
         'true',
@@ -168,13 +195,33 @@ describe('CommissionController', () => {
         collaboratorId,
       );
 
-      expect(result).toEqual(mockCommissions);
-      expect(service.findAll).toHaveBeenCalledWith({
-        paid: true,
-        startDate: parseDateString(startDate),
-        endDate: endOfDay(endDate),
-        collaboratorIds: [collaboratorId],
-      });
+      expect(result).toEqual(mockListResult);
+      expect(service.findAll).toHaveBeenCalledWith(
+        {
+          paid: true,
+          startDate: parseDateString(startDate),
+          endDate: endOfDay(endDate),
+          collaboratorIds: [collaboratorId],
+        },
+        1,
+        50,
+      );
+    });
+
+    it('should pass pagination params', async () => {
+      mockCommissionService.findAll.mockResolvedValue(mockListResult);
+
+      await controller.findAll(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        '2',
+        '25',
+      );
+
+      expect(service.findAll).toHaveBeenCalledWith(undefined, 2, 25);
     });
   });
 

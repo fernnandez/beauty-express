@@ -12,6 +12,7 @@ import { CommissionService } from '@domain/services/commission.service';
 import { endOfDay, parseDateString } from '../../utils/date.util';
 import { validateDateFormat } from '../../common/utils/date-validation.util';
 import { MarkCommissionsDto } from '../dtos/commission/mark-commissions.dto';
+import { CommissionFilterParams } from '@domain/repositories/commission-list.types';
 
 @ApiTags('Commissions')
 @Controller('commissions')
@@ -19,7 +20,7 @@ export class CommissionController {
   constructor(private readonly commissionDomainService: CommissionService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all commissions with optional filters' })
+  @ApiOperation({ summary: 'Get commissions with optional filters and pagination' })
   @ApiQuery({
     name: 'paid',
     required: false,
@@ -45,19 +46,40 @@ export class CommissionController {
     isArray: true,
     description: 'Filter by one or more collaborator IDs',
   })
-  @ApiResponse({ status: 200, description: 'List of commissions' })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search by collaborator, service or client name',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 50, max: 100)',
+  })
+  @ApiResponse({ status: 200, description: 'Paginated list of commissions' })
   async findAll(
     @Query('paid') paid?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('collaboratorId') collaboratorId?: string | string[],
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    const filters: {
-      paid?: boolean;
-      startDate?: Date;
-      endDate?: Date;
-      collaboratorIds?: string[];
-    } = {};
+    const filters: CommissionFilterParams = {};
+    const parsedPage = Math.max(1, parseInt(page ?? '1', 10) || 1);
+    const parsedLimit = Math.min(
+      100,
+      Math.max(1, parseInt(limit ?? '50', 10) || 50),
+    );
 
     if (paid !== undefined) {
       filters.paid = paid === 'true';
@@ -79,8 +101,15 @@ export class CommissionController {
         : [collaboratorId];
     }
 
+    const trimmedSearch = search?.trim();
+    if (trimmedSearch) {
+      filters.search = trimmedSearch;
+    }
+
     return await this.commissionDomainService.findAll(
       Object.keys(filters).length > 0 ? filters : undefined,
+      parsedPage,
+      parsedLimit,
     );
   }
 

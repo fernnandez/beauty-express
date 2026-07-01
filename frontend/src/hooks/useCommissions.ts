@@ -1,5 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { commissionService } from '../services/commission.service';
+import {
+  COMMISSIONS_PAGE_SIZE,
+  commissionService,
+} from '../services/commission.service';
 
 export const useCommissions = (
   filters?: {
@@ -7,6 +10,9 @@ export const useCommissions = (
     startDate?: string;
     endDate?: string;
     collaboratorIds?: string[];
+    search?: string;
+    page?: number;
+    limit?: number;
   },
   enabled = true,
 ) => {
@@ -14,8 +20,11 @@ export const useCommissions = (
     queryKey: ['commissions', filters],
     queryFn: () => commissionService.findAll(filters),
     enabled,
+    placeholderData: (previousData) => previousData,
   });
 };
+
+export { COMMISSIONS_PAGE_SIZE };
 
 export const useMarkCommissionsAsPaid = () => {
   const queryClient = useQueryClient();

@@ -6,6 +6,7 @@ import {
   Container,
   Group,
   MultiSelect,
+  Pagination,
   Paper,
   ScrollArea,
   Select,
@@ -17,6 +18,7 @@ import {
   Title,
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
+import { useDebouncedValue } from "@mantine/hooks";
 import {
   IconCalendar,
   IconCheck,
@@ -35,11 +37,12 @@ import {
   useCommissions,
   useMarkCommissionsAsPaid,
   useMarkCommissionsAsUnpaid,
+  COMMISSIONS_PAGE_SIZE,
 } from "../hooks/useCommissions";
 import { useOperationalBranding } from "../hooks/useOperationalBranding";
 import { useNotifications } from "../hooks/useNotifications";
 import { formatDate } from "../utils/appointment.utils";
-import { formatPrice, sumMoney, toMoney } from "../utils/money.util";
+import { formatPrice, toMoney } from "../utils/money.util";
 
 export function Commissions() {
   const navigate = useNavigate();
@@ -57,6 +60,8 @@ export function Commissions() {
   );
   const [collaboratorFilter, setCollaboratorFilter] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [debouncedSearchTerm] = useDebouncedValue(searchTerm, 500);
+  const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(
     undefined
   );
@@ -65,6 +70,18 @@ export function Commissions() {
   const [markAsPaidModalOpened, setMarkAsPaidModalOpened] = useState(false);
   const [markAsUnpaidModalOpened, setMarkAsUnpaidModalOpened] = useState(false);
 
+  useEffect(() => {
+    setPage(1);
+    setSelectedCommissions(new Set());
+  }, [
+    activeTab,
+    statusFilter,
+    startDate,
+    endDate,
+    collaboratorFilter,
+    debouncedSearchTerm,
+  ]);
+
   // Prepara os filtros para enviar ao backend
   const filters = useMemo(() => {
     const filterObj: {
@@ -72,7 +89,13 @@ export function Commissions() {
       startDate?: string;
       endDate?: string;
       collaboratorIds?: string[];
-    } = {};
+      search?: string;
+      page: number;
+      limit: number;
+    } = {
+      page,
+      limit: COMMISSIONS_PAGE_SIZE,
+    };
 
     // Se estiver na aba "pending", força paid=false
     if (activeTab === "pending") {
@@ -112,12 +135,22 @@ export function Commissions() {
     if (collaboratorFilter.length > 0) {
       filterObj.collaboratorIds = collaboratorFilter;
     }
+    if (debouncedSearchTerm.trim()) {
+      filterObj.search = debouncedSearchTerm.trim();
+    }
 
-    return Object.keys(filterObj).length > 0 ? filterObj : undefined;
-  }, [activeTab, statusFilter, startDate, endDate, collaboratorFilter]);
+    return filterObj;
+  }, [
+    activeTab,
+    statusFilter,
+    startDate,
+    endDate,
+    collaboratorFilter,
+    debouncedSearchTerm,
+    page,
+  ]);
 
-  // Usa os filtros do backend - a aba "pending" já força paid=false nos filtros
-  const { data: commissions, isLoading } = useCommissions(
+  const { data: commissionsData, isLoading, isFetching } = useCommissions(
     filters,
     commissionsEnabled,
   );
@@ -126,42 +159,16 @@ export function Commissions() {
   const markAsUnpaidMutation = useMarkCommissionsAsUnpaid();
   const { showSuccess, showError } = useNotifications();
 
-  // Os filtros de status, data e colaborador já vêm do backend
-  // Apenas filtra por termo de busca localmente
-  const commissionsToShow = useMemo(() => {
-    const commissionsList = commissions || [];
-
-    // Filtrar apenas por termo de busca (nome do serviço ou cliente) - filtro local
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      return commissionsList.filter((c) => {
-        const serviceName =
-          c.scheduledService?.service?.name?.toLowerCase() || "";
-        const clientName =
-          c.scheduledService?.appointment?.clientName?.toLowerCase() || "";
-        const collaboratorName = c.collaborator?.name?.toLowerCase() || "";
-        return (
-          serviceName.includes(term) ||
-          clientName.includes(term) ||
-          collaboratorName.includes(term)
-        );
-      });
-    }
-
-    return commissionsList;
-  }, [commissions, searchTerm]);
-
-  // Calcular totais
-  const totals = useMemo(() => {
-    const total = sumMoney(commissionsToShow.map((c) => c.amount));
-    const pending = sumMoney(
-      commissionsToShow.filter((c) => !c.paid).map((c) => c.amount),
-    );
-    const paid = sumMoney(
-      commissionsToShow.filter((c) => c.paid).map((c) => c.amount),
-    );
-    return { total, pending, paid };
-  }, [commissionsToShow]);
+  const commissionsToShow = commissionsData?.items ?? [];
+  const totals = commissionsData?.summary ?? {
+    totalAmount: 0,
+    pendingAmount: 0,
+    paidAmount: 0,
+  };
+  const totalPages = Math.max(
+    1,
+    Math.ceil((commissionsData?.total ?? 0) / COMMISSIONS_PAGE_SIZE),
+  );
 
   // Seleção
   const allSelected =
@@ -343,7 +350,7 @@ export function Commissions() {
                   Total
                 </Text>
                 <Text size="lg" fw={500}>
-                  {formatPrice(totals.total)}
+                  {formatPrice(totals.totalAmount)}
                 </Text>
               </Paper>
               <Paper withBorder p="sm" radius="md" c="yellow">
@@ -351,7 +358,7 @@ export function Commissions() {
                   Pendentes
                 </Text>
                 <Text size="lg" fw={500} c="yellow">
-                  {formatPrice(totals.pending)}
+                  {formatPrice(totals.pendingAmount)}
                 </Text>
               </Paper>
               <Paper withBorder p="sm" radius="md" c="green">
@@ -359,7 +366,7 @@ export function Commissions() {
                   Pagas
                 </Text>
                 <Text size="lg" fw={500} c="green">
-                  {formatPrice(totals.paid)}
+                  {formatPrice(totals.paidAmount)}
                 </Text>
               </Paper>
             </Group>
@@ -410,6 +417,7 @@ export function Commissions() {
               Nenhuma comissão encontrada
             </Text>
           ) : (
+            <>
             <ScrollArea>
               <Table striped highlightOnHover>
                 <Table.Thead>
@@ -512,6 +520,18 @@ export function Commissions() {
                 </Table.Tbody>
               </Table>
             </ScrollArea>
+            <Group justify="space-between" mt="md">
+              <Text size="sm" c="dimmed">
+                {commissionsData?.total ?? 0} comissão(ões) encontrada(s)
+                {isFetching ? " · atualizando..." : ""}
+              </Text>
+              <Pagination
+                total={totalPages}
+                value={page}
+                onChange={setPage}
+              />
+            </Group>
+            </>
           )}
         </Tabs.Panel>
       </Tabs>

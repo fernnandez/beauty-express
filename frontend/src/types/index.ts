@@ -175,5 +175,17 @@ export interface Commission {
   paid: boolean;
 }
 
+export interface CommissionListResponse {
+  items: Commission[];
+  total: number;
+  page: number;
+  limit: number;
+  summary: {
+    totalAmount: number;
+    pendingAmount: number;
+    paidAmount: number;
+  };
+}
+
 // Re-export tipos da API
 export type { ApiError, ApiErrorResponse } from './api.types';

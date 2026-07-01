@@ -17,6 +17,10 @@ import {
   ScheduledServiceEditability,
 } from './appointment-editability.types';
 import { AppointmentStatus } from '../entities/appointment.entity';
+import {
+  CommissionFilterParams,
+  CommissionListResult,
+} from '../repositories/commission-list.types';
 
 @Injectable({ scope: Scope.REQUEST })
 export class CommissionService {
@@ -127,37 +131,19 @@ export class CommissionService {
     return commissions;
   }
 
-  async findAll(filters?: {
-    paid?: boolean;
-    startDate?: Date;
-    endDate?: Date;
-    collaboratorIds?: string[];
-  }): Promise<Commission[]> {
+  async findAll(
+    filters?: CommissionFilterParams,
+    page = 1,
+    limit = 50,
+  ): Promise<CommissionListResult> {
     const tenantId = this.getTenantId();
 
-    if (
-      filters &&
-      (filters.paid !== undefined ||
-        filters.startDate ||
-        filters.endDate ||
-        filters.collaboratorIds?.length)
-    ) {
-      return await this.commissionRepository.findByFilters(tenantId, filters);
-    }
-
-    return await this.createCommissionQueryBuilder(tenantId).getMany();
-  }
-
-  private createCommissionQueryBuilder(tenantId: string) {
-    return this.commissionRepository
-      .createQueryBuilder('commission')
-      .leftJoinAndSelect('commission.collaborator', 'collaborator')
-      .leftJoinAndSelect('commission.scheduledService', 'scheduledService')
-      .leftJoinAndSelect('scheduledService.service', 'service')
-      .leftJoinAndSelect('scheduledService.appointment', 'appointment')
-      .where('commission.tenantId = :tenantId', { tenantId })
-      .orderBy('appointment.date', 'DESC')
-      .addOrderBy('appointment.startTime', 'DESC');
+    return await this.commissionRepository.findPaginated(
+      tenantId,
+      filters ?? {},
+      page,
+      limit,
+    );
   }
 
   private async markCommissionsStatus(

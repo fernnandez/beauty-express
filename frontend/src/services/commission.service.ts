@@ -1,5 +1,7 @@
 import { api } from '../config/api';
-import type { Commission } from '../types';
+import type { CommissionListResponse } from '../types';
+
+export const COMMISSIONS_PAGE_SIZE = 50;
 
 export const commissionService = {
   findAll: async (filters?: {
@@ -7,7 +9,10 @@ export const commissionService = {
     startDate?: string;
     endDate?: string;
     collaboratorIds?: string[];
-  }): Promise<Commission[]> => {
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<CommissionListResponse> => {
     const params = new URLSearchParams();
     
     if (filters?.paid !== undefined) {
@@ -22,22 +27,27 @@ export const commissionService = {
     filters?.collaboratorIds?.forEach((collaboratorId) => {
       params.append('collaboratorId', collaboratorId);
     });
+    if (filters?.search) {
+      params.append('search', filters.search);
+    }
+    params.append('page', String(filters?.page ?? 1));
+    params.append('limit', String(filters?.limit ?? COMMISSIONS_PAGE_SIZE));
 
     const queryString = params.toString();
-    const url = queryString ? `/commissions?${queryString}` : '/commissions';
-    const response = await api.get<Commission[]>(url);
+    const url = `/commissions?${queryString}`;
+    const response = await api.get<CommissionListResponse>(url);
     return response.data;
   },
 
-  markAsPaid: async (commissionIds: string[]): Promise<Commission[]> => {
-    const response = await api.put<Commission[]>('/commissions/mark-as-paid', {
+  markAsPaid: async (commissionIds: string[]) => {
+    const response = await api.put('/commissions/mark-as-paid', {
       commissionIds,
     });
     return response.data;
   },
 
-  markAsUnpaid: async (commissionIds: string[]): Promise<Commission[]> => {
-    const response = await api.put<Commission[]>(
+  markAsUnpaid: async (commissionIds: string[]) => {
+    const response = await api.put(
       '/commissions/mark-as-unpaid',
       {
         commissionIds,

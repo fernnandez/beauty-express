@@ -66,7 +66,10 @@ export function Dashboard() {
   const { data: collaborators } = useCollaborators();
   const { data: services } = useServices();
   const { data: appointments } = useAppointments();
-  const { data: commissions } = useCommissions(undefined, commissionsEnabled);
+  const { data: commissionsData } = useCommissions(
+    { page: 1, limit: 1 },
+    commissionsEnabled,
+  );
 
   const visibleCards = dashboardCards.filter(
     (card) => !card.requiresCommissions || commissionsEnabled,
@@ -81,7 +84,7 @@ export function Dashboard() {
       case "/appointments":
         return appointments?.length || 0;
       case "/commissions":
-        return commissions?.length || 0;
+        return commissionsData?.total || 0;
       case "/financial-reports":
         return null; // Não mostra contagem para relatórios
       default:
