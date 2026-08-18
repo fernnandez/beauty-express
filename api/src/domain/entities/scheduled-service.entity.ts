@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { Appointment } from './appointment.entity';
 import { Collaborator } from './collaborator.entity';
+import { CollaboratorCommissionRate } from './collaborator-commission-rate.entity';
 import { Service } from './service.entity';
 import { Tenant } from './tenant.entity';
 
@@ -48,6 +49,16 @@ export class ScheduledService {
   @ManyToOne(() => Collaborator, { nullable: true })
   @JoinColumn({ name: 'collaboratorId' })
   collaborator?: Collaborator;
+
+  @Column({ nullable: true })
+  commissionRateId?: string;
+
+  @ManyToOne(() => CollaboratorCommissionRate, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'commissionRateId' })
+  commissionRate?: CollaboratorCommissionRate;
 
   @Column('decimal', { precision: 10, scale: 2 })
   price: number;

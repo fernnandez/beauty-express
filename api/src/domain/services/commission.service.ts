@@ -12,6 +12,7 @@ import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { TenantContextService } from './tenant-context.service';
 import { TenantSettingsService } from './tenant-settings.service';
+import { resolveCommissionPercentage } from '../../common/utils/commission-rate.util';
 import {
   AppointmentEditability,
   ScheduledServiceEditability,
@@ -73,7 +74,10 @@ export class CommissionService {
       throw new NotFoundException('Collaborator not found');
     }
 
-    const percentage = collaborator.commissionPercentage;
+    const percentage = resolveCommissionPercentage(
+      collaborator.commissionRates,
+      scheduledService.commissionRateId,
+    );
     const amount = (Number(scheduledService.price) * percentage) / 100;
 
     const existingCommission =

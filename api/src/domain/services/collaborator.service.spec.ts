@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CollaboratorService } from './collaborator.service';
 import { CollaboratorRepository } from '../repositories/collaborator.repository';
+import { CollaboratorCommissionRateRepository } from '../repositories/collaborator-commission-rate.repository';
 import { Collaborator } from '../entities/collaborator.entity';
 import { CreateCollaboratorDto } from '@application/dtos/collaborator/create-collaborator.dto';
 import { UpdateCollaboratorDto } from '@application/dtos/collaborator/update-collaborator.dto';
@@ -11,6 +12,7 @@ import { mockTenantContextService } from '../../test/tenant-context.mock';
 describe('CollaboratorService', () => {
   let service: CollaboratorService;
   let repository: jest.Mocked<CollaboratorRepository>;
+  let commissionRateRepository: jest.Mocked<CollaboratorCommissionRateRepository>;
 
   const mockRepository = {
     save: jest.fn(),
@@ -20,6 +22,25 @@ describe('CollaboratorService', () => {
     delete: jest.fn(),
     searchByName: jest.fn(),
   };
+
+  const mockCommissionRateRepository = {
+    save: jest.fn(),
+    findById: jest.fn(),
+    findByCollaboratorId: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    deleteMissingForCollaborator: jest.fn(),
+  };
+
+  const defaultRates = [
+    {
+      id: 'rate-1',
+      tenantId: TENANT_ID_MOCK,
+      collaboratorId: '123e4567-e89b-12d3-a456-426614174000',
+      name: 'Cabeleireiro',
+      percentage: 10,
+    },
+  ];
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -33,14 +54,22 @@ describe('CollaboratorService', () => {
           provide: CollaboratorRepository,
           useValue: mockRepository,
         },
+        {
+          provide: CollaboratorCommissionRateRepository,
+          useValue: mockCommissionRateRepository,
+        },
       ],
     }).compile();
 
     service = await module.resolve<CollaboratorService>(CollaboratorService);
     repository = module.get(CollaboratorRepository);
+    commissionRateRepository = module.get(CollaboratorCommissionRateRepository);
 
-    // Reset mocks
     jest.clearAllMocks();
+    mockCommissionRateRepository.deleteMissingForCollaborator.mockResolvedValue(
+      undefined,
+    );
+    mockCommissionRateRepository.save.mockResolvedValue(defaultRates[0]);
   });
 
   it('should be defined', () => {
@@ -52,32 +81,47 @@ describe('CollaboratorService', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionPercentage: 10,
+      commissionRates: [{ name: 'Cabeleireiro', percentage: 10 }],
     };
 
     const expectedCollaborator: Collaborator = {
       id: '123e4567-e89b-12d3-a456-426614174000',
       tenantId: TENANT_ID_MOCK,
-      ...createDto,
+      name: createDto.name,
+      phone: createDto.phone,
+      area: createDto.area,
       isActive: true,
       services: [],
+      commissionRates: defaultRates,
     };
 
     it('should create a collaborator with valid data', async () => {
       repository.save.mockResolvedValue(expectedCollaborator);
+      repository.findById.mockResolvedValue(expectedCollaborator);
 
       const result = await service.createCollaborator(createDto);
 
       expect(result).toEqual(expectedCollaborator);
       expect(repository.save).toHaveBeenCalledWith({
-        ...createDto,
+        name: createDto.name,
+        phone: createDto.phone,
+        area: createDto.area,
         tenantId: TENANT_ID_MOCK,
         isActive: true,
+      });
+      expect(commissionRateRepository.save).toHaveBeenCalledWith({
+        tenantId: TENANT_ID_MOCK,
+        collaboratorId: expectedCollaborator.id,
+        name: 'Cabeleireiro',
+        percentage: 10,
       });
     });
 
     it('should throw error when commission percentage is negative', async () => {
-      const invalidDto = { ...createDto, commissionPercentage: -1 };
+      const invalidDto = {
+        ...createDto,
+        commissionRates: [{ name: 'Cabeleireiro', percentage: -1 }],
+      };
 
       await expect(service.createCollaborator(invalidDto)).rejects.toThrow(
         'Commission percentage must be between 0 and 100',
@@ -86,7 +130,10 @@ describe('CollaboratorService', () => {
     });
 
     it('should throw error when commission percentage is greater than 100', async () => {
-      const invalidDto = { ...createDto, commissionPercentage: 101 };
+      const invalidDto = {
+        ...createDto,
+        commissionRates: [{ name: 'Cabeleireiro', percentage: 101 }],
+      };
 
       await expect(service.createCollaborator(invalidDto)).rejects.toThrow(
         'Commission percentage must be between 0 and 100',
@@ -95,11 +142,12 @@ describe('CollaboratorService', () => {
     });
 
     it('should accept commission percentage of 0', async () => {
-      const dtoWithZero = { ...createDto, commissionPercentage: 0 };
-      repository.save.mockResolvedValue({
-        ...expectedCollaborator,
-        commissionPercentage: 0,
-      });
+      const dtoWithZero = {
+        ...createDto,
+        commissionRates: [{ name: 'Cabeleireiro', percentage: 0 }],
+      };
+      repository.save.mockResolvedValue(expectedCollaborator);
+      repository.findById.mockResolvedValue(expectedCollaborator);
 
       await service.createCollaborator(dtoWithZero);
 
@@ -107,15 +155,32 @@ describe('CollaboratorService', () => {
     });
 
     it('should accept commission percentage of 100', async () => {
-      const dtoWithHundred = { ...createDto, commissionPercentage: 100 };
-      repository.save.mockResolvedValue({
-        ...expectedCollaborator,
-        commissionPercentage: 100,
-      });
+      const dtoWithHundred = {
+        ...createDto,
+        commissionRates: [{ name: 'Cabeleireiro', percentage: 100 }],
+      };
+      repository.save.mockResolvedValue(expectedCollaborator);
+      repository.findById.mockResolvedValue(expectedCollaborator);
 
       await service.createCollaborator(dtoWithHundred);
 
       expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('should create a collaborator with multiple commission rates', async () => {
+      const dtoWithMultipleRates: CreateCollaboratorDto = {
+        ...createDto,
+        commissionRates: [
+          { name: 'Nail Designer', percentage: 40 },
+          { name: 'Cabelo', percentage: 50 },
+        ],
+      };
+      repository.save.mockResolvedValue(expectedCollaborator);
+      repository.findById.mockResolvedValue(expectedCollaborator);
+
+      await service.createCollaborator(dtoWithMultipleRates);
+
+      expect(commissionRateRepository.save).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -127,9 +192,9 @@ describe('CollaboratorService', () => {
         name: 'João Silva',
         phone: '11999999999',
         area: 'Cabeleireiro',
-        commissionPercentage: 10,
         isActive: true,
         services: [],
+        commissionRates: defaultRates,
       },
       {
         id: '2',
@@ -137,9 +202,17 @@ describe('CollaboratorService', () => {
         name: 'Maria Santos',
         phone: '11888888888',
         area: 'Manicure',
-        commissionPercentage: 15,
         isActive: true,
         services: [],
+        commissionRates: [
+          {
+            id: 'rate-2',
+            tenantId: TENANT_ID_MOCK,
+            collaboratorId: '2',
+            name: 'Manicure',
+            percentage: 15,
+          },
+        ],
       },
     ];
 
@@ -149,7 +222,10 @@ describe('CollaboratorService', () => {
       const result = await service.findAll();
 
       expect(result).toEqual(mockCollaborators);
-      expect(repository.find).toHaveBeenCalledWith({ where: { tenantId: TENANT_ID_MOCK }, relations: ['services'] });
+      expect(repository.find).toHaveBeenCalledWith({
+        where: { tenantId: TENANT_ID_MOCK },
+        relations: ['services', 'commissionRates'],
+      });
     });
 
     it('should search collaborators by name when search term is provided', async () => {
@@ -159,7 +235,10 @@ describe('CollaboratorService', () => {
       const result = await service.findAll(searchTerm);
 
       expect(result).toEqual([mockCollaborators[0]]);
-      expect(repository.searchByName).toHaveBeenCalledWith(searchTerm.trim(), TENANT_ID_MOCK);
+      expect(repository.searchByName).toHaveBeenCalledWith(
+        searchTerm.trim(),
+        TENANT_ID_MOCK,
+      );
       expect(repository.find).not.toHaveBeenCalled();
     });
 
@@ -189,9 +268,9 @@ describe('CollaboratorService', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionPercentage: 10,
       isActive: true,
       services: [],
+      commissionRates: defaultRates,
     };
 
     it('should return collaborator when found', async () => {
@@ -200,7 +279,10 @@ describe('CollaboratorService', () => {
       const result = await service.findById(mockCollaborator.id);
 
       expect(result).toEqual(mockCollaborator);
-      expect(repository.findById).toHaveBeenCalledWith(mockCollaborator.id, TENANT_ID_MOCK);
+      expect(repository.findById).toHaveBeenCalledWith(
+        mockCollaborator.id,
+        TENANT_ID_MOCK,
+      );
     });
 
     it('should return null when collaborator not found', async () => {
@@ -219,9 +301,9 @@ describe('CollaboratorService', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionPercentage: 10,
       isActive: true,
       services: [],
+      commissionRates: defaultRates,
     };
 
     const updatedCollaborator: Collaborator = {
@@ -247,7 +329,9 @@ describe('CollaboratorService', () => {
       );
 
       expect(result).toEqual(updatedCollaborator);
-      expect(repository.update).toHaveBeenCalledWith({ id: existingCollaborator.id, tenantId: TENANT_ID_MOCK }, updateDto,
+      expect(repository.update).toHaveBeenCalledWith(
+        { id: existingCollaborator.id, tenantId: TENANT_ID_MOCK },
+        updateDto,
       );
     });
 
@@ -266,7 +350,7 @@ describe('CollaboratorService', () => {
 
       await expect(
         service.updateCollaborator(existingCollaborator.id, {
-          commissionPercentage: -1,
+          commissionRates: [{ name: 'Cabeleireiro', percentage: -1 }],
         }),
       ).rejects.toThrow('Commission percentage must be between 0 and 100');
 
@@ -278,7 +362,7 @@ describe('CollaboratorService', () => {
 
       await expect(
         service.updateCollaborator(existingCollaborator.id, {
-          commissionPercentage: 101,
+          commissionRates: [{ name: 'Cabeleireiro', percentage: 101 }],
         }),
       ).rejects.toThrow('Commission percentage must be between 0 and 100');
 
@@ -288,7 +372,7 @@ describe('CollaboratorService', () => {
     it('should update isActive status', async () => {
       const updateDto: UpdateCollaboratorDto = { isActive: false };
       const deactivatedCollaborator: Collaborator = {
-      tenantId: TENANT_ID_MOCK,
+        tenantId: TENANT_ID_MOCK,
         ...existingCollaborator,
         isActive: false,
       };
@@ -303,25 +387,33 @@ describe('CollaboratorService', () => {
       );
 
       expect(result.isActive).toBe(false);
-      expect(repository.update).toHaveBeenCalledWith({ id: existingCollaborator.id, tenantId: TENANT_ID_MOCK }, updateDto,
+      expect(repository.update).toHaveBeenCalledWith(
+        { id: existingCollaborator.id, tenantId: TENANT_ID_MOCK },
+        updateDto,
       );
     });
 
-    it('should accept valid commission percentage update', async () => {
-      const updateDto: UpdateCollaboratorDto = { commissionPercentage: 20 };
-      const updatedCollaborator: Collaborator = {
-      tenantId: TENANT_ID_MOCK,
+    it('should accept valid commission rates update', async () => {
+      const updateDto: UpdateCollaboratorDto = {
+        commissionRates: [{ id: 'rate-1', name: 'Cabelo', percentage: 20 }],
+      };
+      const updatedWithRates: Collaborator = {
+        tenantId: TENANT_ID_MOCK,
         ...existingCollaborator,
-        commissionPercentage: 20,
+        commissionRates: [{ ...defaultRates[0], name: 'Cabelo', percentage: 20 }],
       };
 
       repository.findById.mockResolvedValueOnce(existingCollaborator);
-      repository.findById.mockResolvedValueOnce(updatedCollaborator);
-      repository.update.mockResolvedValue(undefined);
+      repository.findById.mockResolvedValueOnce(updatedWithRates);
+      mockCommissionRateRepository.findById.mockResolvedValue(defaultRates[0]);
+      mockCommissionRateRepository.update.mockResolvedValue(undefined);
 
       await service.updateCollaborator(existingCollaborator.id, updateDto);
 
-      expect(repository.update).toHaveBeenCalled();
+      expect(commissionRateRepository.update).toHaveBeenCalledWith(
+        { id: 'rate-1', tenantId: TENANT_ID_MOCK },
+        { name: 'Cabelo', percentage: 20 },
+      );
     });
   });
 
@@ -332,9 +424,9 @@ describe('CollaboratorService', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionPercentage: 10,
       isActive: true,
       services: [],
+      commissionRates: defaultRates,
     };
 
     it('should delete collaborator when found', async () => {
@@ -343,8 +435,14 @@ describe('CollaboratorService', () => {
 
       await service.delete(existingCollaborator.id);
 
-      expect(repository.findById).toHaveBeenCalledWith(existingCollaborator.id, TENANT_ID_MOCK);
-      expect(repository.delete).toHaveBeenCalledWith({ id: existingCollaborator.id, tenantId: TENANT_ID_MOCK });
+      expect(repository.findById).toHaveBeenCalledWith(
+        existingCollaborator.id,
+        TENANT_ID_MOCK,
+      );
+      expect(repository.delete).toHaveBeenCalledWith({
+        id: existingCollaborator.id,
+        tenantId: TENANT_ID_MOCK,
+      });
     });
 
     it('should throw error when collaborator not found', async () => {

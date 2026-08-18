@@ -99,6 +99,7 @@ export class AppointmentService {
         {
           serviceId: servico.serviceId,
           collaboratorId: servico.collaboratorId,
+          commissionRateId: servico.commissionRateId,
           price: servico.price,
         },
       );
@@ -118,6 +119,7 @@ export class AppointmentService {
         'scheduledServices',
         'scheduledServices.service',
         'scheduledServices.collaborator',
+        'scheduledServices.commissionRate',
       ],
     });
   }
@@ -135,6 +137,7 @@ export class AppointmentService {
         'scheduledServices',
         'scheduledServices.service',
         'scheduledServices.collaborator',
+        'scheduledServices.commissionRate',
       ],
       order: {
         startTime: 'ASC',

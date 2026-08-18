@@ -122,7 +122,15 @@ describe('ScheduledServiceService', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionPercentage: 10,
+      commissionRates: [
+        {
+          id: 'rate-1',
+          tenantId: TENANT_ID_MOCK,
+          collaboratorId: 'collaborator-1',
+          name: 'Cabeleireiro',
+          percentage: 10,
+        },
+      ],
       isActive: true,
       services: [],
     };
@@ -165,6 +173,7 @@ describe('ScheduledServiceService', () => {
         tenantId: TENANT_ID_MOCK,
         serviceId: 'service-1',
         collaboratorId: 'collaborator-1',
+        commissionRateId: 'rate-1',
         price: 50.0,
         status: ScheduledServiceStatus.PENDING,
       });
@@ -307,7 +316,15 @@ describe('ScheduledServiceService', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionPercentage: 10,
+      commissionRates: [
+        {
+          id: 'rate-1',
+          tenantId: TENANT_ID_MOCK,
+          collaboratorId: 'collaborator-1',
+          name: 'Cabeleireiro',
+          percentage: 10,
+        },
+      ],
       isActive: true,
       services: [],
     };
@@ -386,7 +403,15 @@ describe('ScheduledServiceService', () => {
         .mockResolvedValueOnce({ id: 'commission-1', paid: false });
       mockCollaboratorRepository.findById.mockResolvedValue({
         id: 'collaborator-1',
-        commissionPercentage: 10,
+        commissionRates: [
+          {
+            id: 'rate-1',
+            tenantId: TENANT_ID_MOCK,
+            collaboratorId: 'collaborator-1',
+            name: 'Cabeleireiro',
+            percentage: 10,
+          },
+        ],
         isActive: true,
       });
       mockCommissionRepository.update.mockResolvedValue(undefined);
@@ -490,7 +515,7 @@ describe('ScheduledServiceService', () => {
 
       expect(mockRepository.update).toHaveBeenCalledWith(
         { id: 'scheduled-1', tenantId: TENANT_ID_MOCK },
-        { collaboratorId: 'collaborator-2' },
+        { collaboratorId: 'collaborator-2', commissionRateId: 'rate-1' },
       );
     });
 
@@ -576,7 +601,15 @@ describe('ScheduledServiceService', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionPercentage: 10,
+      commissionRates: [
+        {
+          id: 'rate-1',
+          tenantId: TENANT_ID_MOCK,
+          collaboratorId: 'collaborator-1',
+          name: 'Cabeleireiro',
+          percentage: 10,
+        },
+      ],
       isActive: true,
       services: [],
     };

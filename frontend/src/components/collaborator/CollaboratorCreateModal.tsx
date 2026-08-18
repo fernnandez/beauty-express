@@ -3,7 +3,6 @@ import {
   Button,
   Group,
   Modal,
-  NumberInput,
   Stack,
   TextInput,
 } from "@mantine/core";
@@ -14,6 +13,7 @@ import { useOperationalBranding } from "../../hooks/useOperationalBranding";
 import { MESSAGES } from "../../constants/messages.constants";
 import { COLLABORATOR_AREAS } from "../../utils/collaborator.utils";
 import type { CreateCollaboratorDto } from "../../types";
+import { CommissionRatesField } from "./CommissionRatesField";
 
 interface CollaboratorCreateModalProps {
   opened: boolean;
@@ -26,19 +26,15 @@ export function CollaboratorCreateModal({
 }: CollaboratorCreateModalProps) {
   const createMutation = useCreateCollaborator();
   const { commissionsEnabled } = useOperationalBranding();
-  const { form, resetForm } = useCollaboratorForm(undefined, {
-    commissionsEnabled,
-  });
+  const { form, resetForm, addCommissionRate, removeCommissionRate, toDto } =
+    useCollaboratorForm(undefined, {
+      commissionsEnabled,
+    });
   const { showSuccess, showError } = useNotifications();
 
-  const handleSubmit = async (values: CreateCollaboratorDto) => {
+  const handleSubmit = async () => {
     try {
-      await createMutation.mutateAsync({
-        ...values,
-        commissionPercentage: commissionsEnabled
-          ? values.commissionPercentage
-          : 0,
-      });
+      await createMutation.mutateAsync(toDto(form.values) as CreateCollaboratorDto);
       showSuccess(MESSAGES.SUCCESS.CREATE.COLLABORATOR);
       resetForm();
       onClose();
@@ -60,11 +56,7 @@ export function CollaboratorCreateModal({
       title="Novo Colaborador"
       size="md"
     >
-      <form
-        onSubmit={form.onSubmit((values) =>
-          handleSubmit(values as CreateCollaboratorDto)
-        )}
-      >
+      <form onSubmit={form.onSubmit(handleSubmit)}>
         <Stack gap="md">
           <TextInput
             label="Nome"
@@ -89,14 +81,10 @@ export function CollaboratorCreateModal({
           />
 
           {commissionsEnabled && (
-            <NumberInput
-              label="Percentual de Comissão"
-              placeholder="0"
-              min={0}
-              max={100}
-              decimalScale={2}
-              required
-              {...form.getInputProps("commissionPercentage")}
+            <CommissionRatesField
+              form={form}
+              onAdd={addCommissionRate}
+              onRemove={removeCommissionRate}
             />
           )}
 

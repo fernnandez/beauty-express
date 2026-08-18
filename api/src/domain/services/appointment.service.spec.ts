@@ -468,6 +468,7 @@ describe('AppointmentService', () => {
           'scheduledServices',
           'scheduledServices.service',
           'scheduledServices.collaborator',
+          'scheduledServices.commissionRate',
         ],
       });
     });

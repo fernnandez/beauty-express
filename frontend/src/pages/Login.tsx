@@ -21,6 +21,10 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useLoginPortal } from '../contexts/LoginPortalContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getErrorMessage } from '../utils/error.util';
+import {
+  DEV_BANNER_HEIGHT,
+  DevEnvironmentBanner,
+} from '../components/DevEnvironmentBanner';
 import { createLoginBackground } from '../utils/theme.util';
 import type { LoginDto } from '../types/auth.types';
 
@@ -97,9 +101,14 @@ export function Login() {
     }
   });
 
+  const devBannerOffset = import.meta.env.DEV ? DEV_BANNER_HEIGHT : 0;
+
   return (
-    <Center
+    <>
+      <DevEnvironmentBanner />
+      <Center
       mih="100vh"
+      pt={devBannerOffset}
       style={{
         background: createLoginBackground(
           branding.primaryColor,
@@ -177,5 +186,6 @@ export function Login() {
         </Stack>
       </Paper>
     </Center>
+    </>
   );
 }

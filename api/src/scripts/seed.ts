@@ -3,7 +3,9 @@ import {
   Appointment,
   AppointmentStatus,
 } from '@domain/entities/appointment.entity';
+import { Client } from '@domain/entities/client.entity';
 import { Collaborator } from '@domain/entities/collaborator.entity';
+import { CollaboratorCommissionRate } from '@domain/entities/collaborator-commission-rate.entity';
 import { Commission } from '@domain/entities/commission.entity';
 import {
   ScheduledService,
@@ -60,7 +62,11 @@ async function seed() {
   const portalRepository = dataSource.getRepository(Portal);
   const tenantRepository = dataSource.getRepository(Tenant);
   const userRepository = dataSource.getRepository(User);
+  const clientRepository = dataSource.getRepository(Client);
   const collaboratorRepository = dataSource.getRepository(Collaborator);
+  const commissionRateRepository = dataSource.getRepository(
+    CollaboratorCommissionRate,
+  );
   const serviceRepository = dataSource.getRepository(Service);
   const appointmentRepository = dataSource.getRepository(Appointment);
   const scheduledServiceRepository = dataSource.getRepository(ScheduledService);
@@ -69,7 +75,7 @@ async function seed() {
   // Limpa dados existentes (CASCADE para respeitar FKs no PostgreSQL)
   console.log('🧹 Limpando dados existentes...');
   await dataSource.query(
-    'TRUNCATE TABLE refresh_tokens, users, tenants, portals, commissions, scheduled_services, appointments, collaborator_services, collaborators, services, clients RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE refresh_tokens, users, tenants, portals, commissions, scheduled_services, appointments, collaborator_services, collaborator_commission_rates, collaborators, services, clients RESTART IDENTITY CASCADE',
   );
   console.log('✅ Dados limpos\n');
 
@@ -221,7 +227,6 @@ async function seed() {
       name: 'Maria Silva',
       phone: '(11) 98765-4321',
       area: 'Hairdresser',
-      commissionPercentage: 50.0,
       isActive: true,
     },
     {
@@ -229,7 +234,6 @@ async function seed() {
       name: 'Ana Paula Santos',
       phone: '(11) 98765-4322',
       area: 'Nail Designer',
-      commissionPercentage: 45.0,
       isActive: true,
     },
     {
@@ -237,7 +241,6 @@ async function seed() {
       name: 'Juliana Costa',
       phone: '(11) 98765-4323',
       area: 'Hairdresser',
-      commissionPercentage: 50.0,
       isActive: true,
     },
     {
@@ -245,7 +248,6 @@ async function seed() {
       name: 'Fernanda Oliveira',
       phone: '(11) 98765-4324',
       area: 'Esthetician',
-      commissionPercentage: 40.0,
       isActive: true,
     },
     {
@@ -253,7 +255,6 @@ async function seed() {
       name: 'Patricia Lima',
       phone: '(11) 98765-4325',
       area: 'Makeup Artist',
-      commissionPercentage: 50.0,
       isActive: false, // Inativa
     },
     {
@@ -261,7 +262,6 @@ async function seed() {
       name: 'Camila Rodrigues',
       phone: '(11) 98765-4326',
       area: 'Nail Designer',
-      commissionPercentage: 55.0,
       isActive: true,
     },
     {
@@ -269,7 +269,6 @@ async function seed() {
       name: 'Larissa Alves',
       phone: '(11) 98765-4327',
       area: 'Massage Therapist',
-      commissionPercentage: 48.0,
       isActive: true,
     },
   ];
@@ -280,6 +279,66 @@ async function seed() {
       tenantId: DEMO_TENANT_ID,
     })),
   );
+
+  const collaboratorRates: Array<{
+    collaboratorId: string;
+    name: string;
+    percentage: number;
+  }> = [
+    {
+      collaboratorId: 'a0000001-0001-4000-8000-000000000001',
+      name: 'Cabelo',
+      percentage: 50.0,
+    },
+    {
+      collaboratorId: 'a0000001-0001-4000-8000-000000000001',
+      name: 'Nail Designer',
+      percentage: 40.0,
+    },
+    {
+      collaboratorId: 'a0000001-0001-4000-8000-000000000002',
+      name: 'Nail Designer',
+      percentage: 45.0,
+    },
+    {
+      collaboratorId: 'a0000001-0001-4000-8000-000000000003',
+      name: 'Hairdresser',
+      percentage: 50.0,
+    },
+    {
+      collaboratorId: 'a0000001-0001-4000-8000-000000000004',
+      name: 'Esthetician',
+      percentage: 40.0,
+    },
+    {
+      collaboratorId: 'a0000001-0001-4000-8000-000000000005',
+      name: 'Makeup Artist',
+      percentage: 50.0,
+    },
+    {
+      collaboratorId: 'a0000001-0001-4000-8000-000000000006',
+      name: 'Nail Designer',
+      percentage: 55.0,
+    },
+    {
+      collaboratorId: 'a0000001-0001-4000-8000-000000000007',
+      name: 'Massage Therapist',
+      percentage: 48.0,
+    },
+  ];
+
+  const savedCommissionRates = await commissionRateRepository.save(
+    collaboratorRates.map((rate) => ({
+      ...rate,
+      tenantId: DEMO_TENANT_ID,
+    })),
+  );
+
+  for (const collaborator of savedCollaborators) {
+    collaborator.commissionRates = savedCommissionRates.filter(
+      (rate) => rate.collaboratorId === collaborator.id,
+    );
+  }
   console.log(`✅ ${savedCollaborators.length} colaboradores criados\n`);
 
   // Seed de Serviços
@@ -385,6 +444,57 @@ async function seed() {
   );
   console.log(`✅ ${savedServices.length} serviços criados\n`);
 
+  console.log('👤 Criando clientes...');
+  const normalizePhone = (phone: string) => phone.replace(/\D/g, '');
+  const clientNames = [
+    'Carla Mendes',
+    'Roberta Alves',
+    'Luciana Ferreira',
+    'Amanda Souza',
+    'Maria Santos',
+    'Fernanda Costa',
+    'Mariana Rocha',
+    'Patricia Santos',
+    'Sandra Lima',
+    'Bruna Oliveira',
+    'Juliana Martins',
+    'Vanessa Martins',
+    'Camila Ribeiro',
+    'Gabriela Nunes',
+    'Isabela Torres',
+    'Leticia Almeida',
+    'Ana Beatriz',
+    'Cristina Silva',
+    'Daniela Costa',
+    'Eliane Santos',
+    'Beatriz Nascimento',
+    'Renata Duarte',
+    'Priscila Moura',
+    'Tatiane Barbosa',
+    'Luiza Cardoso',
+    'Helena Freitas',
+    'Natália Pires',
+    'Bianca Teixeira',
+    'Raquel Farias',
+    'Simone Araújo',
+  ];
+
+  const savedClients = await clientRepository.save(
+    clientNames.map((name, index) => {
+      const suffix = String(index + 1).padStart(4, '0');
+      const phone = `(11) 9${String(8000 + index).slice(-4)}-${suffix.slice(0, 2)}${suffix.slice(2)}`;
+
+      return {
+        id: `e0000001-0001-4000-8000-${String(index + 1).padStart(12, '0')}`,
+        tenantId: DEMO_TENANT_ID,
+        name,
+        phone,
+        phoneNormalized: normalizePhone(phone),
+      };
+    }),
+  );
+  console.log(`✅ ${savedClients.length} clientes criados\n`);
+
   console.log('💈 Criando dados da Barbearia Lucas (sem comissões)...');
   const barbeariaCollaborators = await collaboratorRepository.save([
     {
@@ -392,7 +502,6 @@ async function seed() {
       name: 'Lucas Ferreira',
       phone: '(11) 98765-4401',
       area: 'Barbeiro',
-      commissionPercentage: 0,
       isActive: true,
       tenantId: TENANT_BARBearia_ID,
     },
@@ -401,7 +510,6 @@ async function seed() {
       name: 'Rafael Mendes',
       phone: '(11) 98765-4402',
       area: 'Barbeiro',
-      commissionPercentage: 0,
       isActive: true,
       tenantId: TENANT_BARBearia_ID,
     },
@@ -586,10 +694,11 @@ async function seed() {
     commission.tenantId = DEMO_TENANT_ID;
     commission.collaboratorId = collaborator.id;
     commission.scheduledServiceId = scheduledService.id;
+    const rates = collaborator.commissionRates ?? [];
+    const percentage = Number(rates[0]?.percentage ?? 0);
     commission.amount =
-      (Number(scheduledService.price) * collaborator.commissionPercentage) /
-      100;
-    commission.percentage = collaborator.commissionPercentage;
+      (Number(scheduledService.price) * percentage) / 100;
+    commission.percentage = percentage;
     commission.paid = paid;
     return await commissionRepository.save(commission);
   };
@@ -636,6 +745,10 @@ async function seed() {
       scheduledService.appointmentId = savedAppointment.id;
       scheduledService.serviceId = servico.serviceId;
       scheduledService.collaboratorId = servico.collaboratorId;
+      scheduledService.commissionRateId = servico.collaboratorId
+        ? savedCollaborators.find((c) => c.id === servico.collaboratorId)
+            ?.commissionRates?.[0]?.id
+        : undefined;
       scheduledService.price = service.defaultPrice;
       scheduledService.status =
         servico.status ?? ScheduledServiceStatus.PENDING;

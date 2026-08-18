@@ -20,6 +20,7 @@ import {
   IconEdit,
   IconInfoCircle,
   IconNotes,
+  IconPercentage,
   IconPhone,
   IconPlus,
   IconRotate,
@@ -51,6 +52,11 @@ import {
   formatPrice,
   formatServiceOption,
 } from "../../utils/appointment.utils";
+import {
+  formatCommissionRateLabel,
+  getDefaultCommissionRateId,
+  collaboratorRequiresCommissionRate,
+} from "../../utils/collaborator.utils";
 import { sumMoney, toMoney } from "../../utils/money.util";
 
 interface AppointmentDetailModalProps {
@@ -106,17 +112,21 @@ export function AppointmentDetailModal({
   const [newService, setNewService] = useState<{
     serviceId: string;
     collaboratorId?: string;
+    commissionRateId?: string;
     price?: number;
   }>({
     serviceId: "",
     collaboratorId: undefined,
+    commissionRateId: undefined,
     price: undefined,
   });
   const [editServiceData, setEditServiceData] = useState<{
     collaboratorId?: string;
+    commissionRateId?: string;
     price?: number;
   }>({
     collaboratorId: undefined,
+    commissionRateId: undefined,
     price: undefined,
   });
   const { commissionsEnabled } = useOperationalBranding();
@@ -192,6 +202,18 @@ export function AppointmentDetailModal({
       return;
     }
 
+    const selectedCollaborator = activeCollaborators.find(
+      (collaborator) => collaborator.id === newService.collaboratorId,
+    );
+    if (
+      commissionsEnabled &&
+      collaboratorRequiresCommissionRate(selectedCollaborator) &&
+      !newService.commissionRateId
+    ) {
+      showError("Selecione o percentual de comissão do colaborador");
+      return;
+    }
+
     try {
       const selectedService = services?.find(
         (s) => s.id === newService.serviceId,
@@ -204,6 +226,7 @@ export function AppointmentDetailModal({
       const data: CreateScheduledServiceDto = {
         serviceId: newService.serviceId,
         collaboratorId: newService.collaboratorId,
+        commissionRateId: newService.commissionRateId,
         price:
           toMoney(newService.price) > 0
             ? toMoney(newService.price)
@@ -220,6 +243,7 @@ export function AppointmentDetailModal({
       setNewService({
         serviceId: "",
         collaboratorId: undefined,
+        commissionRateId: undefined,
         price: undefined,
       });
       setAddServiceModalOpened(false);
@@ -232,6 +256,7 @@ export function AppointmentDetailModal({
     setEditingService(service);
     setEditServiceData({
       collaboratorId: service.collaboratorId || undefined,
+      commissionRateId: service.commissionRateId || undefined,
       price: toMoney(service.price),
     });
     setEditServiceModalOpened(true);
@@ -240,11 +265,24 @@ export function AppointmentDetailModal({
   const handleUpdateService = async () => {
     if (!editingService) return;
 
+    const selectedCollaborator = activeCollaborators.find(
+      (collaborator) => collaborator.id === editServiceData.collaboratorId,
+    );
+    if (
+      commissionsEnabled &&
+      collaboratorRequiresCommissionRate(selectedCollaborator) &&
+      !editServiceData.commissionRateId
+    ) {
+      showError("Selecione o percentual de comissão do colaborador");
+      return;
+    }
+
     try {
       await updateServiceMutation.mutateAsync({
         id: editingService.id,
         data: {
           collaboratorId: editServiceData.collaboratorId,
+          commissionRateId: editServiceData.commissionRateId,
           price: editServiceData.price,
         },
       });
@@ -255,6 +293,7 @@ export function AppointmentDetailModal({
       setEditingService(null);
       setEditServiceData({
         collaboratorId: undefined,
+        commissionRateId: undefined,
         price: undefined,
       });
     } catch (error: unknown) {
@@ -462,6 +501,9 @@ export function AppointmentDetailModal({
                     <IconUser size={14} />
                     <Text size="xs" c="dimmed">
                       Colaborador: {service.collaborator.name}
+                      {commissionsEnabled && service.commissionRate
+                        ? ` · ${formatCommissionRateLabel(service.commissionRate)}`
+                        : ""}
                     </Text>
                   </Group>
                 )}
@@ -574,6 +616,7 @@ export function AppointmentDetailModal({
           setNewService({
             serviceId: "",
             collaboratorId: undefined,
+            commissionRateId: undefined,
             price: undefined,
           });
         }}
@@ -617,13 +660,55 @@ export function AppointmentDetailModal({
                 }
                 comboboxProps={{ zIndex: 600 }}
                 value={newService.collaboratorId || null}
-                onChange={(value) =>
+                onChange={(value) => {
+                  const nextCollaboratorId = value || undefined;
+                  const nextCollaborator = activeCollaborators.find(
+                    (collaborator) => collaborator.id === nextCollaboratorId,
+                  );
                   setNewService({
                     ...newService,
-                    collaboratorId: value || undefined,
-                  })
-                }
+                    collaboratorId: nextCollaboratorId,
+                    commissionRateId:
+                      getDefaultCommissionRateId(nextCollaborator),
+                  });
+                }}
               />
+              {commissionsEnabled &&
+                newService.collaboratorId &&
+                (activeCollaborators.find(
+                  (collaborator) =>
+                    collaborator.id === newService.collaboratorId,
+                )?.commissionRates?.length ?? 0) > 0 && (
+                  <Select
+                    label="Percentual de comissão"
+                    placeholder="Selecione o percentual"
+                    required={
+                      (activeCollaborators.find(
+                        (collaborator) =>
+                          collaborator.id === newService.collaboratorId,
+                      )?.commissionRates?.length ?? 0) > 1
+                    }
+                    leftSection={<IconPercentage size={16} />}
+                    data={(
+                      activeCollaborators.find(
+                        (collaborator) =>
+                          collaborator.id === newService.collaboratorId,
+                      )?.commissionRates ?? []
+                    ).map((rate) => ({
+                      value: rate.id,
+                      label: formatCommissionRateLabel(rate),
+                    }))}
+                    searchable
+                    comboboxProps={{ zIndex: 600 }}
+                    value={newService.commissionRateId || null}
+                    onChange={(value) =>
+                      setNewService({
+                        ...newService,
+                        commissionRateId: value || undefined,
+                      })
+                    }
+                  />
+                )}
               <NumberInput
                 label="Preço (Opcional)"
                 placeholder={`Padrão: ${formatPrice(
@@ -660,6 +745,7 @@ export function AppointmentDetailModal({
                 setNewService({
                   serviceId: "",
                   collaboratorId: undefined,
+                  commissionRateId: undefined,
                   price: undefined,
                 });
               }}
@@ -685,6 +771,7 @@ export function AppointmentDetailModal({
           setEditingService(null);
           setEditServiceData({
             collaboratorId: undefined,
+            commissionRateId: undefined,
             price: undefined,
           });
         }}
@@ -710,13 +797,56 @@ export function AppointmentDetailModal({
               clearable
               comboboxProps={{ zIndex: 600 }}
               value={editServiceData.collaboratorId || null}
-              onChange={(value) =>
+              onChange={(value) => {
+                const nextCollaboratorId = value || undefined;
+                const nextCollaborator = activeCollaborators.find(
+                  (collaborator) => collaborator.id === nextCollaboratorId,
+                );
                 setEditServiceData({
                   ...editServiceData,
-                  collaboratorId: value || undefined,
-                })
-              }
+                  collaboratorId: nextCollaboratorId,
+                  commissionRateId:
+                    getDefaultCommissionRateId(nextCollaborator),
+                });
+              }}
             />
+
+            {commissionsEnabled &&
+              editServiceData.collaboratorId &&
+              (activeCollaborators.find(
+                (collaborator) =>
+                  collaborator.id === editServiceData.collaboratorId,
+              )?.commissionRates?.length ?? 0) > 0 && (
+                <Select
+                  label="Percentual de comissão"
+                  placeholder="Selecione o percentual"
+                  required={
+                    (activeCollaborators.find(
+                      (collaborator) =>
+                        collaborator.id === editServiceData.collaboratorId,
+                    )?.commissionRates?.length ?? 0) > 1
+                  }
+                  leftSection={<IconPercentage size={16} />}
+                  data={(
+                    activeCollaborators.find(
+                      (collaborator) =>
+                        collaborator.id === editServiceData.collaboratorId,
+                    )?.commissionRates ?? []
+                  ).map((rate) => ({
+                    value: rate.id,
+                    label: formatCommissionRateLabel(rate),
+                  }))}
+                  searchable
+                  comboboxProps={{ zIndex: 600 }}
+                  value={editServiceData.commissionRateId || null}
+                  onChange={(value) =>
+                    setEditServiceData({
+                      ...editServiceData,
+                      commissionRateId: value || undefined,
+                    })
+                  }
+                />
+              )}
 
             <NumberInput
               label="Preço"
@@ -745,6 +875,7 @@ export function AppointmentDetailModal({
                   setEditingService(null);
                   setEditServiceData({
                     collaboratorId: undefined,
+                    commissionRateId: undefined,
                     price: undefined,
                   });
                 }}

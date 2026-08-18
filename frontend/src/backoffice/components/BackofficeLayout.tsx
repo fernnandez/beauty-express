@@ -20,6 +20,10 @@ import {
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import {
+  DEV_BANNER_HEIGHT,
+  DevEnvironmentBanner,
+} from '../../components/DevEnvironmentBanner';
+import {
   BACKOFFICE_NAME,
   backofficeColors,
 } from '../utils/backoffice-theme.util';
@@ -48,10 +52,25 @@ export function BackofficeLayout() {
     return location.pathname.startsWith(path);
   };
 
+  const devBannerOffset = import.meta.env.DEV ? DEV_BANNER_HEIGHT : 0;
+
   return (
-    <AppShell
+    <>
+      <DevEnvironmentBanner />
+      <AppShell
       navbar={{ width: 80, breakpoint: 'sm' }}
       footer={{ height: 35 }}
+      styles={{
+        navbar: {
+          top: devBannerOffset,
+          height: devBannerOffset
+            ? `calc(100% - ${devBannerOffset}px)`
+            : undefined,
+        },
+        main: {
+          paddingTop: devBannerOffset ? devBannerOffset + 16 : undefined,
+        },
+      }}
     >
       <AppShell.Navbar p="md" style={{ backgroundColor: backofficeColors.navbar }}>
         <Center mb="xl">
@@ -170,5 +189,6 @@ export function BackofficeLayout() {
         </Group>
       </AppShell.Footer>
     </AppShell>
+    </>
   );
 }

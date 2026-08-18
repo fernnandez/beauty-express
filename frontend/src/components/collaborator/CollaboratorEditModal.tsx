@@ -3,7 +3,6 @@ import {
   Button,
   Group,
   Modal,
-  NumberInput,
   Stack,
   Switch,
   TextInput,
@@ -16,6 +15,7 @@ import { useOperationalBranding } from "../../hooks/useOperationalBranding";
 import { MESSAGES } from "../../constants/messages.constants";
 import { COLLABORATOR_AREAS } from "../../utils/collaborator.utils";
 import type { Collaborator, UpdateCollaboratorDto } from "../../types";
+import { CommissionRatesField } from "./CommissionRatesField";
 
 interface CollaboratorEditModalProps {
   opened: boolean;
@@ -30,35 +30,37 @@ export function CollaboratorEditModal({
 }: CollaboratorEditModalProps) {
   const updateMutation = useUpdateCollaborator();
   const { commissionsEnabled } = useOperationalBranding();
-  const { form } = useCollaboratorForm(undefined, { commissionsEnabled });
+  const { form, addCommissionRate, removeCommissionRate, toDto } =
+    useCollaboratorForm(undefined, { commissionsEnabled });
   const { showSuccess, showError } = useNotifications();
 
-  // Atualiza o formulário quando o colaborador muda ou o modal abre
   useEffect(() => {
     if (collaborator && opened) {
       form.setValues({
         name: collaborator.name,
         phone: collaborator.phone,
         area: collaborator.area,
-        commissionPercentage: collaborator.commissionPercentage,
         isActive: collaborator.isActive,
+        commissionRates:
+          collaborator.commissionRates && collaborator.commissionRates.length > 0
+            ? collaborator.commissionRates.map((rate) => ({
+                id: rate.id,
+                name: rate.name,
+                percentage: Number(rate.percentage),
+              }))
+            : [{ name: "", percentage: 0 }],
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collaborator?.id, opened]);
 
-  const handleSubmit = async (values: UpdateCollaboratorDto) => {
+  const handleSubmit = async () => {
     if (!collaborator) return;
 
     try {
       await updateMutation.mutateAsync({
         id: collaborator.id,
-        data: {
-          ...values,
-          commissionPercentage: commissionsEnabled
-            ? values.commissionPercentage
-            : 0,
-        },
+        data: toDto(form.values) as UpdateCollaboratorDto,
       });
       showSuccess(MESSAGES.SUCCESS.UPDATE.COLLABORATOR);
       onClose();
@@ -100,14 +102,10 @@ export function CollaboratorEditModal({
           />
 
           {commissionsEnabled && (
-            <NumberInput
-              label="Percentual de Comissão"
-              placeholder="0"
-              min={0}
-              max={100}
-              decimalScale={2}
-              required
-              {...form.getInputProps("commissionPercentage")}
+            <CommissionRatesField
+              form={form}
+              onAdd={addCommissionRate}
+              onRemove={removeCommissionRate}
             />
           )}
 

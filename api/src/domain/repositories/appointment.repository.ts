@@ -20,6 +20,7 @@ export class AppointmentRepository extends Repository<Appointment> {
         'scheduledServices',
         'scheduledServices.service',
         'scheduledServices.collaborator',
+        'scheduledServices.commissionRate',
       ],
     });
   }
@@ -38,6 +39,7 @@ export class AppointmentRepository extends Repository<Appointment> {
         'scheduledServices',
         'scheduledServices.service',
         'scheduledServices.collaborator',
+        'scheduledServices.commissionRate',
       ],
     });
   }
@@ -55,6 +57,7 @@ export class AppointmentRepository extends Repository<Appointment> {
         'scheduledServices',
         'scheduledServices.service',
         'scheduledServices.collaborator',
+        'scheduledServices.commissionRate',
       ],
     });
   }

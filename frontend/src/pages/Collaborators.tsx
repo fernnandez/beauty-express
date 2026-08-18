@@ -165,7 +165,18 @@ export function Collaborators() {
                   <Table.Td>{collaborator.phone}</Table.Td>
                   {commissionsEnabled && (
                     <Table.Td>
-                      {toMoney(collaborator.commissionPercentage)}%
+                      {collaborator.commissionRates &&
+                      collaborator.commissionRates.length > 0 ? (
+                        <Group gap={4} wrap="wrap">
+                          {collaborator.commissionRates.map((rate) => (
+                            <Badge key={rate.id} variant="light" color="brand">
+                              {rate.name} {toMoney(rate.percentage)}%
+                            </Badge>
+                          ))}
+                        </Group>
+                      ) : (
+                        "—"
+                      )}
                     </Table.Td>
                   )}
                   <Table.Td>

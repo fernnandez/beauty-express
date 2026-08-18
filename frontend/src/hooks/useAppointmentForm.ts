@@ -12,12 +12,15 @@ import {
   isDateInPast,
   validateTimeRange,
 } from "../utils/appointment.utils";
+import { collaboratorRequiresCommissionRate } from "../utils/collaborator.utils";
 import { useCollaborators } from "./useCollaborators";
+import { useOperationalBranding } from "./useOperationalBranding";
 import { useServices } from "./useServices";
 
 export interface ServiceFormItem {
   serviceId: string;
   collaboratorId?: string;
+  commissionRateId?: string;
   price?: number;
 }
 
@@ -37,6 +40,7 @@ export const useAppointmentForm = (
 ) => {
   const { data: services } = useServices();
   const { data: collaborators } = useCollaborators();
+  const { commissionsEnabled } = useOperationalBranding();
 
   const form = useForm<AppointmentFormValues>({
     initialValues: {
@@ -65,6 +69,7 @@ export const useAppointmentForm = (
     form.insertListItem("servicos", {
       serviceId: "",
       collaboratorId: undefined,
+      commissionRateId: undefined,
       price: undefined,
     });
   };
@@ -74,6 +79,14 @@ export const useAppointmentForm = (
   };
 
   const isPastAppointment = isDateInPast(form.values.data);
+
+  const totalPrice = useMemo(() => {
+    return calculateTotalPrice(form.values.servicos, services);
+  }, [form.values.servicos, services]);
+
+  const activeCollaborators = useMemo(() => {
+    return collaborators?.filter((c) => c.isActive) || [];
+  }, [collaborators]);
 
   const validateForm = (): { valid: boolean; error?: string } => {
     if (form.values.servicos.length === 0) {
@@ -95,6 +108,26 @@ export const useAppointmentForm = (
             "Agendamentos no passado exigem serviço e colaborador em cada item",
         };
       }
+    }
+
+    const missingCommissionRate = commissionsEnabled
+      ? form.values.servicos.find((servico) => {
+          const collaborator = activeCollaborators.find(
+            (item) => item.id === servico.collaboratorId,
+          );
+          return (
+            collaboratorRequiresCommissionRate(collaborator) &&
+            !servico.commissionRateId
+          );
+        })
+      : undefined;
+
+    if (missingCommissionRate) {
+      return {
+        valid: false,
+        error:
+          "Selecione o percentual de comissão do colaborador em cada serviço",
+      };
     }
 
     const timeValidation = validateTimeRange(
@@ -125,8 +158,6 @@ export const useAppointmentForm = (
       servicos,
     };
 
-    // Inclui observacoes se houver valor (não vazio após trim)
-    // Se o campo existir e não for vazio, inclui no DTO
     const observacoesTrimmed = form.values.observacoes?.trim();
     if (observacoesTrimmed && observacoesTrimmed.length > 0) {
       dto.observations = observacoesTrimmed;
@@ -157,14 +188,6 @@ export const useAppointmentForm = (
 
     return dto;
   };
-
-  const totalPrice = useMemo(() => {
-    return calculateTotalPrice(form.values.servicos, services);
-  }, [form.values.servicos, services]);
-
-  const activeCollaborators = useMemo(() => {
-    return collaborators?.filter((c) => c.isActive) || [];
-  }, [collaborators]);
 
   return {
     form,

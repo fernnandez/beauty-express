@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { CollaboratorCommissionRateInputDto } from './commission-rate.dto';
 
 export class CreateCollaboratorDto {
   @ApiProperty({ example: 'John Doe' })
@@ -17,9 +24,14 @@ export class CreateCollaboratorDto {
   @IsString()
   area: string;
 
-  @ApiProperty({ example: 15, minimum: 0, maximum: 100 })
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  commissionPercentage: number;
+  @ApiProperty({
+    type: [CollaboratorCommissionRateInputDto],
+    required: false,
+    description: 'Commission rates that can be selected when assigning a service',
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CollaboratorCommissionRateInputDto)
+  @IsOptional()
+  commissionRates?: CollaboratorCommissionRateInputDto[];
 }

@@ -17,9 +17,17 @@ describe('CollaboratorController', () => {
     name: 'João Silva',
     phone: '11999999999',
     area: 'Cabeleireiro',
-    commissionPercentage: 10,
     isActive: true,
     services: [],
+    commissionRates: [
+      {
+        id: 'rate-1',
+        tenantId: TENANT_ID_MOCK,
+        collaboratorId: '123e4567-e89b-12d3-a456-426614174000',
+        name: 'Cabeleireiro',
+        percentage: 10,
+      },
+    ],
   };
 
   const mockCollaboratorService = {
@@ -56,7 +64,7 @@ describe('CollaboratorController', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionPercentage: 10,
+      commissionRates: [{ name: 'Cabeleireiro', percentage: 10 }],
     };
 
     it('should create a collaborator', async () => {
@@ -118,9 +126,10 @@ describe('CollaboratorController', () => {
     };
 
     const updatedCollaborator: Collaborator = {
-      tenantId: TENANT_ID_MOCK,
       ...mockCollaborator,
-      ...updateDto,
+      tenantId: TENANT_ID_MOCK,
+      name: 'João Silva Santos',
+      phone: '11988888888',
     };
 
     it('should update a collaborator', async () => {

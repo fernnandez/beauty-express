@@ -40,3 +40,32 @@ export const validateCommissionPercentage = (
   return null;
 };
 
+export const validateCommissionRateName = (value: string): string | null => {
+  if (!value || value.trim().length < 1) {
+    return "Informe o nome do percentual";
+  }
+  return null;
+};
+
+export const formatCommissionRateLabel = (rate: {
+  name: string;
+  percentage: number;
+}): string => {
+  return `${rate.name} (${Number(rate.percentage)}%)`;
+};
+
+export const getDefaultCommissionRateId = (collaborator?: {
+  commissionRates?: Array<{ id: string }>;
+}): string | undefined => {
+  if (!collaborator?.commissionRates || collaborator.commissionRates.length !== 1) {
+    return undefined;
+  }
+  return collaborator.commissionRates[0].id;
+};
+
+export const collaboratorRequiresCommissionRate = (collaborator?: {
+  commissionRates?: Array<{ id: string }>;
+}): boolean => {
+  return (collaborator?.commissionRates?.length ?? 0) > 1;
+};
+

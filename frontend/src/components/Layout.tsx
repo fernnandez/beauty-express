@@ -23,6 +23,10 @@ import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useOperationalBranding } from "../hooks/useOperationalBranding";
+import {
+  DEV_BANNER_HEIGHT,
+  DevEnvironmentBanner,
+} from "./DevEnvironmentBanner";
 import { getNavbarBackground, withAlpha } from "../utils/theme.util";
 
 interface LayoutProps {
@@ -63,14 +67,29 @@ export function Layout({ children }: LayoutProps) {
     navigate("/login", { replace: true });
   };
 
+  const devBannerOffset = import.meta.env.DEV ? DEV_BANNER_HEIGHT : 0;
+
   return (
-    <AppShell
+    <>
+      <DevEnvironmentBanner />
+      <AppShell
       navbar={{
         width: 80,
         breakpoint: "sm",
       }}
       footer={{
         height: { base: 56, lg: 42 },
+      }}
+      styles={{
+        navbar: {
+          top: devBannerOffset,
+          height: devBannerOffset
+            ? `calc(100% - ${devBannerOffset}px)`
+            : undefined,
+        },
+        main: {
+          paddingTop: devBannerOffset ? devBannerOffset + 16 : undefined,
+        },
       }}
     >
       <AppShell.Navbar
@@ -206,5 +225,6 @@ export function Layout({ children }: LayoutProps) {
         </Group>
       </AppShell.Footer>
     </AppShell>
+    </>
   );
 }

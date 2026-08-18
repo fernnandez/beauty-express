@@ -102,7 +102,15 @@ describe('CommissionService', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionPercentage: 10,
+      commissionRates: [
+        {
+          id: 'rate-1',
+          tenantId: TENANT_ID_MOCK,
+          collaboratorId: 'collaborator-1',
+          name: 'Cabeleireiro',
+          percentage: 10,
+        },
+      ],
       isActive: true,
       services: [],
     };
@@ -239,7 +247,15 @@ describe('CommissionService', () => {
     it('should calculate commission with different percentage', async () => {
       const collaboratorWithDifferentPercentage: Collaborator = {
         ...mockCollaborator,
-        commissionPercentage: 15,
+        commissionRates: [
+          {
+            id: 'rate-1',
+            tenantId: TENANT_ID_MOCK,
+            collaboratorId: 'collaborator-1',
+            name: 'Cabeleireiro',
+            percentage: 15,
+          },
+        ],
       };
 
       const expectedCommission: Commission = {
@@ -275,7 +291,15 @@ describe('CommissionService', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionPercentage: 10,
+      commissionRates: [
+        {
+          id: 'rate-1',
+          tenantId: TENANT_ID_MOCK,
+          collaboratorId: 'collaborator-1',
+          name: 'Cabeleireiro',
+          percentage: 10,
+        },
+      ],
       isActive: true,
       services: [],
     };

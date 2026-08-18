@@ -7,6 +7,7 @@ import {
   Scope,
 } from '@nestjs/common';
 import { AppointmentStatus } from '../entities/appointment.entity';
+import { Collaborator } from '../entities/collaborator.entity';
 import { Commission } from '../entities/commission.entity';
 import {
   ScheduledService,
@@ -19,6 +20,10 @@ import { ScheduledServiceRepository } from '../repositories/scheduled-service.re
 import { ServiceRepository } from '../repositories/service.repository';
 import { TenantContextService } from './tenant-context.service';
 import { TenantSettingsService } from './tenant-settings.service';
+import {
+  resolveCommissionPercentage,
+  resolveCommissionRateId,
+} from '../../common/utils/commission-rate.util';
 
 @Injectable({ scope: Scope.REQUEST })
 export class ScheduledServiceService {
@@ -38,7 +43,7 @@ export class ScheduledServiceService {
 
   private async validateCollaboratorActive(
     collaboratorId: string,
-  ): Promise<void> {
+  ): Promise<Collaborator> {
     const tenantId = this.getTenantId();
     const collaborator = await this.collaboratorRepository.findById(
       collaboratorId,
@@ -50,6 +55,17 @@ export class ScheduledServiceService {
     if (!collaborator.isActive) {
       throw new BadRequestException('Collaborator is not active');
     }
+    return collaborator;
+  }
+
+  private resolveAssignedCommissionRateId(
+    collaborator: { commissionRates?: { id: string; percentage: number }[] },
+    requestedRateId?: string | null,
+  ): string | null {
+    return resolveCommissionRateId(
+      collaborator.commissionRates,
+      requestedRateId,
+    );
   }
 
   private async assertCommissionNotPaid(
@@ -114,7 +130,10 @@ export class ScheduledServiceService {
       throw new NotFoundException('Collaborator not found');
     }
 
-    const percentage = collaborator.commissionPercentage;
+    const percentage = resolveCommissionPercentage(
+      collaborator.commissionRates,
+      scheduledService.commissionRateId,
+    );
     const amount = (Number(scheduledService.price) * percentage) / 100;
     const existingCommission =
       await this.commissionRepository.findByScheduledServiceId(
@@ -174,8 +193,16 @@ export class ScheduledServiceService {
       throw new NotFoundException('Service not found');
     }
 
+    let commissionRateId: string | null = null;
+
     if (createDto.collaboratorId) {
-      await this.validateCollaboratorActive(createDto.collaboratorId);
+      const collaborator = await this.validateCollaboratorActive(
+        createDto.collaboratorId,
+      );
+      commissionRateId = this.resolveAssignedCommissionRateId(
+        collaborator,
+        createDto.commissionRateId,
+      );
     }
 
     const isCompletedAppointment =
@@ -192,6 +219,7 @@ export class ScheduledServiceService {
       tenantId,
       serviceId: createDto.serviceId,
       collaboratorId: createDto.collaboratorId,
+      commissionRateId,
       price: createDto.price ?? service.defaultPrice,
       status: isCompletedAppointment
         ? ScheduledServiceStatus.COMPLETED
@@ -245,10 +273,6 @@ export class ScheduledServiceService {
       }
     }
 
-    if (updateDto.collaboratorId !== undefined && updateDto.collaboratorId) {
-      await this.validateCollaboratorActive(updateDto.collaboratorId);
-    }
-
     const updatePayload: Partial<ScheduledService> = {};
 
     if (updateDto.serviceId !== undefined) {
@@ -259,6 +283,36 @@ export class ScheduledServiceService {
     }
     if (updateDto.price !== undefined) {
       updatePayload.price = updateDto.price;
+    }
+
+    if (updateDto.collaboratorId !== undefined && updateDto.collaboratorId) {
+      const collaborator = await this.validateCollaboratorActive(
+        updateDto.collaboratorId,
+      );
+      updatePayload.commissionRateId = this.resolveAssignedCommissionRateId(
+        collaborator,
+        updateDto.commissionRateId,
+      );
+    } else if (updateDto.collaboratorId !== undefined) {
+      updatePayload.commissionRateId = null;
+    } else if (updateDto.commissionRateId !== undefined) {
+      const collaboratorId = scheduledService.collaboratorId;
+      if (!collaboratorId) {
+        throw new BadRequestException(
+          'A collaborator is required to select a commission rate',
+        );
+      }
+      const collaborator = await this.collaboratorRepository.findById(
+        collaboratorId,
+        tenantId,
+      );
+      if (!collaborator) {
+        throw new NotFoundException('Collaborator not found');
+      }
+      updatePayload.commissionRateId = this.resolveAssignedCommissionRateId(
+        collaborator,
+        updateDto.commissionRateId,
+      );
     }
 
     if (Object.keys(updatePayload).length > 0) {

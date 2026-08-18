@@ -1,0 +1,7 @@
+# Commercial video assets
+commercial-video/recordings/
+commercial-video/screenshots/
+commercial-video/.DS_Store
+
+# OS
+.DS_Store

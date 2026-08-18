@@ -159,18 +159,30 @@ export function AppointmentCreateModal({
                 index={index}
                 serviceId={servico.serviceId}
                 collaboratorId={servico.collaboratorId}
+                commissionRateId={servico.commissionRateId}
                 price={servico.price}
                 services={services}
                 collaborators={activeCollaborators}
                 canRemove={form.values.servicos.length > 1}
                 collaboratorRequired={isPastAppointment}
+                commissionsEnabled={commissionsEnabled}
                 onServiceChange={(idx, serviceId) =>
                   form.setFieldValue(`servicos.${idx}.serviceId`, serviceId)
                 }
-                onCollaboratorChange={(idx, collaboratorId) =>
+                onCollaboratorChange={(idx, collaboratorId, commissionRateId) => {
                   form.setFieldValue(
                     `servicos.${idx}.collaboratorId`,
                     collaboratorId
+                  );
+                  form.setFieldValue(
+                    `servicos.${idx}.commissionRateId`,
+                    commissionRateId
+                  );
+                }}
+                onCommissionRateChange={(idx, commissionRateId) =>
+                  form.setFieldValue(
+                    `servicos.${idx}.commissionRateId`,
+                    commissionRateId
                   )
                 }
                 onPriceChange={(idx, price) =>
