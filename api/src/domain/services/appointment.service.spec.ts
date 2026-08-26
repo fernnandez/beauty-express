@@ -117,6 +117,7 @@ describe('AppointmentService', () => {
       tenantId: TENANT_ID_MOCK,
       name: 'Corte de Cabelo',
       defaultPrice: 50.0,
+      commissionPercentage: 50,
       description: 'Corte profissional',
       collaborators: [],
     };
@@ -468,7 +469,6 @@ describe('AppointmentService', () => {
           'scheduledServices',
           'scheduledServices.service',
           'scheduledServices.collaborator',
-          'scheduledServices.commissionRate',
         ],
       });
     });

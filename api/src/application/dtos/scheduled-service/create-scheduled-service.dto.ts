@@ -11,15 +11,6 @@ export class CreateScheduledServiceDto {
   @IsOptional()
   collaboratorId?: string;
 
-  @ApiProperty({
-    example: 'commission-rate-id-123',
-    required: false,
-    description: 'Commission rate to apply when the service is completed',
-  })
-  @IsString()
-  @IsOptional()
-  commissionRateId?: string;
-
   @ApiProperty({ example: 50.0, required: false, minimum: 0.01 })
   @IsNumber()
   @Min(0.01)

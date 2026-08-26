@@ -15,7 +15,7 @@ export class ScheduledServiceRepository extends Repository<ScheduledService> {
   async findById(id: string, tenantId: string): Promise<ScheduledService | null> {
     return await this.findOne({
       where: { id, tenantId },
-      relations: ['appointment', 'service', 'collaborator', 'commissionRate'],
+      relations: ['appointment', 'service', 'collaborator'],
     });
   }
 
@@ -25,7 +25,7 @@ export class ScheduledServiceRepository extends Repository<ScheduledService> {
   ): Promise<ScheduledService[]> {
     return await this.find({
       where: { appointmentId, tenantId },
-      relations: ['service', 'collaborator', 'commissionRate'],
+      relations: ['service', 'collaborator'],
     });
   }
 

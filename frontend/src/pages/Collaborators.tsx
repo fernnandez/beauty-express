@@ -31,13 +31,10 @@ import {
   useUpdateCollaborator,
 } from "../hooks/useCollaborators";
 import { useNotifications } from "../hooks/useNotifications";
-import { useOperationalBranding } from "../hooks/useOperationalBranding";
 import { MESSAGES } from "../constants/messages.constants";
 import type { Collaborator } from "../types";
-import { toMoney } from "../utils/money.util";
 
 export function Collaborators() {
-  const { commissionsEnabled } = useOperationalBranding();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm] = useDebouncedValue(searchTerm, 500);
   const { data: collaborators, isLoading } = useCollaborators(
@@ -152,7 +149,6 @@ export function Collaborators() {
                 <Table.Th>Nome</Table.Th>
                 <Table.Th>Área de Atuação</Table.Th>
                 <Table.Th>Telefone</Table.Th>
-                {commissionsEnabled && <Table.Th>Comissão</Table.Th>}
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Ações</Table.Th>
               </Table.Tr>
@@ -163,22 +159,6 @@ export function Collaborators() {
                   <Table.Td>{collaborator.name}</Table.Td>
                   <Table.Td>{collaborator.area}</Table.Td>
                   <Table.Td>{collaborator.phone}</Table.Td>
-                  {commissionsEnabled && (
-                    <Table.Td>
-                      {collaborator.commissionRates &&
-                      collaborator.commissionRates.length > 0 ? (
-                        <Group gap={4} wrap="wrap">
-                          {collaborator.commissionRates.map((rate) => (
-                            <Badge key={rate.id} variant="light" color="brand">
-                              {rate.name} {toMoney(rate.percentage)}%
-                            </Badge>
-                          ))}
-                        </Group>
-                      ) : (
-                        "—"
-                      )}
-                    </Table.Td>
-                  )}
                   <Table.Td>
                     <Badge color={collaborator.isActive ? "green" : "red"}>
                       {collaborator.isActive ? "Ativo" : "Inativo"}

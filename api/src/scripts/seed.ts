@@ -5,7 +5,6 @@ import {
 } from '@domain/entities/appointment.entity';
 import { Client } from '@domain/entities/client.entity';
 import { Collaborator } from '@domain/entities/collaborator.entity';
-import { CollaboratorCommissionRate } from '@domain/entities/collaborator-commission-rate.entity';
 import { Commission } from '@domain/entities/commission.entity';
 import {
   ScheduledService,
@@ -64,9 +63,6 @@ async function seed() {
   const userRepository = dataSource.getRepository(User);
   const clientRepository = dataSource.getRepository(Client);
   const collaboratorRepository = dataSource.getRepository(Collaborator);
-  const commissionRateRepository = dataSource.getRepository(
-    CollaboratorCommissionRate,
-  );
   const serviceRepository = dataSource.getRepository(Service);
   const appointmentRepository = dataSource.getRepository(Appointment);
   const scheduledServiceRepository = dataSource.getRepository(ScheduledService);
@@ -75,7 +71,7 @@ async function seed() {
   // Limpa dados existentes (CASCADE para respeitar FKs no PostgreSQL)
   console.log('🧹 Limpando dados existentes...');
   await dataSource.query(
-    'TRUNCATE TABLE refresh_tokens, users, tenants, portals, commissions, scheduled_services, appointments, collaborator_services, collaborator_commission_rates, collaborators, services, clients RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE refresh_tokens, users, tenants, portals, commissions, scheduled_services, appointments, collaborator_services, collaborators, services, clients RESTART IDENTITY CASCADE',
   );
   console.log('✅ Dados limpos\n');
 
@@ -279,66 +275,6 @@ async function seed() {
       tenantId: DEMO_TENANT_ID,
     })),
   );
-
-  const collaboratorRates: Array<{
-    collaboratorId: string;
-    name: string;
-    percentage: number;
-  }> = [
-    {
-      collaboratorId: 'a0000001-0001-4000-8000-000000000001',
-      name: 'Cabelo',
-      percentage: 50.0,
-    },
-    {
-      collaboratorId: 'a0000001-0001-4000-8000-000000000001',
-      name: 'Nail Designer',
-      percentage: 40.0,
-    },
-    {
-      collaboratorId: 'a0000001-0001-4000-8000-000000000002',
-      name: 'Nail Designer',
-      percentage: 45.0,
-    },
-    {
-      collaboratorId: 'a0000001-0001-4000-8000-000000000003',
-      name: 'Hairdresser',
-      percentage: 50.0,
-    },
-    {
-      collaboratorId: 'a0000001-0001-4000-8000-000000000004',
-      name: 'Esthetician',
-      percentage: 40.0,
-    },
-    {
-      collaboratorId: 'a0000001-0001-4000-8000-000000000005',
-      name: 'Makeup Artist',
-      percentage: 50.0,
-    },
-    {
-      collaboratorId: 'a0000001-0001-4000-8000-000000000006',
-      name: 'Nail Designer',
-      percentage: 55.0,
-    },
-    {
-      collaboratorId: 'a0000001-0001-4000-8000-000000000007',
-      name: 'Massage Therapist',
-      percentage: 48.0,
-    },
-  ];
-
-  const savedCommissionRates = await commissionRateRepository.save(
-    collaboratorRates.map((rate) => ({
-      ...rate,
-      tenantId: DEMO_TENANT_ID,
-    })),
-  );
-
-  for (const collaborator of savedCollaborators) {
-    collaborator.commissionRates = savedCommissionRates.filter(
-      (rate) => rate.collaboratorId === collaborator.id,
-    );
-  }
   console.log(`✅ ${savedCollaborators.length} colaboradores criados\n`);
 
   // Seed de Serviços
@@ -348,90 +284,105 @@ async function seed() {
       id: 'b0000001-0001-4000-8000-000000000001',
       name: 'Corte Feminino',
       defaultPrice: 45.0,
+      commissionPercentage: 50.0,
       description: 'Corte de cabelo feminino com lavagem e finalização',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000002',
       name: 'Corte Masculino',
       defaultPrice: 30.0,
+      commissionPercentage: 50.0,
       description: 'Corte de cabelo masculino',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000003',
       name: 'Coloração Completa',
       defaultPrice: 180.0,
+      commissionPercentage: 50.0,
       description: 'Coloração completa com produtos profissionais',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000004',
       name: 'Mechas',
       defaultPrice: 250.0,
+      commissionPercentage: 50.0,
       description: 'Aplicação de mechas com técnicas modernas',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000005',
       name: 'Escova Progressiva',
       defaultPrice: 350.0,
+      commissionPercentage: 50.0,
       description: 'Alisamento com escova progressiva',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000006',
       name: 'Manicure',
       defaultPrice: 25.0,
+      commissionPercentage: 40.0,
       description: 'Manicure completa com esmaltação',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000007',
       name: 'Pedicure',
       defaultPrice: 35.0,
+      commissionPercentage: 40.0,
       description: 'Pedicure completa com esmaltação',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000008',
       name: 'Manicure + Pedicure',
       defaultPrice: 55.0,
+      commissionPercentage: 40.0,
       description: 'Pacote completo de unhas',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000009',
       name: 'Sobrancelha',
       defaultPrice: 20.0,
+      commissionPercentage: 40.0,
       description: 'Design de sobrancelhas',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000010',
       name: 'Penteado',
       defaultPrice: 80.0,
+      commissionPercentage: 50.0,
       description: 'Penteado para eventos',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000011',
       name: 'Tratamento Capilar',
       defaultPrice: 120.0,
+      commissionPercentage: 50.0,
       description: 'Tratamento para cabelos danificados',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000012',
       name: 'Corte + Escova',
       defaultPrice: 65.0,
+      commissionPercentage: 50.0,
       description: 'Pacote corte com escova',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000013',
       name: 'Hidratação',
       defaultPrice: 90.0,
+      commissionPercentage: 50.0,
       description: 'Hidratação profunda',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000014',
       name: 'Botox Capilar',
       defaultPrice: 200.0,
+      commissionPercentage: 50.0,
       description: 'Tratamento botox capilar',
     },
     {
       id: 'b0000001-0001-4000-8000-000000000015',
       name: 'Depilação Facial',
       defaultPrice: 40.0,
+      commissionPercentage: 40.0,
       description: 'Depilação com cera',
     },
   ];
@@ -694,8 +645,10 @@ async function seed() {
     commission.tenantId = DEMO_TENANT_ID;
     commission.collaboratorId = collaborator.id;
     commission.scheduledServiceId = scheduledService.id;
-    const rates = collaborator.commissionRates ?? [];
-    const percentage = Number(rates[0]?.percentage ?? 0);
+    const service = savedServices.find(
+      (item) => item.id === scheduledService.serviceId,
+    );
+    const percentage = Number(service?.commissionPercentage ?? 0);
     commission.amount =
       (Number(scheduledService.price) * percentage) / 100;
     commission.percentage = percentage;
@@ -745,10 +698,6 @@ async function seed() {
       scheduledService.appointmentId = savedAppointment.id;
       scheduledService.serviceId = servico.serviceId;
       scheduledService.collaboratorId = servico.collaboratorId;
-      scheduledService.commissionRateId = servico.collaboratorId
-        ? savedCollaborators.find((c) => c.id === servico.collaboratorId)
-            ?.commissionRates?.[0]?.id
-        : undefined;
       scheduledService.price = service.defaultPrice;
       scheduledService.status =
         servico.status ?? ScheduledServiceStatus.PENDING;

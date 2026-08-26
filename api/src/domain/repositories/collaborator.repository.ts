@@ -15,7 +15,7 @@ export class CollaboratorRepository extends Repository<Collaborator> {
   async findById(id: string, tenantId: string): Promise<Collaborator | null> {
     return await this.findOne({
       where: { id, tenantId },
-      relations: ['services', 'commissionRates'],
+      relations: ['services'],
     });
   }
 
@@ -25,7 +25,6 @@ export class CollaboratorRepository extends Repository<Collaborator> {
   ): Promise<Collaborator[]> {
     return await this.createQueryBuilder('collaborator')
       .leftJoinAndSelect('collaborator.services', 'services')
-      .leftJoinAndSelect('collaborator.commissionRates', 'commissionRates')
       .where('collaborator.name LIKE :search', { search: `%${searchTerm}%` })
       .andWhere('collaborator.tenantId = :tenantId', { tenantId })
       .getMany();

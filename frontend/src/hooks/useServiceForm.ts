@@ -1,13 +1,18 @@
 import { useForm } from "@mantine/form";
 import type { CreateServiceDto, UpdateServiceDto } from "../types";
+import { validateCommissionPercentage } from "../utils/collaborator.utils";
 
 export const useServiceForm = (
-  initialValues?: Partial<CreateServiceDto | UpdateServiceDto>
+  initialValues?: Partial<CreateServiceDto | UpdateServiceDto>,
+  options?: { commissionsEnabled?: boolean },
 ) => {
+  const commissionsEnabled = options?.commissionsEnabled !== false;
+
   const form = useForm<CreateServiceDto | UpdateServiceDto>({
     initialValues: {
       name: "",
       defaultPrice: 0,
+      commissionPercentage: 0,
       description: "",
       ...initialValues,
     },
@@ -20,6 +25,9 @@ export const useServiceForm = (
         value !== undefined && value <= 0
           ? "Preço deve ser maior que zero"
           : null,
+      ...(commissionsEnabled
+        ? { commissionPercentage: validateCommissionPercentage }
+        : {}),
     },
   });
 
@@ -32,4 +40,3 @@ export const useServiceForm = (
     resetForm,
   };
 };
-

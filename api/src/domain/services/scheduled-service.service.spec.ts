@@ -112,6 +112,7 @@ describe('ScheduledServiceService', () => {
       tenantId: TENANT_ID_MOCK,
       name: 'Corte de Cabelo',
       defaultPrice: 50.0,
+      commissionPercentage: 10,
       description: 'Corte profissional',
       collaborators: [],
     };
@@ -122,15 +123,6 @@ describe('ScheduledServiceService', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionRates: [
-        {
-          id: 'rate-1',
-          tenantId: TENANT_ID_MOCK,
-          collaboratorId: 'collaborator-1',
-          name: 'Cabeleireiro',
-          percentage: 10,
-        },
-      ],
       isActive: true,
       services: [],
     };
@@ -173,7 +165,6 @@ describe('ScheduledServiceService', () => {
         tenantId: TENANT_ID_MOCK,
         serviceId: 'service-1',
         collaboratorId: 'collaborator-1',
-        commissionRateId: 'rate-1',
         price: 50.0,
         status: ScheduledServiceStatus.PENDING,
       });
@@ -316,15 +307,6 @@ describe('ScheduledServiceService', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionRates: [
-        {
-          id: 'rate-1',
-          tenantId: TENANT_ID_MOCK,
-          collaboratorId: 'collaborator-1',
-          name: 'Cabeleireiro',
-          percentage: 10,
-        },
-      ],
       isActive: true,
       services: [],
     };
@@ -401,18 +383,13 @@ describe('ScheduledServiceService', () => {
       mockCommissionRepository.findByScheduledServiceId
         .mockResolvedValueOnce({ id: 'commission-1', paid: false })
         .mockResolvedValueOnce({ id: 'commission-1', paid: false });
-      mockCollaboratorRepository.findById.mockResolvedValue({
-        id: 'collaborator-1',
-        commissionRates: [
-          {
-            id: 'rate-1',
-            tenantId: TENANT_ID_MOCK,
-            collaboratorId: 'collaborator-1',
-            name: 'Cabeleireiro',
-            percentage: 10,
-          },
-        ],
-        isActive: true,
+      mockServiceRepository.findById.mockResolvedValue({
+        id: 'service-1',
+        tenantId: TENANT_ID_MOCK,
+        name: 'Corte de Cabelo',
+        defaultPrice: 50.0,
+        commissionPercentage: 10,
+        collaborators: [],
       });
       mockCommissionRepository.update.mockResolvedValue(undefined);
       mockCommissionRepository.findById.mockResolvedValue({
@@ -451,9 +428,10 @@ describe('ScheduledServiceService', () => {
 
       const newService: Service = {
         id: 'service-2',
-      tenantId: TENANT_ID_MOCK,
+        tenantId: TENANT_ID_MOCK,
         name: 'Manicure',
         defaultPrice: 30.0,
+        commissionPercentage: 40,
         collaborators: [],
       };
 
@@ -515,7 +493,7 @@ describe('ScheduledServiceService', () => {
 
       expect(mockRepository.update).toHaveBeenCalledWith(
         { id: 'scheduled-1', tenantId: TENANT_ID_MOCK },
-        { collaboratorId: 'collaborator-2', commissionRateId: 'rate-1' },
+        { collaboratorId: 'collaborator-2' },
       );
     });
 
@@ -595,25 +573,6 @@ describe('ScheduledServiceService', () => {
       status: ScheduledServiceStatus.COMPLETED,
     };
 
-    const mockCollaborator: Collaborator = {
-      id: 'collaborator-1',
-      tenantId: TENANT_ID_MOCK,
-      name: 'João Silva',
-      phone: '11999999999',
-      area: 'Cabeleireiro',
-      commissionRates: [
-        {
-          id: 'rate-1',
-          tenantId: TENANT_ID_MOCK,
-          collaboratorId: 'collaborator-1',
-          name: 'Cabeleireiro',
-          percentage: 10,
-        },
-      ],
-      isActive: true,
-      services: [],
-    };
-
     const mockCommission: Commission = {
       id: 'commission-1',
       tenantId: TENANT_ID_MOCK,
@@ -628,7 +587,14 @@ describe('ScheduledServiceService', () => {
       mockRepository.findById.mockResolvedValueOnce(pendingScheduledService);
       mockRepository.save.mockResolvedValue(completedScheduledService);
       mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(null);
-      mockCollaboratorRepository.findById.mockResolvedValue(mockCollaborator);
+      mockServiceRepository.findById.mockResolvedValue({
+        id: 'service-1',
+        tenantId: TENANT_ID_MOCK,
+        name: 'Corte de Cabelo',
+        defaultPrice: 50.0,
+        commissionPercentage: 10,
+        collaborators: [],
+      });
       mockCommissionRepository.save.mockResolvedValue(mockCommission);
 
       const result = await service.completeScheduledService('scheduled-1');
@@ -688,6 +654,16 @@ describe('ScheduledServiceService', () => {
       mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(
         mockCommission,
       );
+      mockServiceRepository.findById.mockResolvedValue({
+        id: 'service-1',
+        tenantId: TENANT_ID_MOCK,
+        name: 'Corte de Cabelo',
+        defaultPrice: 50.0,
+        commissionPercentage: 10,
+        collaborators: [],
+      });
+      mockCommissionRepository.update.mockResolvedValue(undefined);
+      mockCommissionRepository.findById.mockResolvedValue(mockCommission);
 
       const result = await service.completeScheduledService('scheduled-1');
 

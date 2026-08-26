@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import { useServiceForm } from "../../hooks/useServiceForm";
 import { useUpdateService } from "../../hooks/useServices";
 import { useNotifications } from "../../hooks/useNotifications";
+import { useOperationalBranding } from "../../hooks/useOperationalBranding";
 import { MESSAGES } from "../../constants/messages.constants";
 import type { Service, UpdateServiceDto } from "../../types";
 
@@ -26,7 +27,8 @@ export function ServiceEditModal({
   service,
 }: ServiceEditModalProps) {
   const updateMutation = useUpdateService();
-  const { form } = useServiceForm();
+  const { commissionsEnabled } = useOperationalBranding();
+  const { form } = useServiceForm(undefined, { commissionsEnabled });
   const { showSuccess, showError } = useNotifications();
 
   // Atualiza o formulário quando o serviço muda ou o modal abre
@@ -35,6 +37,7 @@ export function ServiceEditModal({
       form.setValues({
         name: service.name,
         defaultPrice: service.defaultPrice,
+        commissionPercentage: service.commissionPercentage,
         description: service.description || "",
       });
     }
@@ -83,6 +86,19 @@ export function ServiceEditModal({
             required
             {...form.getInputProps("defaultPrice")}
           />
+
+          {commissionsEnabled && (
+            <NumberInput
+              label="Comissão (%)"
+              description="Percentual aplicado a qualquer colaborador que realizar este serviço"
+              placeholder="0"
+              min={0}
+              max={100}
+              decimalScale={2}
+              suffix=" %"
+              {...form.getInputProps("commissionPercentage")}
+            />
+          )}
 
           <Textarea
             label="Descrição"

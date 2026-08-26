@@ -9,7 +9,6 @@ import {
 } from "@mantine/core";
 import {
   IconCurrencyDollar,
-  IconPercentage,
   IconScissors,
   IconTrash,
   IconUser,
@@ -19,30 +18,19 @@ import {
   formatPrice,
   formatServiceOption,
 } from "../../utils/appointment.utils";
-import {
-  formatCommissionRateLabel,
-  getDefaultCommissionRateId,
-} from "../../utils/collaborator.utils";
 import { toMoney } from "../../utils/money.util";
 
 interface ServiceFormItemProps {
   index: number;
   serviceId: string;
   collaboratorId?: string;
-  commissionRateId?: string;
   price?: number;
   services?: Service[];
   collaborators?: Collaborator[];
   canRemove: boolean;
   collaboratorRequired?: boolean;
-  commissionsEnabled?: boolean;
   onServiceChange: (index: number, serviceId: string) => void;
-  onCollaboratorChange: (
-    index: number,
-    collaboratorId?: string,
-    commissionRateId?: string,
-  ) => void;
-  onCommissionRateChange: (index: number, commissionRateId?: string) => void;
+  onCollaboratorChange: (index: number, collaboratorId?: string) => void;
   onPriceChange: (index: number, price: number) => void;
   onRemove: (index: number) => void;
 }
@@ -51,26 +39,17 @@ export function ServiceFormItem({
   index,
   serviceId,
   collaboratorId,
-  commissionRateId,
   price,
   services,
   collaborators,
   canRemove,
   collaboratorRequired = false,
-  commissionsEnabled = false,
   onServiceChange,
   onCollaboratorChange,
-  onCommissionRateChange,
   onPriceChange,
   onRemove,
 }: ServiceFormItemProps) {
   const selectedService = services?.find((s) => s.id === serviceId);
-  const selectedCollaborator = collaborators?.find(
-    (collaborator) => collaborator.id === collaboratorId,
-  );
-  const commissionRates = selectedCollaborator?.commissionRates ?? [];
-  const showCommissionRateSelect =
-    commissionsEnabled && Boolean(collaboratorId) && commissionRates.length > 0;
 
   return (
     <Card key={index} withBorder padding="md" radius="md">
@@ -119,39 +98,10 @@ export function ServiceFormItem({
               searchable
               clearable={!collaboratorRequired}
               value={collaboratorId || null}
-              onChange={(value) => {
-                const nextCollaboratorId = value || undefined;
-                const nextCollaborator = collaborators?.find(
-                  (collaborator) => collaborator.id === nextCollaboratorId,
-                );
-                onCollaboratorChange(
-                  index,
-                  nextCollaboratorId,
-                  getDefaultCommissionRateId(nextCollaborator),
-                );
-              }}
+              onChange={(value) =>
+                onCollaboratorChange(index, value || undefined)
+              }
             />
-            {showCommissionRateSelect && (
-              <Select
-                label="Percentual de comissão"
-                placeholder="Selecione o percentual"
-                required={commissionRates.length > 1}
-                leftSection={<IconPercentage size={16} />}
-                data={commissionRates.map((rate) => ({
-                  value: rate.id,
-                  label: formatCommissionRateLabel(rate),
-                }))}
-                searchable
-                value={
-                  commissionRateId ||
-                  getDefaultCommissionRateId(selectedCollaborator) ||
-                  null
-                }
-                onChange={(value) =>
-                  onCommissionRateChange(index, value || undefined)
-                }
-              />
-            )}
             <NumberInput
               label="Preço (Opcional)"
               placeholder={`Padrão: ${formatPrice(

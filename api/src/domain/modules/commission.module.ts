@@ -6,7 +6,6 @@ import { Collaborator } from '../entities/collaborator.entity';
 import { Service } from '../entities/service.entity';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
-import { CollaboratorRepository } from '../repositories/collaborator.repository';
 import { ServiceRepository } from '../repositories/service.repository';
 import { CommissionService } from '../services/commission.service';
 import { CommissionController } from '@application/controllers/commission.controller';
@@ -28,7 +27,6 @@ import { AuthModule } from './auth.module';
   providers: [
     CommissionRepository,
     ScheduledServiceRepository,
-    CollaboratorRepository,
     ServiceRepository,
     CommissionService,
   ],

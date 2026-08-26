@@ -10,6 +10,7 @@ import {
 import { useServiceForm } from "../../hooks/useServiceForm";
 import { useCreateService } from "../../hooks/useServices";
 import { useNotifications } from "../../hooks/useNotifications";
+import { useOperationalBranding } from "../../hooks/useOperationalBranding";
 import { MESSAGES } from "../../constants/messages.constants";
 import type { CreateServiceDto, UpdateServiceDto } from "../../types";
 
@@ -23,7 +24,8 @@ export function ServiceCreateModal({
   onClose,
 }: ServiceCreateModalProps) {
   const createMutation = useCreateService();
-  const { form, resetForm } = useServiceForm();
+  const { commissionsEnabled } = useOperationalBranding();
+  const { form, resetForm } = useServiceForm(undefined, { commissionsEnabled });
   const { showSuccess, showError } = useNotifications();
 
   const handleSubmit = async (values: CreateServiceDto) => {
@@ -73,6 +75,19 @@ export function ServiceCreateModal({
             required
             {...form.getInputProps("defaultPrice")}
           />
+
+          {commissionsEnabled && (
+            <NumberInput
+              label="Comissão (%)"
+              description="Percentual aplicado a qualquer colaborador que realizar este serviço"
+              placeholder="0"
+              min={0}
+              max={100}
+              decimalScale={2}
+              suffix=" %"
+              {...form.getInputProps("commissionPercentage")}
+            />
+          )}
 
           <Textarea
             label="Descrição"

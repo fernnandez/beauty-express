@@ -13,24 +13,16 @@ export enum ScheduledServiceStatus {
 }
 
 // DTOs
-export interface CollaboratorCommissionRateInput {
-  id?: string;
-  name: string;
-  percentage: number;
-}
-
 export interface CreateCollaboratorDto {
   name: string;
   phone: string;
   area: string;
-  commissionRates?: CollaboratorCommissionRateInput[];
 }
 
 export interface UpdateCollaboratorDto {
   name?: string;
   phone?: string;
   area?: string;
-  commissionRates?: CollaboratorCommissionRateInput[];
   isActive?: boolean;
 }
 
@@ -53,19 +45,20 @@ export interface Client {
 export interface CreateServiceDto {
   name: string;
   defaultPrice: number;
+  commissionPercentage?: number;
   description?: string;
 }
 
 export interface UpdateServiceDto {
   name?: string;
   defaultPrice?: number;
+  commissionPercentage?: number;
   description?: string;
 }
 
 export interface ScheduledServiceInputDto {
   serviceId: string;
   collaboratorId?: string;
-  commissionRateId?: string;
   price?: number;
 }
 
@@ -93,14 +86,12 @@ export interface UpdateAppointmentDto {
 export interface CreateScheduledServiceDto {
   serviceId: string;
   collaboratorId?: string;
-  commissionRateId?: string;
   price?: number;
 }
 
 export interface UpdateScheduledServiceDto {
   serviceId?: string;
   collaboratorId?: string;
-  commissionRateId?: string;
   price?: number;
 }
 
@@ -109,6 +100,7 @@ export interface Service {
   id: string;
   name: string;
   defaultPrice: number;
+  commissionPercentage: number;
   description?: string;
   collaborators?: Array<{
     id: string;
@@ -116,14 +108,7 @@ export interface Service {
     phone: string;
     area: string;
     isActive: boolean;
-    commissionRates?: CollaboratorCommissionRate[];
   }>;
-}
-
-export interface CollaboratorCommissionRate {
-  id: string;
-  name: string;
-  percentage: number;
 }
 
 export interface Collaborator {
@@ -132,7 +117,6 @@ export interface Collaborator {
   phone: string;
   area: string;
   isActive: boolean;
-  commissionRates?: CollaboratorCommissionRate[];
   services?: Array<{
     id: string;
     name: string;
@@ -150,8 +134,6 @@ export interface ScheduledService {
   service?: Service;
   collaboratorId?: string;
   collaborator?: Collaborator;
-  commissionRateId?: string;
-  commissionRate?: CollaboratorCommissionRate;
   status: ScheduledServiceStatus;
 }
 

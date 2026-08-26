@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CollaboratorService } from './collaborator.service';
 import { CollaboratorRepository } from '../repositories/collaborator.repository';
-import { CollaboratorCommissionRateRepository } from '../repositories/collaborator-commission-rate.repository';
 import { Collaborator } from '../entities/collaborator.entity';
 import { CreateCollaboratorDto } from '@application/dtos/collaborator/create-collaborator.dto';
 import { UpdateCollaboratorDto } from '@application/dtos/collaborator/update-collaborator.dto';
@@ -12,7 +11,6 @@ import { mockTenantContextService } from '../../test/tenant-context.mock';
 describe('CollaboratorService', () => {
   let service: CollaboratorService;
   let repository: jest.Mocked<CollaboratorRepository>;
-  let commissionRateRepository: jest.Mocked<CollaboratorCommissionRateRepository>;
 
   const mockRepository = {
     save: jest.fn(),
@@ -22,25 +20,6 @@ describe('CollaboratorService', () => {
     delete: jest.fn(),
     searchByName: jest.fn(),
   };
-
-  const mockCommissionRateRepository = {
-    save: jest.fn(),
-    findById: jest.fn(),
-    findByCollaboratorId: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-    deleteMissingForCollaborator: jest.fn(),
-  };
-
-  const defaultRates = [
-    {
-      id: 'rate-1',
-      tenantId: TENANT_ID_MOCK,
-      collaboratorId: '123e4567-e89b-12d3-a456-426614174000',
-      name: 'Cabeleireiro',
-      percentage: 10,
-    },
-  ];
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -54,22 +33,13 @@ describe('CollaboratorService', () => {
           provide: CollaboratorRepository,
           useValue: mockRepository,
         },
-        {
-          provide: CollaboratorCommissionRateRepository,
-          useValue: mockCommissionRateRepository,
-        },
       ],
     }).compile();
 
     service = await module.resolve<CollaboratorService>(CollaboratorService);
     repository = module.get(CollaboratorRepository);
-    commissionRateRepository = module.get(CollaboratorCommissionRateRepository);
 
     jest.clearAllMocks();
-    mockCommissionRateRepository.deleteMissingForCollaborator.mockResolvedValue(
-      undefined,
-    );
-    mockCommissionRateRepository.save.mockResolvedValue(defaultRates[0]);
   });
 
   it('should be defined', () => {
@@ -81,7 +51,6 @@ describe('CollaboratorService', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionRates: [{ name: 'Cabeleireiro', percentage: 10 }],
     };
 
     const expectedCollaborator: Collaborator = {
@@ -92,12 +61,10 @@ describe('CollaboratorService', () => {
       area: createDto.area,
       isActive: true,
       services: [],
-      commissionRates: defaultRates,
     };
 
     it('should create a collaborator with valid data', async () => {
       repository.save.mockResolvedValue(expectedCollaborator);
-      repository.findById.mockResolvedValue(expectedCollaborator);
 
       const result = await service.createCollaborator(createDto);
 
@@ -109,78 +76,6 @@ describe('CollaboratorService', () => {
         tenantId: TENANT_ID_MOCK,
         isActive: true,
       });
-      expect(commissionRateRepository.save).toHaveBeenCalledWith({
-        tenantId: TENANT_ID_MOCK,
-        collaboratorId: expectedCollaborator.id,
-        name: 'Cabeleireiro',
-        percentage: 10,
-      });
-    });
-
-    it('should throw error when commission percentage is negative', async () => {
-      const invalidDto = {
-        ...createDto,
-        commissionRates: [{ name: 'Cabeleireiro', percentage: -1 }],
-      };
-
-      await expect(service.createCollaborator(invalidDto)).rejects.toThrow(
-        'Commission percentage must be between 0 and 100',
-      );
-      expect(repository.save).not.toHaveBeenCalled();
-    });
-
-    it('should throw error when commission percentage is greater than 100', async () => {
-      const invalidDto = {
-        ...createDto,
-        commissionRates: [{ name: 'Cabeleireiro', percentage: 101 }],
-      };
-
-      await expect(service.createCollaborator(invalidDto)).rejects.toThrow(
-        'Commission percentage must be between 0 and 100',
-      );
-      expect(repository.save).not.toHaveBeenCalled();
-    });
-
-    it('should accept commission percentage of 0', async () => {
-      const dtoWithZero = {
-        ...createDto,
-        commissionRates: [{ name: 'Cabeleireiro', percentage: 0 }],
-      };
-      repository.save.mockResolvedValue(expectedCollaborator);
-      repository.findById.mockResolvedValue(expectedCollaborator);
-
-      await service.createCollaborator(dtoWithZero);
-
-      expect(repository.save).toHaveBeenCalled();
-    });
-
-    it('should accept commission percentage of 100', async () => {
-      const dtoWithHundred = {
-        ...createDto,
-        commissionRates: [{ name: 'Cabeleireiro', percentage: 100 }],
-      };
-      repository.save.mockResolvedValue(expectedCollaborator);
-      repository.findById.mockResolvedValue(expectedCollaborator);
-
-      await service.createCollaborator(dtoWithHundred);
-
-      expect(repository.save).toHaveBeenCalled();
-    });
-
-    it('should create a collaborator with multiple commission rates', async () => {
-      const dtoWithMultipleRates: CreateCollaboratorDto = {
-        ...createDto,
-        commissionRates: [
-          { name: 'Nail Designer', percentage: 40 },
-          { name: 'Cabelo', percentage: 50 },
-        ],
-      };
-      repository.save.mockResolvedValue(expectedCollaborator);
-      repository.findById.mockResolvedValue(expectedCollaborator);
-
-      await service.createCollaborator(dtoWithMultipleRates);
-
-      expect(commissionRateRepository.save).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -194,7 +89,6 @@ describe('CollaboratorService', () => {
         area: 'Cabeleireiro',
         isActive: true,
         services: [],
-        commissionRates: defaultRates,
       },
       {
         id: '2',
@@ -204,15 +98,6 @@ describe('CollaboratorService', () => {
         area: 'Manicure',
         isActive: true,
         services: [],
-        commissionRates: [
-          {
-            id: 'rate-2',
-            tenantId: TENANT_ID_MOCK,
-            collaboratorId: '2',
-            name: 'Manicure',
-            percentage: 15,
-          },
-        ],
       },
     ];
 
@@ -224,7 +109,7 @@ describe('CollaboratorService', () => {
       expect(result).toEqual(mockCollaborators);
       expect(repository.find).toHaveBeenCalledWith({
         where: { tenantId: TENANT_ID_MOCK },
-        relations: ['services', 'commissionRates'],
+        relations: ['services'],
       });
     });
 
@@ -270,7 +155,6 @@ describe('CollaboratorService', () => {
       area: 'Cabeleireiro',
       isActive: true,
       services: [],
-      commissionRates: defaultRates,
     };
 
     it('should return collaborator when found', async () => {
@@ -303,7 +187,6 @@ describe('CollaboratorService', () => {
       area: 'Cabeleireiro',
       isActive: true,
       services: [],
-      commissionRates: defaultRates,
     };
 
     const updatedCollaborator: Collaborator = {
@@ -345,30 +228,6 @@ describe('CollaboratorService', () => {
       expect(repository.update).not.toHaveBeenCalled();
     });
 
-    it('should throw error when commission percentage is negative', async () => {
-      repository.findById.mockResolvedValue(existingCollaborator);
-
-      await expect(
-        service.updateCollaborator(existingCollaborator.id, {
-          commissionRates: [{ name: 'Cabeleireiro', percentage: -1 }],
-        }),
-      ).rejects.toThrow('Commission percentage must be between 0 and 100');
-
-      expect(repository.update).not.toHaveBeenCalled();
-    });
-
-    it('should throw error when commission percentage is greater than 100', async () => {
-      repository.findById.mockResolvedValue(existingCollaborator);
-
-      await expect(
-        service.updateCollaborator(existingCollaborator.id, {
-          commissionRates: [{ name: 'Cabeleireiro', percentage: 101 }],
-        }),
-      ).rejects.toThrow('Commission percentage must be between 0 and 100');
-
-      expect(repository.update).not.toHaveBeenCalled();
-    });
-
     it('should update isActive status', async () => {
       const updateDto: UpdateCollaboratorDto = { isActive: false };
       const deactivatedCollaborator: Collaborator = {
@@ -392,29 +251,6 @@ describe('CollaboratorService', () => {
         updateDto,
       );
     });
-
-    it('should accept valid commission rates update', async () => {
-      const updateDto: UpdateCollaboratorDto = {
-        commissionRates: [{ id: 'rate-1', name: 'Cabelo', percentage: 20 }],
-      };
-      const updatedWithRates: Collaborator = {
-        tenantId: TENANT_ID_MOCK,
-        ...existingCollaborator,
-        commissionRates: [{ ...defaultRates[0], name: 'Cabelo', percentage: 20 }],
-      };
-
-      repository.findById.mockResolvedValueOnce(existingCollaborator);
-      repository.findById.mockResolvedValueOnce(updatedWithRates);
-      mockCommissionRateRepository.findById.mockResolvedValue(defaultRates[0]);
-      mockCommissionRateRepository.update.mockResolvedValue(undefined);
-
-      await service.updateCollaborator(existingCollaborator.id, updateDto);
-
-      expect(commissionRateRepository.update).toHaveBeenCalledWith(
-        { id: 'rate-1', tenantId: TENANT_ID_MOCK },
-        { name: 'Cabelo', percentage: 20 },
-      );
-    });
   });
 
   describe('delete', () => {
@@ -426,7 +262,6 @@ describe('CollaboratorService', () => {
       area: 'Cabeleireiro',
       isActive: true,
       services: [],
-      commissionRates: defaultRates,
     };
 
     it('should delete collaborator when found', async () => {

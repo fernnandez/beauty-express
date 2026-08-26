@@ -7,12 +7,10 @@ import {
 import { In } from 'typeorm';
 import { Commission } from '../entities/commission.entity';
 import { ScheduledServiceStatus } from '../entities/scheduled-service.entity';
-import { CollaboratorRepository } from '../repositories/collaborator.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { TenantContextService } from './tenant-context.service';
 import { TenantSettingsService } from './tenant-settings.service';
-import { resolveCommissionPercentage } from '../../common/utils/commission-rate.util';
 import {
   AppointmentEditability,
   ScheduledServiceEditability,
@@ -28,7 +26,6 @@ export class CommissionService {
   constructor(
     private commissionRepository: CommissionRepository,
     private scheduledServiceRepository: ScheduledServiceRepository,
-    private collaboratorRepository: CollaboratorRepository,
     private tenantContext: TenantContextService,
     private tenantSettingsService: TenantSettingsService,
   ) {}
@@ -66,18 +63,7 @@ export class CommissionService {
       );
     }
 
-    const collaborator = await this.collaboratorRepository.findById(
-      scheduledService.collaboratorId,
-      tenantId,
-    );
-    if (!collaborator) {
-      throw new NotFoundException('Collaborator not found');
-    }
-
-    const percentage = resolveCommissionPercentage(
-      collaborator.commissionRates,
-      scheduledService.commissionRateId,
-    );
+    const percentage = Number(scheduledService.service?.commissionPercentage ?? 0);
     const amount = (Number(scheduledService.price) * percentage) / 100;
 
     const existingCommission =

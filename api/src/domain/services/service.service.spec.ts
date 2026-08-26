@@ -68,6 +68,7 @@ describe('ServiceService', () => {
       id: '123e4567-e89b-12d3-a456-426614174000',
       tenantId: TENANT_ID_MOCK,
       ...createDto,
+      commissionPercentage: 0,
       collaborators: [],
     };
 
@@ -81,6 +82,7 @@ describe('ServiceService', () => {
         ...createDto,
         tenantId: TENANT_ID_MOCK,
         description: createDto.description,
+        commissionPercentage: 0,
       });
     });
 
@@ -128,6 +130,41 @@ describe('ServiceService', () => {
 
       expect(repository.save).toHaveBeenCalled();
     });
+
+    it('should persist provided commission percentage', async () => {
+      const dtoWithCommission = { ...createDto, commissionPercentage: 40 };
+      repository.save.mockResolvedValue({
+        ...expectedService,
+        commissionPercentage: 40,
+      });
+
+      await service.createService(dtoWithCommission);
+
+      expect(repository.save).toHaveBeenCalledWith({
+        ...dtoWithCommission,
+        tenantId: TENANT_ID_MOCK,
+        description: dtoWithCommission.description,
+        commissionPercentage: 40,
+      });
+    });
+
+    it('should throw error when commission percentage is negative', async () => {
+      const invalidDto = { ...createDto, commissionPercentage: -1 };
+
+      await expect(service.createService(invalidDto)).rejects.toThrow(
+        'Commission percentage must be between 0 and 100',
+      );
+      expect(repository.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when commission percentage is greater than 100', async () => {
+      const invalidDto = { ...createDto, commissionPercentage: 101 };
+
+      await expect(service.createService(invalidDto)).rejects.toThrow(
+        'Commission percentage must be between 0 and 100',
+      );
+      expect(repository.save).not.toHaveBeenCalled();
+    });
   });
 
   describe('findAll', () => {
@@ -137,6 +174,7 @@ describe('ServiceService', () => {
         tenantId: TENANT_ID_MOCK,
         name: 'Corte de Cabelo',
         defaultPrice: 50.0,
+        commissionPercentage: 0,
         description: 'Corte profissional',
         collaborators: [],
       },
@@ -145,6 +183,7 @@ describe('ServiceService', () => {
         tenantId: TENANT_ID_MOCK,
         name: 'Manicure',
         defaultPrice: 30.0,
+        commissionPercentage: 0,
         description: 'Manicure completa',
         collaborators: [],
       },
@@ -189,6 +228,7 @@ describe('ServiceService', () => {
       tenantId: TENANT_ID_MOCK,
       name: 'Corte de Cabelo',
       defaultPrice: 50.0,
+      commissionPercentage: 0,
       description: 'Corte profissional',
       collaborators: [],
     };
@@ -217,6 +257,7 @@ describe('ServiceService', () => {
       tenantId: TENANT_ID_MOCK,
       name: 'Corte de Cabelo',
       defaultPrice: 50.0,
+      commissionPercentage: 0,
       description: 'Corte profissional',
       collaborators: [],
     };
@@ -313,6 +354,7 @@ describe('ServiceService', () => {
       tenantId: TENANT_ID_MOCK,
       name: 'Corte de Cabelo',
       defaultPrice: 50.0,
+      commissionPercentage: 0,
       description: 'Corte profissional',
       collaborators: [],
     };

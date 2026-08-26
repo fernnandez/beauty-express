@@ -5,10 +5,8 @@ import {
   JoinTable,
   ManyToMany,
   ManyToOne,
-  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { CollaboratorCommissionRate } from './collaborator-commission-rate.entity';
 import { Service } from './service.entity';
 import { Tenant } from './tenant.entity';
 
@@ -35,13 +33,6 @@ export class Collaborator {
 
   @Column({ default: true })
   isActive: boolean;
-
-  @OneToMany(
-    () => CollaboratorCommissionRate,
-    (rate) => rate.collaborator,
-    { cascade: true },
-  )
-  commissionRates?: CollaboratorCommissionRate[];
 
   @ManyToMany(() => Service, (service) => service.collaborators)
   @JoinTable({

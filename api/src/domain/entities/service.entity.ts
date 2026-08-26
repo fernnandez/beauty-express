@@ -27,6 +27,9 @@ export class Service {
   @Column('decimal', { precision: 10, scale: 2 })
   defaultPrice: number;
 
+  @Column('decimal', { precision: 5, scale: 2, default: 0 })
+  commissionPercentage: number;
+
   @Column({ type: 'text', nullable: true })
   description?: string;
 

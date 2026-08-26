@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CollaboratorController } from './collaborator.controller';
 import { CollaboratorService } from '@domain/services/collaborator.service';
-import { CollaboratorRepository } from '@domain/repositories/collaborator.repository';
 import { Collaborator } from '@domain/entities/collaborator.entity';
 import { CreateCollaboratorDto } from '../dtos/collaborator/create-collaborator.dto';
 import { UpdateCollaboratorDto } from '../dtos/collaborator/update-collaborator.dto';
@@ -19,15 +18,6 @@ describe('CollaboratorController', () => {
     area: 'Cabeleireiro',
     isActive: true,
     services: [],
-    commissionRates: [
-      {
-        id: 'rate-1',
-        tenantId: TENANT_ID_MOCK,
-        collaboratorId: '123e4567-e89b-12d3-a456-426614174000',
-        name: 'Cabeleireiro',
-        percentage: 10,
-      },
-    ],
   };
 
   const mockCollaboratorService = {
@@ -64,7 +54,6 @@ describe('CollaboratorController', () => {
       name: 'João Silva',
       phone: '11999999999',
       area: 'Cabeleireiro',
-      commissionRates: [{ name: 'Cabeleireiro', percentage: 10 }],
     };
 
     it('should create a collaborator', async () => {

@@ -111,7 +111,6 @@ export const convertServicesToDto = (
   services: Array<{
     serviceId: string;
     collaboratorId?: string;
-    commissionRateId?: string;
     price?: number;
   }>,
   servicesList: Service[] | undefined
@@ -134,10 +133,6 @@ export const convertServicesToDto = (
     // Só adiciona collaboratorId se estiver definido
     if (servico.collaboratorId) {
       result.collaboratorId = servico.collaboratorId;
-    }
-
-    if (servico.commissionRateId) {
-      result.commissionRateId = servico.commissionRateId;
     }
 
     return result;

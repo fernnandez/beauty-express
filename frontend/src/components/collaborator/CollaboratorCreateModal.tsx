@@ -9,11 +9,9 @@ import {
 import { useCollaboratorForm } from "../../hooks/useCollaboratorForm";
 import { useCreateCollaborator } from "../../hooks/useCollaborators";
 import { useNotifications } from "../../hooks/useNotifications";
-import { useOperationalBranding } from "../../hooks/useOperationalBranding";
 import { MESSAGES } from "../../constants/messages.constants";
 import { COLLABORATOR_AREAS } from "../../utils/collaborator.utils";
 import type { CreateCollaboratorDto } from "../../types";
-import { CommissionRatesField } from "./CommissionRatesField";
 
 interface CollaboratorCreateModalProps {
   opened: boolean;
@@ -25,16 +23,12 @@ export function CollaboratorCreateModal({
   onClose,
 }: CollaboratorCreateModalProps) {
   const createMutation = useCreateCollaborator();
-  const { commissionsEnabled } = useOperationalBranding();
-  const { form, resetForm, addCommissionRate, removeCommissionRate, toDto } =
-    useCollaboratorForm(undefined, {
-      commissionsEnabled,
-    });
+  const { form, resetForm } = useCollaboratorForm();
   const { showSuccess, showError } = useNotifications();
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (values: CreateCollaboratorDto) => {
     try {
-      await createMutation.mutateAsync(toDto(form.values) as CreateCollaboratorDto);
+      await createMutation.mutateAsync(values);
       showSuccess(MESSAGES.SUCCESS.CREATE.COLLABORATOR);
       resetForm();
       onClose();
@@ -56,7 +50,11 @@ export function CollaboratorCreateModal({
       title="Novo Colaborador"
       size="md"
     >
-      <form onSubmit={form.onSubmit(handleSubmit)}>
+      <form
+        onSubmit={form.onSubmit((values) =>
+          handleSubmit(values as CreateCollaboratorDto)
+        )}
+      >
         <Stack gap="md">
           <TextInput
             label="Nome"
@@ -79,14 +77,6 @@ export function CollaboratorCreateModal({
             data={COLLABORATOR_AREAS.map((area) => area.label)}
             {...form.getInputProps("area")}
           />
-
-          {commissionsEnabled && (
-            <CommissionRatesField
-              form={form}
-              onAdd={addCommissionRate}
-              onRemove={removeCommissionRate}
-            />
-          )}
 
           <Group justify="flex-end" mt="md">
             <Button variant="default" color="gray" type="button" onClick={handleClose}>

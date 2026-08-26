@@ -32,11 +32,26 @@ export class ServiceService {
     }
   }
 
+  private validateCommissionPercentage(percentage: number): void {
+    if (
+      percentage < VALIDATION_CONSTANTS.COMMISSION_PERCENTAGE.MIN ||
+      percentage > VALIDATION_CONSTANTS.COMMISSION_PERCENTAGE.MAX
+    ) {
+      throw new BadRequestException(
+        VALIDATION_CONSTANTS.COMMISSION_PERCENTAGE.MESSAGE,
+      );
+    }
+  }
+
   async createService(createDto: CreateServiceDto): Promise<Service> {
     this.validatePrice(createDto.defaultPrice);
+    if (createDto.commissionPercentage !== undefined) {
+      this.validateCommissionPercentage(createDto.commissionPercentage);
+    }
 
     return await this.repository.save({
       ...createDto,
+      commissionPercentage: createDto.commissionPercentage ?? 0,
       tenantId: this.getTenantId(),
       description: normalizeString(createDto.description),
     });
@@ -69,6 +84,10 @@ export class ServiceService {
 
     if (updateDto.defaultPrice !== undefined) {
       this.validatePrice(updateDto.defaultPrice);
+    }
+
+    if (updateDto.commissionPercentage !== undefined) {
+      this.validateCommissionPercentage(updateDto.commissionPercentage);
     }
 
     const updatePayload: Partial<Service> = { ...updateDto };

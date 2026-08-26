@@ -11,11 +11,9 @@ import { useEffect } from "react";
 import { useCollaboratorForm } from "../../hooks/useCollaboratorForm";
 import { useUpdateCollaborator } from "../../hooks/useCollaborators";
 import { useNotifications } from "../../hooks/useNotifications";
-import { useOperationalBranding } from "../../hooks/useOperationalBranding";
 import { MESSAGES } from "../../constants/messages.constants";
 import { COLLABORATOR_AREAS } from "../../utils/collaborator.utils";
 import type { Collaborator, UpdateCollaboratorDto } from "../../types";
-import { CommissionRatesField } from "./CommissionRatesField";
 
 interface CollaboratorEditModalProps {
   opened: boolean;
@@ -29,9 +27,7 @@ export function CollaboratorEditModal({
   collaborator,
 }: CollaboratorEditModalProps) {
   const updateMutation = useUpdateCollaborator();
-  const { commissionsEnabled } = useOperationalBranding();
-  const { form, addCommissionRate, removeCommissionRate, toDto } =
-    useCollaboratorForm(undefined, { commissionsEnabled });
+  const { form } = useCollaboratorForm();
   const { showSuccess, showError } = useNotifications();
 
   useEffect(() => {
@@ -41,26 +37,18 @@ export function CollaboratorEditModal({
         phone: collaborator.phone,
         area: collaborator.area,
         isActive: collaborator.isActive,
-        commissionRates:
-          collaborator.commissionRates && collaborator.commissionRates.length > 0
-            ? collaborator.commissionRates.map((rate) => ({
-                id: rate.id,
-                name: rate.name,
-                percentage: Number(rate.percentage),
-              }))
-            : [{ name: "", percentage: 0 }],
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collaborator?.id, opened]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (values: UpdateCollaboratorDto) => {
     if (!collaborator) return;
 
     try {
       await updateMutation.mutateAsync({
         id: collaborator.id,
-        data: toDto(form.values) as UpdateCollaboratorDto,
+        data: values,
       });
       showSuccess(MESSAGES.SUCCESS.UPDATE.COLLABORATOR);
       onClose();
@@ -100,14 +88,6 @@ export function CollaboratorEditModal({
             data={COLLABORATOR_AREAS.map((area) => area.label)}
             {...form.getInputProps("area")}
           />
-
-          {commissionsEnabled && (
-            <CommissionRatesField
-              form={form}
-              onAdd={addCommissionRate}
-              onRemove={removeCommissionRate}
-            />
-          )}
 
           <Switch
             label="Ativo"

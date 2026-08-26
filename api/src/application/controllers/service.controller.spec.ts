@@ -15,6 +15,7 @@ describe('ServiceController', () => {
       tenantId: TENANT_ID_MOCK,
     name: 'Corte de Cabelo',
     defaultPrice: 50.0,
+    commissionPercentage: 0,
     description: 'Corte profissional',
     collaborators: [],
   };

@@ -265,10 +265,12 @@ export function Commissions() {
               <MultiSelect
                 placeholder="Filtrar por colaborador(es)"
                 data={
-                  collaborators?.map((c) => ({
-                    value: c.id,
-                    label: c.name,
-                  })) || []
+                  collaborators
+                    ?.filter((c) => c.isActive)
+                    .map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                    })) || []
                 }
                 value={collaboratorFilter}
                 onChange={setCollaboratorFilter}

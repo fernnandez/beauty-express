@@ -26,11 +26,14 @@ import { ServiceCreateModal } from "../components/service/ServiceCreateModal";
 import { ServiceEditModal } from "../components/service/ServiceEditModal";
 import { useDeleteService, useServices } from "../hooks/useServices";
 import { useNotifications } from "../hooks/useNotifications";
+import { useOperationalBranding } from "../hooks/useOperationalBranding";
 import { MESSAGES } from "../constants/messages.constants";
 import type { Service } from "../types";
 import { formatPrice } from "../utils/appointment.utils";
+import { toMoney } from "../utils/money.util";
 
 export function Services() {
+  const { commissionsEnabled } = useOperationalBranding();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm] = useDebouncedValue(searchTerm, 500);
   const { data: services, isLoading } = useServices(
@@ -130,6 +133,7 @@ export function Services() {
               <Table.Tr>
                 <Table.Th>Nome</Table.Th>
                 <Table.Th>Preço Padrão</Table.Th>
+                {commissionsEnabled && <Table.Th>Comissão</Table.Th>}
                 <Table.Th>Descrição</Table.Th>
                 <Table.Th>Ações</Table.Th>
               </Table.Tr>
@@ -139,6 +143,11 @@ export function Services() {
                 <Table.Tr key={service.id}>
                   <Table.Td>{service.name}</Table.Td>
                   <Table.Td>{formatPrice(service.defaultPrice)}</Table.Td>
+                  {commissionsEnabled && (
+                    <Table.Td>
+                      {toMoney(service.commissionPercentage)}%
+                    </Table.Td>
+                  )}
                   <Table.Td>{service.description || "-"}</Table.Td>
                   <Table.Td>
                     <Group gap="xs">

@@ -1,11 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Collaborator } from '../entities/collaborator.entity';
 import { Commission } from '../entities/commission.entity';
 import {
   ScheduledService,
   ScheduledServiceStatus,
 } from '../entities/scheduled-service.entity';
-import { CollaboratorRepository } from '../repositories/collaborator.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { CommissionService } from './commission.service';
@@ -41,10 +39,6 @@ describe('CommissionService', () => {
     findByAppointmentId: jest.fn(),
   };
 
-  const mockCollaboratorRepository = {
-    findById: jest.fn(),
-  };
-
   beforeEach(async () => {
     // Cria o mock do QueryBuilder antes de cada teste
     mockQueryBuilder = {
@@ -76,10 +70,6 @@ describe('CommissionService', () => {
           useValue: mockScheduledServiceRepository,
         },
         {
-          provide: CollaboratorRepository,
-          useValue: mockCollaboratorRepository,
-        },
-        {
           provide: TenantSettingsService,
           useValue: mockTenantSettingsService,
         },
@@ -96,38 +86,27 @@ describe('CommissionService', () => {
   });
 
   describe('calculateCommission', () => {
-    const mockCollaborator: Collaborator = {
-      id: 'collaborator-1',
-      tenantId: TENANT_ID_MOCK,
-      name: 'João Silva',
-      phone: '11999999999',
-      area: 'Cabeleireiro',
-      commissionRates: [
-        {
-          id: 'rate-1',
-          tenantId: TENANT_ID_MOCK,
-          collaboratorId: 'collaborator-1',
-          name: 'Cabeleireiro',
-          percentage: 10,
-        },
-      ],
-      isActive: true,
-      services: [],
-    };
-
     const mockScheduledService: ScheduledService = {
       id: 'scheduled-1',
-        tenantId: TENANT_ID_MOCK,
+      tenantId: TENANT_ID_MOCK,
       appointmentId: 'appointment-1',
       serviceId: 'service-1',
       collaboratorId: 'collaborator-1',
       price: 100.0,
       status: ScheduledServiceStatus.COMPLETED,
+      service: {
+        id: 'service-1',
+        tenantId: TENANT_ID_MOCK,
+        name: 'Corte de Cabelo',
+        defaultPrice: 100.0,
+        commissionPercentage: 10,
+        collaborators: [],
+      },
     } as ScheduledService;
 
     const expectedCommission: Commission = {
       id: 'commission-1',
-        tenantId: TENANT_ID_MOCK,
+      tenantId: TENANT_ID_MOCK,
       collaboratorId: 'collaborator-1',
       scheduledServiceId: 'scheduled-1',
       amount: 10.0, // 10% de 100
@@ -139,7 +118,6 @@ describe('CommissionService', () => {
       mockScheduledServiceRepository.findById.mockResolvedValue(
         mockScheduledService,
       );
-      mockCollaboratorRepository.findById.mockResolvedValue(mockCollaborator);
       mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(null);
       mockCommissionRepository.save.mockResolvedValue(expectedCommission);
 
@@ -195,17 +173,6 @@ describe('CommissionService', () => {
       );
     });
 
-    it('should throw error when collaborator not found', async () => {
-      mockScheduledServiceRepository.findById.mockResolvedValue(
-        mockScheduledService,
-      );
-      mockCollaboratorRepository.findById.mockResolvedValue(null);
-
-      await expect(service.calculateCommission('scheduled-1')).rejects.toThrow(
-        'Collaborator not found',
-      );
-    });
-
     it('should update existing commission when recalculating', async () => {
       const existingCommission: Commission = {
         id: 'commission-1',
@@ -225,7 +192,6 @@ describe('CommissionService', () => {
       mockScheduledServiceRepository.findById.mockResolvedValue(
         mockScheduledService,
       );
-      mockCollaboratorRepository.findById.mockResolvedValue(mockCollaborator);
       mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(
         existingCommission,
       );
@@ -245,17 +211,12 @@ describe('CommissionService', () => {
     });
 
     it('should calculate commission with different percentage', async () => {
-      const collaboratorWithDifferentPercentage: Collaborator = {
-        ...mockCollaborator,
-        commissionRates: [
-          {
-            id: 'rate-1',
-            tenantId: TENANT_ID_MOCK,
-            collaboratorId: 'collaborator-1',
-            name: 'Cabeleireiro',
-            percentage: 15,
-          },
-        ],
+      const scheduledServiceWithDifferentPercentage: ScheduledService = {
+        ...mockScheduledService,
+        service: {
+          ...mockScheduledService.service!,
+          commissionPercentage: 15,
+        },
       };
 
       const expectedCommission: Commission = {
@@ -269,10 +230,7 @@ describe('CommissionService', () => {
       };
 
       mockScheduledServiceRepository.findById.mockResolvedValue(
-        mockScheduledService,
-      );
-      mockCollaboratorRepository.findById.mockResolvedValue(
-        collaboratorWithDifferentPercentage,
+        scheduledServiceWithDifferentPercentage,
       );
       mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(null);
       mockCommissionRepository.save.mockResolvedValue(expectedCommission);
@@ -285,33 +243,22 @@ describe('CommissionService', () => {
   });
 
   describe('calculateCommissionsForAppointment', () => {
-    const mockCollaborator: Collaborator = {
-      id: 'collaborator-1',
-      tenantId: TENANT_ID_MOCK,
-      name: 'João Silva',
-      phone: '11999999999',
-      area: 'Cabeleireiro',
-      commissionRates: [
-        {
-          id: 'rate-1',
-          tenantId: TENANT_ID_MOCK,
-          collaboratorId: 'collaborator-1',
-          name: 'Cabeleireiro',
-          percentage: 10,
-        },
-      ],
-      isActive: true,
-      services: [],
-    };
-
     const completedService: ScheduledService = {
       id: 'scheduled-1',
-        tenantId: TENANT_ID_MOCK,
+      tenantId: TENANT_ID_MOCK,
       appointmentId: 'appointment-1',
       serviceId: 'service-1',
       collaboratorId: 'collaborator-1',
       price: 100.0,
       status: ScheduledServiceStatus.COMPLETED,
+      service: {
+        id: 'service-1',
+        tenantId: TENANT_ID_MOCK,
+        name: 'Corte de Cabelo',
+        defaultPrice: 100.0,
+        commissionPercentage: 10,
+        collaborators: [],
+      },
     } as ScheduledService;
 
     const pendingService: ScheduledService = {
@@ -342,7 +289,6 @@ describe('CommissionService', () => {
       mockScheduledServiceRepository.findById.mockResolvedValue(
         completedService,
       );
-      mockCollaboratorRepository.findById.mockResolvedValue(mockCollaborator);
       mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(null);
       mockCommissionRepository.save.mockResolvedValue(expectedCommission);
 
@@ -376,10 +322,10 @@ describe('CommissionService', () => {
       mockScheduledServiceRepository.findById.mockResolvedValue(
         completedService,
       );
-      mockCollaboratorRepository.findById.mockResolvedValue(mockCollaborator);
       mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(
         existingCommission,
       );
+      mockCommissionRepository.findById.mockResolvedValue(existingCommission);
 
       const result =
         await service.calculateCommissionsForAppointment('appointment-1');

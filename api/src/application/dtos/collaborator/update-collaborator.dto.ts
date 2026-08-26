@@ -1,13 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import {
-  IsArray,
-  IsBoolean,
-  IsOptional,
-  IsString,
-  ValidateNested,
-} from 'class-validator';
-import { CollaboratorCommissionRateInputDto } from './commission-rate.dto';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class UpdateCollaboratorDto {
   @ApiProperty({ example: 'John Doe', required: false })
@@ -28,17 +20,6 @@ export class UpdateCollaboratorDto {
   @IsString()
   @IsOptional()
   area?: string;
-
-  @ApiProperty({
-    type: [CollaboratorCommissionRateInputDto],
-    required: false,
-    description: 'Replaces the collaborator commission rates when provided',
-  })
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CollaboratorCommissionRateInputDto)
-  @IsOptional()
-  commissionRates?: CollaboratorCommissionRateInputDto[];
 
   @ApiProperty({ example: true, required: false })
   @IsBoolean()
