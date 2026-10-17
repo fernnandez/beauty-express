@@ -186,5 +186,13 @@ export interface CommissionListResponse {
   };
 }
 
+export interface CommissionCollaboratorSummary {
+  servicesCount: number;
+  totalAmount: number;
+  pendingAmount: number;
+  paidAmount: number;
+  uniqueClients: number;
+}
+
 // Re-export tipos da API
 export type { ApiError, ApiErrorResponse } from './api.types';

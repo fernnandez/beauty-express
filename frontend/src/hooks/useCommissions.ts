@@ -26,6 +26,25 @@ export const useCommissions = (
 
 export { COMMISSIONS_PAGE_SIZE };
 
+export const useCollaboratorCommissionSummary = (
+  collaboratorId?: string,
+  filters?: {
+    paid?: boolean;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+  },
+  enabled = true,
+) => {
+  return useQuery({
+    queryKey: ['commission-summary', collaboratorId, filters],
+    queryFn: () =>
+      commissionService.getCollaboratorSummary(collaboratorId as string, filters),
+    enabled: enabled && Boolean(collaboratorId),
+    placeholderData: (previousData) => previousData,
+  });
+};
+
 export const useMarkCommissionsAsPaid = () => {
   const queryClient = useQueryClient();
 
@@ -34,6 +53,7 @@ export const useMarkCommissionsAsPaid = () => {
       commissionService.markAsPaid(commissionIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['commissions'] });
+      queryClient.invalidateQueries({ queryKey: ['commission-summary'] });
     },
   });
 };
@@ -46,6 +66,7 @@ export const useMarkCommissionsAsUnpaid = () => {
       commissionService.markAsUnpaid(commissionIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['commissions'] });
+      queryClient.invalidateQueries({ queryKey: ['commission-summary'] });
     },
   });
 };

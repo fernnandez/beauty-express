@@ -15,6 +15,7 @@ import { LoginPortalProvider } from "./contexts/LoginPortalContext";
 import { Appointments } from "./pages/Appointments";
 import { Clients } from "./pages/Clients";
 import { Collaborators } from "./pages/Collaborators";
+import { CollaboratorProfile } from "./pages/CollaboratorProfile";
 import { Commissions } from "./pages/Commissions";
 import { Dashboard } from "./pages/Dashboard";
 import { FinancialReports } from "./pages/FinancialReports";
@@ -72,6 +73,10 @@ function App() {
                           <Route
                             path="/collaborators"
                             element={<Collaborators />}
+                          />
+                          <Route
+                            path="/collaborators/:id"
+                            element={<CollaboratorProfile />}
                           />
                           <Route path="/clients" element={<Clients />} />
                           <Route path="/services" element={<Services />} />

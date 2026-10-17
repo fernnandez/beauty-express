@@ -1,5 +1,5 @@
 import { api } from '../config/api';
-import type { CommissionListResponse } from '../types';
+import type { CommissionListResponse, CommissionCollaboratorSummary } from '../types';
 
 export const COMMISSIONS_PAGE_SIZE = 50;
 
@@ -36,6 +36,36 @@ export const commissionService = {
     const queryString = params.toString();
     const url = `/commissions?${queryString}`;
     const response = await api.get<CommissionListResponse>(url);
+    return response.data;
+  },
+
+  getCollaboratorSummary: async (
+    collaboratorId: string,
+    filters?: {
+      paid?: boolean;
+      startDate?: string;
+      endDate?: string;
+      search?: string;
+    },
+  ): Promise<CommissionCollaboratorSummary> => {
+    const params = new URLSearchParams();
+    if (filters?.paid !== undefined) {
+      params.append('paid', filters.paid.toString());
+    }
+    if (filters?.startDate) {
+      params.append('startDate', filters.startDate);
+    }
+    if (filters?.endDate) {
+      params.append('endDate', filters.endDate);
+    }
+    if (filters?.search) {
+      params.append('search', filters.search);
+    }
+    const queryString = params.toString();
+    const url = `/commissions/collaborator/${collaboratorId}/summary${
+      queryString ? `?${queryString}` : ''
+    }`;
+    const response = await api.get<CommissionCollaboratorSummary>(url);
     return response.data;
   },
 

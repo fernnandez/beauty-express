@@ -12,15 +12,15 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import {
-  IconEdit,
   IconInfoCircle,
   IconPlus,
   IconSearch,
-  IconTrash,
   IconX,
 } from "@tabler/icons-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { RowActions } from "../components/RowActions";
 import { TablePage } from "../components/TablePage";
 import { CollaboratorCreateModal } from "../components/collaborator/CollaboratorCreateModal";
 import { CollaboratorEditModal } from "../components/collaborator/CollaboratorEditModal";
@@ -34,6 +34,7 @@ import { MESSAGES } from "../constants/messages.constants";
 import type { Collaborator } from "../types";
 
 export function Collaborators() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm] = useDebouncedValue(searchTerm, 500);
   const { data: collaborators, isLoading } = useCollaborators(
@@ -152,7 +153,11 @@ export function Collaborators() {
           </Table.Thead>
           <Table.Tbody>
             {collaborators.map((collaborator) => (
-              <Table.Tr key={collaborator.id}>
+              <Table.Tr
+                key={collaborator.id}
+                style={{ cursor: "pointer" }}
+                onClick={() => navigate(`/collaborators/${collaborator.id}`)}
+              >
                 <Table.Td>{collaborator.name}</Table.Td>
                 <Table.Td>{collaborator.area}</Table.Td>
                 <Table.Td>{collaborator.phone}</Table.Td>
@@ -161,27 +166,16 @@ export function Collaborators() {
                     {collaborator.isActive ? "Ativo" : "Inativo"}
                   </Badge>
                 </Table.Td>
-                <Table.Td>
-                  <Group gap="xs">
-                    <Button
-                      variant="light"
-                      size="xs"
-                      leftSection={<IconEdit size={14} />}
-                      onClick={() => handleEdit(collaborator)}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      variant="light"
-                      color="red"
-                      size="xs"
-                      leftSection={<IconTrash size={14} />}
-                      disabled
-                      onClick={() => handleDelete(collaborator)}
-                    >
-                      Excluir
-                    </Button>
-                  </Group>
+                <Table.Td onClick={(e) => e.stopPropagation()}>
+                  <RowActions
+                    onView={() =>
+                      navigate(`/collaborators/${collaborator.id}`)
+                    }
+                    onEdit={() => handleEdit(collaborator)}
+                    onDelete={() => handleDelete(collaborator)}
+                    deleteDisabled
+                    deleteDisabledLabel="Exclusão desabilitada. Use a edição para desativar."
+                  />
                 </Table.Td>
               </Table.Tr>
             ))}
