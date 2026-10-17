@@ -2,9 +2,7 @@ import {
   ActionIcon,
   Alert,
   Button,
-  Container,
   Group,
-  ScrollArea,
   Stack,
   Table,
   Text,
@@ -22,6 +20,7 @@ import {
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { TablePage } from "../components/TablePage";
 import { ServiceCreateModal } from "../components/service/ServiceCreateModal";
 import { ServiceEditModal } from "../components/service/ServiceEditModal";
 import { useDeleteService, useServices } from "../hooks/useServices";
@@ -71,110 +70,105 @@ export function Services() {
   };
 
   return (
-    <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
-      <Stack gap="md" mb="xl">
-        <Group justify="space-between" wrap="wrap">
-          <Group gap="md">
+    <TablePage
+      header={
+        <Stack gap="md" mb="md">
+          <Group justify="space-between" wrap="wrap">
             <Title order={1} c="brand">
               Serviços
             </Title>
+            <Button
+              leftSection={<IconPlus size={16} />}
+              onClick={() => setCreateModalOpened(true)}
+              color="brand"
+              size="md"
+            >
+              Novo Serviço
+            </Button>
           </Group>
-          <Button
-            leftSection={<IconPlus size={16} />}
-            onClick={() => setCreateModalOpened(true)}
-            color="brand"
-            size="md"
+
+          <TextInput
+            placeholder="Buscar por nome..."
+            leftSection={<IconSearch size={16} />}
+            rightSection={
+              searchTerm && (
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  onClick={() => setSearchTerm("")}
+                  size="sm"
+                >
+                  <IconX size={16} />
+                </ActionIcon>
+              )
+            }
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.currentTarget.value)}
+            style={{ maxWidth: "100%" }}
+          />
+
+          <Alert
+            icon={<IconInfoCircle size={16} />}
+            title="Informação"
+            color="blue"
+            variant="light"
           >
-            Novo Serviço
-          </Button>
-        </Group>
-
-        <TextInput
-          placeholder="Buscar por nome..."
-          leftSection={<IconSearch size={16} />}
-          rightSection={
-            searchTerm && (
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                onClick={() => setSearchTerm("")}
-                size="sm"
-              >
-                <IconX size={16} />
-              </ActionIcon>
-            )
-          }
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.currentTarget.value)}
-          mb="md"
-          style={{ maxWidth: "100%" }}
-        />
-
-        <Alert
-          icon={<IconInfoCircle size={16} />}
-          title="Informação"
-          color="blue"
-          variant="light"
-        >
-          Não é possível excluir serviços que estão em uso em algum agendamento.
-          Para excluir um serviço, é necessário cancelar ou concluir todos os
-          agendamentos relacionados primeiro.
-        </Alert>
-      </Stack>
-
+            Não é possível excluir serviços que estão em uso em algum
+            agendamento. Para excluir um serviço, é necessário cancelar ou
+            concluir todos os agendamentos relacionados primeiro.
+          </Alert>
+        </Stack>
+      }
+    >
       {isLoading ? (
         <Text>Carregando...</Text>
       ) : !services || services.length === 0 ? (
         <Text c="dimmed">Nenhum serviço encontrado.</Text>
       ) : (
-        <ScrollArea>
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Nome</Table.Th>
-                <Table.Th>Preço Padrão</Table.Th>
-                {commissionsEnabled && <Table.Th>Comissão</Table.Th>}
-                <Table.Th>Descrição</Table.Th>
-                <Table.Th>Ações</Table.Th>
+        <Table striped highlightOnHover miw={720}>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Nome</Table.Th>
+              <Table.Th>Preço Padrão</Table.Th>
+              {commissionsEnabled && <Table.Th>Comissão</Table.Th>}
+              <Table.Th>Descrição</Table.Th>
+              <Table.Th>Ações</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {services.map((service) => (
+              <Table.Tr key={service.id}>
+                <Table.Td>{service.name}</Table.Td>
+                <Table.Td>{formatPrice(service.defaultPrice)}</Table.Td>
+                {commissionsEnabled && (
+                  <Table.Td>{toMoney(service.commissionPercentage)}%</Table.Td>
+                )}
+                <Table.Td>{service.description || "-"}</Table.Td>
+                <Table.Td>
+                  <Group gap="xs">
+                    <Button
+                      variant="light"
+                      size="xs"
+                      leftSection={<IconEdit size={14} />}
+                      onClick={() => handleEdit(service)}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      variant="light"
+                      color="red"
+                      size="xs"
+                      leftSection={<IconTrash size={14} />}
+                      onClick={() => handleDelete(service)}
+                    >
+                      Excluir
+                    </Button>
+                  </Group>
+                </Table.Td>
               </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {services.map((service) => (
-                <Table.Tr key={service.id}>
-                  <Table.Td>{service.name}</Table.Td>
-                  <Table.Td>{formatPrice(service.defaultPrice)}</Table.Td>
-                  {commissionsEnabled && (
-                    <Table.Td>
-                      {toMoney(service.commissionPercentage)}%
-                    </Table.Td>
-                  )}
-                  <Table.Td>{service.description || "-"}</Table.Td>
-                  <Table.Td>
-                    <Group gap="xs">
-                      <Button
-                        variant="light"
-                        size="xs"
-                        leftSection={<IconEdit size={14} />}
-                        onClick={() => handleEdit(service)}
-                      >
-                        Editar
-                      </Button>
-                      <Button
-                        variant="light"
-                        color="red"
-                        size="xs"
-                        leftSection={<IconTrash size={14} />}
-                        onClick={() => handleDelete(service)}
-                      >
-                        Excluir
-                      </Button>
-                    </Group>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </ScrollArea>
+            ))}
+          </Table.Tbody>
+        </Table>
       )}
 
       <ServiceCreateModal
@@ -204,6 +198,6 @@ export function Services() {
         confirmColor="red"
         loading={deleteMutation.isPending}
       />
-    </Container>
+    </TablePage>
   );
 }

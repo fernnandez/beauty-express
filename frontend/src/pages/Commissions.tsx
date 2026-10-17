@@ -3,12 +3,10 @@ import {
   Badge,
   Button,
   Checkbox,
-  Container,
   Group,
   MultiSelect,
   Pagination,
   Paper,
-  ScrollArea,
   Select,
   Stack,
   Table,
@@ -31,6 +29,7 @@ import {
 import { DateTime } from "luxon";
 import { useMemo, useState, useEffect } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { TablePage } from "../components/TablePage";
 import { useCollaborators } from "../hooks/useCollaborators";
 import { useNavigate } from "react-router-dom";
 import {
@@ -231,36 +230,34 @@ export function Commissions() {
   }
 
   return (
-    <Container
-      style={{ maxWidth: "95%" }}
-      px={{ base: "xs", sm: "md" }}
-      pb="xl"
-    >
-      <Group gap="md" mb="xl">
-        <Title order={1} c="brand">
-          Comissões
-        </Title>
-      </Group>
+    <TablePage
+      header={
+        <Stack gap="md" mb="md">
+          <Group gap="md">
+            <Title order={1} c="brand">
+              Comissões
+            </Title>
+          </Group>
 
-      <Tabs
-        value={activeTab}
-        onChange={(value) => {
-          setActiveTab(value || "pending");
-          setSelectedCommissions(new Set());
-          // Limpa filtro de status ao trocar de aba
-          if (value === "pending") {
-            setStatusFilter(undefined);
-          }
-        }}
-      >
-        <Tabs.List>
-          <Tabs.Tab value="pending">Pendentes</Tabs.Tab>
-          <Tabs.Tab value="all">Todas</Tabs.Tab>
-        </Tabs.List>
+          <Tabs
+            value={activeTab}
+            onChange={(value) => {
+              setActiveTab(value || "pending");
+              setSelectedCommissions(new Set());
+              // Limpa filtro de status ao trocar de aba
+              if (value === "pending") {
+                setStatusFilter(undefined);
+              }
+            }}
+          >
+            <Tabs.List>
+              <Tabs.Tab value="pending">Pendentes</Tabs.Tab>
+              <Tabs.Tab value="all">Todas</Tabs.Tab>
+            </Tabs.List>
+          </Tabs>
 
-        <Tabs.Panel value={activeTab} pt="md">
           {/* Filtros e Ações */}
-          <Stack gap="md" mb="md">
+          <Stack gap="md">
             <Group>
               <MultiSelect
                 placeholder="Filtrar por colaborador(es)"
@@ -414,18 +411,19 @@ export function Commissions() {
               </Group>
             )}
           </Stack>
-
-          {/* Tabela */}
-          {isLoading ? (
-            <Text>Carregando...</Text>
-          ) : commissionsToShow.length === 0 ? (
-            <Text c="dimmed" ta="center" py="xl">
-              Nenhuma comissão encontrada
-            </Text>
-          ) : (
-            <>
-            <ScrollArea>
-              <Table striped highlightOnHover>
+        </Stack>
+      }
+    >
+      {/* Tabela */}
+      {isLoading ? (
+        <Text>Carregando...</Text>
+      ) : commissionsToShow.length === 0 ? (
+        <Text c="dimmed" ta="center" py="xl">
+          Nenhuma comissão encontrada
+        </Text>
+      ) : (
+        <>
+          <Table striped highlightOnHover miw={720}>
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th style={{ width: 50 }}>
@@ -525,7 +523,6 @@ export function Commissions() {
                   ))}
                 </Table.Tbody>
               </Table>
-            </ScrollArea>
             <Group justify="space-between" mt="md" mb="sm" wrap="wrap" gap="sm">
               <Text size="sm" c="dimmed">
                 {commissionsData?.total ?? 0} comissão(ões) encontrada(s)
@@ -539,8 +536,6 @@ export function Commissions() {
             </Group>
             </>
           )}
-        </Tabs.Panel>
-      </Tabs>
 
       {/* Modais de Confirmação */}
       <ConfirmModal
@@ -564,6 +559,6 @@ export function Commissions() {
         confirmColor="red"
         loading={markAsUnpaidMutation.isPending}
       />
-    </Container>
+    </TablePage>
   );
 }

@@ -1,9 +1,7 @@
 import {
   ActionIcon,
   Button,
-  Container,
   Group,
-  ScrollArea,
   Stack,
   Table,
   Text,
@@ -19,6 +17,7 @@ import {
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { TablePage } from "../components/TablePage";
 import { ClientCreateModal } from "../components/client/ClientCreateModal";
 import { ClientEditModal } from "../components/client/ClientEditModal";
 import { MESSAGES } from "../constants/messages.constants";
@@ -65,81 +64,84 @@ export function Clients() {
   };
 
   return (
-    <Container size="xl" py="md">
-      <Stack gap="lg">
-        <Group justify="space-between">
-          <Title order={2}>Clientes</Title>
-          <Button
-            leftSection={<IconPlus size={16} />}
-            onClick={() => setCreateModalOpened(true)}
-          >
-            Novo Cliente
-          </Button>
-        </Group>
+    <TablePage
+      header={
+        <Stack gap="md" mb="md">
+          <Group justify="space-between">
+            <Title order={1} c="brand">
+              Clientes
+            </Title>
+            <Button
+              leftSection={<IconPlus size={16} />}
+              onClick={() => setCreateModalOpened(true)}
+              size="md"
+            >
+              Novo Cliente
+            </Button>
+          </Group>
 
-        <TextInput
-          placeholder="Buscar por nome ou telefone..."
-          leftSection={<IconSearch size={16} />}
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.currentTarget.value)}
-        />
-
-        <ScrollArea>
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Nome</Table.Th>
-                <Table.Th>Telefone</Table.Th>
-                <Table.Th w={100}>Ações</Table.Th>
+          <TextInput
+            placeholder="Buscar por nome ou telefone..."
+            leftSection={<IconSearch size={16} />}
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.currentTarget.value)}
+          />
+        </Stack>
+      }
+    >
+      <Table striped highlightOnHover miw={720}>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Nome</Table.Th>
+            <Table.Th>Telefone</Table.Th>
+            <Table.Th w={100}>Ações</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {isLoading ? (
+            <Table.Tr>
+              <Table.Td colSpan={3}>
+                <Text ta="center" c="dimmed">
+                  Carregando...
+                </Text>
+              </Table.Td>
+            </Table.Tr>
+          ) : clients && clients.length > 0 ? (
+            clients.map((client) => (
+              <Table.Tr key={client.id}>
+                <Table.Td>{client.name}</Table.Td>
+                <Table.Td>{client.phone}</Table.Td>
+                <Table.Td>
+                  <Group gap="xs">
+                    <ActionIcon
+                      variant="subtle"
+                      color="blue"
+                      onClick={() => handleEdit(client)}
+                    >
+                      <IconEdit size={16} />
+                    </ActionIcon>
+                    <ActionIcon
+                      variant="subtle"
+                      color="red"
+                      onClick={() => handleDelete(client)}
+                    >
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  </Group>
+                </Table.Td>
               </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {isLoading ? (
-                <Table.Tr>
-                  <Table.Td colSpan={3}>
-                    <Text ta="center" c="dimmed">
-                      Carregando...
-                    </Text>
-                  </Table.Td>
-                </Table.Tr>
-              ) : clients && clients.length > 0 ? (
-                clients.map((client) => (
-                  <Table.Tr key={client.id}>
-                    <Table.Td>{client.name}</Table.Td>
-                    <Table.Td>{client.phone}</Table.Td>
-                    <Table.Td>
-                      <Group gap="xs">
-                        <ActionIcon
-                          variant="subtle"
-                          color="blue"
-                          onClick={() => handleEdit(client)}
-                        >
-                          <IconEdit size={16} />
-                        </ActionIcon>
-                        <ActionIcon
-                          variant="subtle"
-                          color="red"
-                          onClick={() => handleDelete(client)}
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </Group>
-                    </Table.Td>
-                  </Table.Tr>
-                ))
-              ) : (
-                <Table.Tr>
-                  <Table.Td colSpan={3}>
-                    <Text ta="center" c="dimmed">
-                      Nenhum cliente encontrado
-                    </Text>
-                  </Table.Td>
-                </Table.Tr>
-              )}
-            </Table.Tbody>
-          </Table>
-        </ScrollArea>
-      </Stack>
+            ))
+          ) : (
+            <Table.Tr>
+              <Table.Td colSpan={3}>
+                <Text ta="center" c="dimmed">
+                  Nenhum cliente encontrado
+                </Text>
+              </Table.Td>
+            </Table.Tr>
+          )}
+        </Table.Tbody>
+      </Table>
 
       <ClientCreateModal
         opened={createModalOpened}
@@ -167,6 +169,6 @@ export function Clients() {
         confirmLabel="Excluir"
         loading={deleteMutation.isPending}
       />
-    </Container>
+    </TablePage>
   );
 }

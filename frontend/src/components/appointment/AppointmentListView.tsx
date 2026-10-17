@@ -92,7 +92,7 @@ export function AppointmentListView({
         </Group>
       )}
       <ScrollArea>
-        <Table striped highlightOnHover>
+        <Table striped highlightOnHover miw={720}>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Data/Hora</Table.Th>
