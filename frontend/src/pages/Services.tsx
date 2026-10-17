@@ -11,15 +11,14 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import {
-  IconEdit,
   IconInfoCircle,
   IconPlus,
   IconSearch,
-  IconTrash,
   IconX,
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { RowActions } from "../components/RowActions";
 import { TablePage } from "../components/TablePage";
 import { ServiceCreateModal } from "../components/service/ServiceCreateModal";
 import { ServiceEditModal } from "../components/service/ServiceEditModal";
@@ -145,25 +144,10 @@ export function Services() {
                 )}
                 <Table.Td>{service.description || "-"}</Table.Td>
                 <Table.Td>
-                  <Group gap="xs">
-                    <Button
-                      variant="light"
-                      size="xs"
-                      leftSection={<IconEdit size={14} />}
-                      onClick={() => handleEdit(service)}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      variant="light"
-                      color="red"
-                      size="xs"
-                      leftSection={<IconTrash size={14} />}
-                      onClick={() => handleDelete(service)}
-                    >
-                      Excluir
-                    </Button>
-                  </Group>
+                  <RowActions
+                    onEdit={() => handleEdit(service)}
+                    onDelete={() => handleDelete(service)}
+                  />
                 </Table.Td>
               </Table.Tr>
             ))}

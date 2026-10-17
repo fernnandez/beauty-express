@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   Button,
   Group,
   Stack,
@@ -10,13 +9,12 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import {
-  IconEdit,
   IconPlus,
   IconSearch,
-  IconTrash,
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { RowActions } from "../components/RowActions";
 import { TablePage } from "../components/TablePage";
 import { ClientCreateModal } from "../components/client/ClientCreateModal";
 import { ClientEditModal } from "../components/client/ClientEditModal";
@@ -112,22 +110,10 @@ export function Clients() {
                 <Table.Td>{client.name}</Table.Td>
                 <Table.Td>{client.phone}</Table.Td>
                 <Table.Td>
-                  <Group gap="xs">
-                    <ActionIcon
-                      variant="subtle"
-                      color="blue"
-                      onClick={() => handleEdit(client)}
-                    >
-                      <IconEdit size={16} />
-                    </ActionIcon>
-                    <ActionIcon
-                      variant="subtle"
-                      color="red"
-                      onClick={() => handleDelete(client)}
-                    >
-                      <IconTrash size={16} />
-                    </ActionIcon>
-                  </Group>
+                  <RowActions
+                    onEdit={() => handleEdit(client)}
+                    onDelete={() => handleDelete(client)}
+                  />
                 </Table.Td>
               </Table.Tr>
             ))
