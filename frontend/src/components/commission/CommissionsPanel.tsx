@@ -13,7 +13,6 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
-import { DatePickerInput } from "@mantine/dates";
 import { useDebouncedValue } from "@mantine/hooks";
 import {
   IconCalendar,
@@ -24,9 +23,9 @@ import {
   IconUser,
   IconX,
 } from "@tabler/icons-react";
-import { DateTime } from "luxon";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ConfirmModal } from "../ConfirmModal";
+import { PeriodFilter } from "../PeriodFilter";
 import { TablePage } from "../TablePage";
 import { useCollaborators } from "../../hooks/useCollaborators";
 import {
@@ -38,6 +37,11 @@ import {
 import { useNotifications } from "../../hooks/useNotifications";
 import { formatDate } from "../../utils/appointment.utils";
 import { formatPrice, toMoney } from "../../utils/money.util";
+import {
+  currentMonthPeriod,
+  periodToDateRange,
+  type Period,
+} from "../../utils/period.util";
 
 interface CommissionsPanelProps {
   /**
@@ -77,8 +81,7 @@ export function CommissionsPanel({
   const [statusFilter, setStatusFilter] = useState<"pending" | "paid" | "all">(
     "pending",
   );
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [period, setPeriod] = useState<Period>(() => currentMonthPeriod());
   const [markAsPaidModalOpened, setMarkAsPaidModalOpened] = useState(false);
   const [markAsUnpaidModalOpened, setMarkAsUnpaidModalOpened] = useState(false);
 
@@ -87,19 +90,15 @@ export function CommissionsPanel({
     setSelectedCommissions(new Set());
   }, [
     statusFilter,
-    startDate,
-    endDate,
+    period,
     collaboratorFilter,
     debouncedSearchTerm,
   ]);
 
-  const toDateString = (value: Date): string =>
-    DateTime.fromJSDate(value, { zone: "America/Sao_Paulo" }).toFormat(
-      "yyyy-MM-dd",
-    );
-
   // Prepara os filtros para enviar ao backend
   const filters = useMemo(() => {
+    const { startDate, endDate } = periodToDateRange(period);
+
     const filterObj: {
       paid?: boolean;
       startDate?: string;
@@ -111,6 +110,8 @@ export function CommissionsPanel({
     } = {
       page,
       limit: COMMISSIONS_PAGE_SIZE,
+      startDate,
+      endDate,
     };
 
     // Status: pending/paid/all
@@ -118,13 +119,6 @@ export function CommissionsPanel({
       filterObj.paid = false;
     } else if (statusFilter === "paid") {
       filterObj.paid = true;
-    }
-
-    if (startDate) {
-      filterObj.startDate = toDateString(startDate);
-    }
-    if (endDate) {
-      filterObj.endDate = toDateString(endDate);
     }
 
     if (fixedCollaboratorId) {
@@ -140,8 +134,7 @@ export function CommissionsPanel({
     return filterObj;
   }, [
     statusFilter,
-    startDate,
-    endDate,
+    period,
     collaboratorFilter,
     debouncedSearchTerm,
     page,
@@ -171,8 +164,7 @@ export function CommissionsPanel({
 
   const hasActiveFilters =
     statusFilter !== "pending" ||
-    Boolean(startDate) ||
-    Boolean(endDate) ||
+    period.fortnight !== "full" ||
     (!isScoped && collaboratorFilter.length > 0);
 
   // Seleção
@@ -265,32 +257,14 @@ export function CommissionsPanel({
             leftSection={<IconFilter size={16} />}
             style={{ maxWidth: 160 }}
           />
-          <DatePickerInput
-            placeholder="Data inicial"
-            value={startDate}
-            onChange={(value) => setStartDate(value as Date | null)}
-            leftSection={<IconCalendar size={16} />}
-            valueFormat="DD/MM/YYYY"
-            clearable
-            style={{ maxWidth: 180 }}
-          />
-          <DatePickerInput
-            placeholder="Data final"
-            value={endDate}
-            onChange={(value) => setEndDate(value as Date | null)}
-            leftSection={<IconCalendar size={16} />}
-            valueFormat="DD/MM/YYYY"
-            clearable
-            style={{ maxWidth: 180 }}
-          />
+          <PeriodFilter value={period} onChange={setPeriod} />
           {hasActiveFilters && (
             <ActionIcon
               variant="light"
               color="gray"
               onClick={() => {
                 setStatusFilter("pending");
-                setStartDate(null);
-                setEndDate(null);
+                setPeriod(currentMonthPeriod());
                 setCollaboratorFilter([]);
               }}
               title="Limpar filtros"

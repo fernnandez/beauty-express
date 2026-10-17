@@ -25,15 +25,24 @@ import { useCollaborator } from "../hooks/useCollaborators";
 import { useCollaboratorCommissionSummary } from "../hooks/useCommissions";
 import { useOperationalBranding } from "../hooks/useOperationalBranding";
 import { formatPrice } from "../utils/money.util";
+import {
+  currentMonthPeriod,
+  monthLabel,
+  periodToDateRange,
+} from "../utils/period.util";
 
 export function CollaboratorProfile() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { commissionsEnabled } = useOperationalBranding();
   const { data: collaborator, isLoading, isError } = useCollaborator(id);
+
+  // Cards sempre refletem o mês atual.
+  const currentMonth = currentMonthPeriod();
+  const { startDate, endDate } = periodToDateRange(currentMonth);
   const { data: summary } = useCollaboratorCommissionSummary(
     id,
-    undefined,
+    { startDate, endDate },
     commissionsEnabled,
   );
 
@@ -86,7 +95,11 @@ export function CollaboratorProfile() {
   );
 
   const summaryCards = commissionsEnabled && (
-    <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
+    <Stack gap="xs">
+      <Text size="sm" c="dimmed" fw={500}>
+        Resumo de {monthLabel(currentMonth)}
+      </Text>
+      <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
       <SummaryCard
         icon={<IconScissors size={22} />}
         color="blue"
@@ -112,6 +125,7 @@ export function CollaboratorProfile() {
         value={String(summary?.uniqueClients ?? 0)}
       />
     </SimpleGrid>
+    </Stack>
   );
 
   if (isLoading) {
