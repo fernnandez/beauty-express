@@ -14,9 +14,12 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateServiceDto } from '../dtos/service/create-service.dto';
 import { UpdateServiceDto } from '../dtos/service/update-service.dto';
+import { Roles } from '@common/decorators/roles.decorator';
+import { UserRole } from '@domain/entities/user-role.enum';
 
 @ApiTags('Services')
 @Controller('services')
+@Roles(UserRole.ADMIN)
 export class ServiceController {
   constructor(private readonly serviceDomainService: ServiceService) {}
 

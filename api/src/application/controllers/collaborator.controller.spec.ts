@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CollaboratorController } from './collaborator.controller';
 import { CollaboratorService } from '@domain/services/collaborator.service';
+import { CollaboratorAccessService } from '@domain/services/collaborator-access.service';
 import { Collaborator } from '@domain/entities/collaborator.entity';
 import { CreateCollaboratorDto } from '../dtos/collaborator/create-collaborator.dto';
 import { UpdateCollaboratorDto } from '../dtos/collaborator/update-collaborator.dto';
@@ -28,6 +29,13 @@ describe('CollaboratorController', () => {
     delete: jest.fn(),
   };
 
+  const mockAccessService = {
+    getStatus: jest.fn(),
+    grant: jest.fn(),
+    update: jest.fn(),
+    revoke: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CollaboratorController],
@@ -35,6 +43,10 @@ describe('CollaboratorController', () => {
         {
           provide: CollaboratorService,
           useValue: mockCollaboratorService,
+        },
+        {
+          provide: CollaboratorAccessService,
+          useValue: mockAccessService,
         },
       ],
     }).compile();

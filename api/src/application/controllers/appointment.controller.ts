@@ -15,6 +15,9 @@ import { validateDateFormat } from '../../common/utils/date-validation.util';
 import { parseDateString } from '../../utils/date.util';
 import { CreateAppointmentDto } from '../dtos/appointment/create-appointment.dto';
 import { UpdateAppointmentDto } from '../dtos/appointment/update-appointment.dto';
+import { CurrentUser } from '@common/decorators/current-user.decorator';
+import { AccessTokenPayload } from '@domain/services/auth.types';
+import { UserRole } from '@domain/entities/user-role.enum';
 
 @ApiTags('Appointments')
 @Controller('appointments')
@@ -36,17 +39,21 @@ export class AppointmentController {
   @Get()
   @ApiOperation({ summary: 'Get appointments by date (defaults to today)' })
   @ApiResponse({ status: 200, description: 'List of appointments' })
-  async findAll(@Query('date') date?: string) {
-    if (!date) {
-      const today = new Date();
-      const todayString = today.toISOString().split('T')[0];
-      const dateObj = parseDateString(todayString);
-      return await this.appointmentDomainService.findByDate(dateObj);
-    }
+  async findAll(
+    @CurrentUser() user: AccessTokenPayload,
+    @Query('date') date?: string,
+  ) {
+    const scopedCollaboratorId =
+      user.role === UserRole.COLLABORATOR ? user.collaboratorId : undefined;
 
-    validateDateFormat(date);
-    const dateObj = parseDateString(date);
-    return await this.appointmentDomainService.findByDate(dateObj);
+    const dateObj = date
+      ? (validateDateFormat(date), parseDateString(date))
+      : parseDateString(new Date().toISOString().split('T')[0]);
+
+    return await this.appointmentDomainService.findByDate(
+      dateObj,
+      scopedCollaboratorId,
+    );
   }
 
   @Get(':id')

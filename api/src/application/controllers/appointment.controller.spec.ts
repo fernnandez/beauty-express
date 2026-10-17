@@ -9,6 +9,17 @@ import { CreateAppointmentDto } from '../dtos/appointment/create-appointment.dto
 import { UpdateAppointmentDto } from '../dtos/appointment/update-appointment.dto';
 import { AppointmentController } from './appointment.controller';
 import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
+import { UserRole } from '@domain/entities/user-role.enum';
+import { AccessTokenPayload } from '@domain/services/auth.types';
+
+const adminUser: AccessTokenPayload = {
+  sub: 'user-admin',
+  email: 'admin@tenant.com',
+  role: UserRole.ADMIN,
+  tenantId: TENANT_ID_MOCK,
+  collaboratorId: null,
+  type: 'access',
+};
 
 describe('AppointmentController', () => {
   let controller: AppointmentController;
@@ -93,10 +104,13 @@ describe('AppointmentController', () => {
       const todayString = today.toISOString().split('T')[0];
       mockAppointmentService.findByDate.mockResolvedValue(mockAppointments);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll(adminUser);
 
       expect(result).toEqual(mockAppointments);
-      expect(service.findByDate).toHaveBeenCalledWith(parseDateString(todayString));
+      expect(service.findByDate).toHaveBeenCalledWith(
+        parseDateString(todayString),
+        undefined,
+      );
       expect(service.findAll).not.toHaveBeenCalled();
     });
 
@@ -104,21 +118,40 @@ describe('AppointmentController', () => {
       const date = '2024-12-28';
       mockAppointmentService.findByDate.mockResolvedValue(mockAppointments);
 
-      const result = await controller.findAll(date);
+      const result = await controller.findAll(adminUser, date);
 
       expect(result).toEqual(mockAppointments);
-      expect(service.findByDate).toHaveBeenCalledWith(parseDateString(date));
+      expect(service.findByDate).toHaveBeenCalledWith(
+        parseDateString(date),
+        undefined,
+      );
       expect(service.findAll).not.toHaveBeenCalled();
     });
 
     it('should throw error when date format is invalid', async () => {
       const invalidDate = '2024/12/28';
 
-      await expect(controller.findAll(invalidDate)).rejects.toThrow(
+      await expect(controller.findAll(adminUser, invalidDate)).rejects.toThrow(
         'Invalid date format. Expected yyyy-mm-dd',
       );
 
       expect(service.findByDate).not.toHaveBeenCalled();
+    });
+
+    it('scopes to own appointments when role is collaborator', async () => {
+      const collaboratorUser: AccessTokenPayload = {
+        ...adminUser,
+        role: UserRole.COLLABORATOR,
+        collaboratorId: 'collaborator-1',
+      };
+      mockAppointmentService.findByDate.mockResolvedValue(mockAppointments);
+
+      await controller.findAll(collaboratorUser, '2024-12-28');
+
+      expect(service.findByDate).toHaveBeenCalledWith(
+        parseDateString('2024-12-28'),
+        'collaborator-1',
+      );
     });
   });
 

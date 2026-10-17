@@ -1,11 +1,14 @@
 import { ScheduledServiceService } from '@domain/services/scheduled-service.service';
 import { Body, Controller, Param, Post, Put } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Roles } from '@common/decorators/roles.decorator';
+import { UserRole } from '@domain/entities/user-role.enum';
 import { CreateScheduledServiceDto } from '../dtos/scheduled-service/create-scheduled-service.dto';
 import { UpdateScheduledServiceDto } from '../dtos/scheduled-service/update-scheduled-service.dto';
 
 @ApiTags('Scheduled Services')
 @Controller('scheduled-services')
+@Roles(UserRole.ADMIN)
 export class ScheduledServiceController {
   constructor(
     private readonly scheduledServiceDomainService: ScheduledServiceService,

@@ -14,6 +14,11 @@ import { endOfDay, parseDateString } from '../../utils/date.util';
 import { validateDateFormat } from '../../common/utils/date-validation.util';
 import { MarkCommissionsDto } from '../dtos/commission/mark-commissions.dto';
 import { CommissionFilterParams } from '@domain/repositories/commission-list.types';
+import { CurrentUser } from '@common/decorators/current-user.decorator';
+import { Roles } from '@common/decorators/roles.decorator';
+import { AccessTokenPayload } from '@domain/services/auth.types';
+import { UserRole } from '@domain/entities/user-role.enum';
+import { ForbiddenException } from '@nestjs/common';
 
 @ApiTags('Commissions')
 @Controller('commissions')
@@ -67,6 +72,7 @@ export class CommissionController {
   })
   @ApiResponse({ status: 200, description: 'Paginated list of commissions' })
   async findAll(
+    @CurrentUser() user: AccessTokenPayload,
     @Query('paid') paid?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -102,6 +108,13 @@ export class CommissionController {
         : [collaboratorId];
     }
 
+    // Escopo: colaborador só enxerga as próprias comissões.
+    if (user.role === UserRole.COLLABORATOR) {
+      filters.collaboratorIds = user.collaboratorId
+        ? [user.collaboratorId]
+        : ['__none__'];
+    }
+
     const trimmedSearch = search?.trim();
     if (trimmedSearch) {
       filters.search = trimmedSearch;
@@ -115,6 +128,7 @@ export class CommissionController {
   }
 
   @Get('alerts')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Alertas de comissões não pagas por colaborador (atraso/pendência)',
   })
@@ -143,11 +157,20 @@ export class CommissionController {
   })
   async getCollaboratorSummary(
     @Param('collaboratorId') collaboratorId: string,
+    @CurrentUser() user: AccessTokenPayload,
     @Query('paid') paid?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('search') search?: string,
   ) {
+    // Escopo: colaborador só pode consultar o próprio resumo.
+    if (
+      user.role === UserRole.COLLABORATOR &&
+      collaboratorId !== user.collaboratorId
+    ) {
+      throw new ForbiddenException('Acesso negado');
+    }
+
     const filters: CommissionFilterParams = {};
 
     if (paid !== undefined) {
@@ -176,6 +199,7 @@ export class CommissionController {
   }
 
   @Put('mark-as-paid')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark multiple commissions as paid' })
   @ApiResponse({
@@ -188,6 +212,7 @@ export class CommissionController {
   }
 
   @Put('mark-as-unpaid')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark multiple commissions as unpaid' })
   @ApiResponse({

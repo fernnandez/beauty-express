@@ -122,11 +122,14 @@ export class AppointmentService {
     });
   }
 
-  async findByDate(date: Date): Promise<Appointment[]> {
+  async findByDate(
+    date: Date,
+    collaboratorId?: string | null,
+  ): Promise<Appointment[]> {
     const start = startOfDay(date);
     const end = endOfDay(date);
 
-    return await this.appointmentRepository.find({
+    const appointments = await this.appointmentRepository.find({
       where: {
         date: Between(start, end),
         tenantId: this.getTenantId(),
@@ -140,6 +143,17 @@ export class AppointmentService {
         startTime: 'ASC',
       },
     });
+
+    // Escopo do colaborador: só agendamentos em que ele é o profissional.
+    if (collaboratorId) {
+      return appointments.filter((appointment) =>
+        appointment.scheduledServices?.some(
+          (ss) => ss.collaboratorId === collaboratorId,
+        ),
+      );
+    }
+
+    return appointments;
   }
 
   async findById(

@@ -3,13 +3,18 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Collaborator } from '../entities/collaborator.entity';
 import { CollaboratorRepository } from '../repositories/collaborator.repository';
 import { CollaboratorService } from '../services/collaborator.service';
+import { CollaboratorAccessService } from '../services/collaborator-access.service';
 import { CollaboratorController } from '@application/controllers/collaborator.controller';
 import { AuthModule } from './auth.module';
 
 @Module({
   imports: [AuthModule, TypeOrmModule.forFeature([Collaborator])],
   controllers: [CollaboratorController],
-  providers: [CollaboratorRepository, CollaboratorService],
+  providers: [
+    CollaboratorRepository,
+    CollaboratorService,
+    CollaboratorAccessService,
+  ],
   exports: [CollaboratorRepository, CollaboratorService],
 })
 export class CollaboratorModule {}

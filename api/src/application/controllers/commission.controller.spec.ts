@@ -6,6 +6,17 @@ import { MarkCommissionsDto } from '../dtos/commission/mark-commissions.dto';
 import { parseDateString, endOfDay } from '../../utils/date.util';
 import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
 import { CommissionListResult } from '@domain/repositories/commission-list.types';
+import { UserRole } from '@domain/entities/user-role.enum';
+import { AccessTokenPayload } from '@domain/services/auth.types';
+
+const adminUser: AccessTokenPayload = {
+  sub: 'user-admin',
+  email: 'admin@tenant.com',
+  role: UserRole.ADMIN,
+  tenantId: TENANT_ID_MOCK,
+  collaboratorId: null,
+  type: 'access',
+};
 
 describe('CommissionController', () => {
   let controller: CommissionController;
@@ -64,7 +75,7 @@ describe('CommissionController', () => {
     it('should return paginated commissions when no filters', async () => {
       mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll(adminUser);
 
       expect(result).toEqual(mockListResult);
       expect(service.findAll).toHaveBeenCalledWith(undefined, 1, 50);
@@ -73,7 +84,7 @@ describe('CommissionController', () => {
     it('should filter by paid status', async () => {
       mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
-      const result = await controller.findAll('true');
+      const result = await controller.findAll(adminUser, 'true');
 
       expect(result).toEqual(mockListResult);
       expect(service.findAll).toHaveBeenCalledWith({ paid: true }, 1, 50);
@@ -82,7 +93,7 @@ describe('CommissionController', () => {
     it('should filter by unpaid status', async () => {
       mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
-      const result = await controller.findAll('false');
+      const result = await controller.findAll(adminUser, 'false');
 
       expect(result).toEqual(mockListResult);
       expect(service.findAll).toHaveBeenCalledWith({ paid: false }, 1, 50);
@@ -92,7 +103,7 @@ describe('CommissionController', () => {
       const startDate = '2024-12-01';
       mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
-      const result = await controller.findAll(undefined, startDate);
+      const result = await controller.findAll(adminUser, undefined, startDate);
 
       expect(result).toEqual(mockListResult);
       expect(service.findAll).toHaveBeenCalledWith(
@@ -107,7 +118,7 @@ describe('CommissionController', () => {
     it('should throw error when startDate format is invalid', async () => {
       const invalidDate = '2024/12/01';
 
-      await expect(controller.findAll(undefined, invalidDate)).rejects.toThrow(
+      await expect(controller.findAll(adminUser, undefined, invalidDate)).rejects.toThrow(
         'Invalid date format. Expected yyyy-mm-dd, got: 2024/12/01',
       );
 
@@ -118,7 +129,7 @@ describe('CommissionController', () => {
       const endDate = '2024-12-31';
       mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
-      const result = await controller.findAll(undefined, undefined, endDate);
+      const result = await controller.findAll(adminUser, undefined, undefined, endDate);
 
       expect(result).toEqual(mockListResult);
       expect(service.findAll).toHaveBeenCalledWith(
@@ -134,7 +145,7 @@ describe('CommissionController', () => {
       const invalidDate = '2024/12/31';
 
       await expect(
-        controller.findAll(undefined, undefined, invalidDate),
+        controller.findAll(adminUser, undefined, undefined, invalidDate),
       ).rejects.toThrow(
         'Invalid date format. Expected yyyy-mm-dd, got: 2024/12/31',
       );
@@ -147,6 +158,7 @@ describe('CommissionController', () => {
       mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
       const result = await controller.findAll(
+        adminUser,
         undefined,
         undefined,
         undefined,
@@ -168,6 +180,7 @@ describe('CommissionController', () => {
       mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
       const result = await controller.findAll(
+        adminUser,
         undefined,
         undefined,
         undefined,
@@ -189,6 +202,7 @@ describe('CommissionController', () => {
       mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
       const result = await controller.findAll(
+        adminUser,
         'true',
         startDate,
         endDate,
@@ -212,6 +226,7 @@ describe('CommissionController', () => {
       mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
       await controller.findAll(
+        adminUser,
         undefined,
         undefined,
         undefined,
@@ -222,6 +237,32 @@ describe('CommissionController', () => {
       );
 
       expect(service.findAll).toHaveBeenCalledWith(undefined, 2, 25);
+    });
+  });
+
+  describe('findAll scope', () => {
+    it('forces own collaboratorId when role is collaborator', async () => {
+      const collaboratorUser: AccessTokenPayload = {
+        ...adminUser,
+        role: UserRole.COLLABORATOR,
+        collaboratorId: 'collaborator-9',
+      };
+      mockCommissionService.findAll.mockResolvedValue(mockListResult);
+
+      // Tenta forçar outro colaborador na query, mas deve ser ignorado.
+      await controller.findAll(
+        collaboratorUser,
+        undefined,
+        undefined,
+        undefined,
+        'other-collaborator',
+      );
+
+      expect(service.findAll).toHaveBeenCalledWith(
+        { collaboratorIds: ['collaborator-9'] },
+        1,
+        50,
+      );
     });
   });
 

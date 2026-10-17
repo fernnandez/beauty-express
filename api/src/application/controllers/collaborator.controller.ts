@@ -1,4 +1,5 @@
 import { CollaboratorService } from '@domain/services/collaborator.service';
+import { CollaboratorAccessService } from '@domain/services/collaborator-access.service';
 import {
   Body,
   Controller,
@@ -7,19 +8,28 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Put,
   Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Roles } from '@common/decorators/roles.decorator';
+import { UserRole } from '@domain/entities/user-role.enum';
 import { CreateCollaboratorDto } from '../dtos/collaborator/create-collaborator.dto';
 import { UpdateCollaboratorDto } from '../dtos/collaborator/update-collaborator.dto';
+import {
+  GrantCollaboratorAccessDto,
+  UpdateCollaboratorAccessDto,
+} from '../dtos/collaborator/collaborator-access.dto';
 
 @ApiTags('Collaborators')
 @Controller('collaborators')
+@Roles(UserRole.ADMIN)
 export class CollaboratorController {
   constructor(
     private readonly collaboratorDomainService: CollaboratorService,
+    private readonly accessService: CollaboratorAccessService,
   ) {}
 
   @Post()
@@ -76,5 +86,37 @@ export class CollaboratorController {
   @ApiResponse({ status: 404, description: 'Collaborator not found' })
   async remove(@Param('id') id: string) {
     await this.collaboratorDomainService.delete(id);
+  }
+
+  @Get(':id/access')
+  @ApiOperation({ summary: 'Status de acesso (login) do colaborador' })
+  async getAccess(@Param('id') id: string) {
+    return await this.accessService.getStatus(id);
+  }
+
+  @Post(':id/access')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Conceder acesso (criar login) ao colaborador' })
+  async grantAccess(
+    @Param('id') id: string,
+    @Body() dto: GrantCollaboratorAccessDto,
+  ) {
+    return await this.accessService.grant(id, dto);
+  }
+
+  @Patch(':id/access')
+  @ApiOperation({ summary: 'Atualizar acesso do colaborador (senha/email/ativo)' })
+  async updateAccess(
+    @Param('id') id: string,
+    @Body() dto: UpdateCollaboratorAccessDto,
+  ) {
+    return await this.accessService.update(id, dto);
+  }
+
+  @Delete(':id/access')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Revogar acesso do colaborador' })
+  async revokeAccess(@Param('id') id: string) {
+    await this.accessService.revoke(id);
   }
 }

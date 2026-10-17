@@ -127,6 +127,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       tenantId: user.tenantId,
+      collaboratorId: user.collaboratorId ?? null,
       type: 'access',
     };
   }
@@ -213,6 +214,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       tenantId: user.tenantId,
+      collaboratorId: user.collaboratorId ?? null,
       tenantName: user.tenant?.name,
     };
 

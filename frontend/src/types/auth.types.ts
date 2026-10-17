@@ -1,12 +1,13 @@
 import type { TenantSettings } from './tenant-settings.types';
 
-export type UserRole = 'super_admin' | 'admin' | 'manager' | 'staff';
+export type UserRole = 'super_admin' | 'admin' | 'collaborator';
 
 export interface AuthUser {
   id: string;
   email: string;
   role: UserRole;
   tenantId: string | null;
+  collaboratorId?: string | null;
   tenantName?: string;
   tenantSettings?: TenantSettings;
 }

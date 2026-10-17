@@ -12,11 +12,14 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Roles } from '@common/decorators/roles.decorator';
+import { UserRole } from '@domain/entities/user-role.enum';
 import { CreateClientDto } from '../dtos/client/create-client.dto';
 import { UpdateClientDto } from '../dtos/client/update-client.dto';
 
 @ApiTags('Clients')
 @Controller('clients')
+@Roles(UserRole.ADMIN)
 export class ClientController {
   constructor(private readonly clientService: ClientService) {}
 

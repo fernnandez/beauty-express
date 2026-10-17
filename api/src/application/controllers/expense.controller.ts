@@ -10,12 +10,15 @@ import {
   Put,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Roles } from '@common/decorators/roles.decorator';
+import { UserRole } from '@domain/entities/user-role.enum';
 import { ExpenseService } from '@domain/services/expense.service';
 import { CreateExpenseDto } from '../dtos/expense/create-expense.dto';
 import { UpdateExpenseDto } from '../dtos/expense/update-expense.dto';
 
 @ApiTags('Expenses')
 @Controller('expenses')
+@Roles(UserRole.ADMIN)
 export class ExpenseController {
   constructor(private readonly expenseService: ExpenseService) {}
 

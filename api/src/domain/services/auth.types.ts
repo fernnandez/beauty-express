@@ -6,6 +6,7 @@ export interface AccessTokenPayload {
   email: string;
   role: UserRole;
   tenantId: string | null;
+  collaboratorId: string | null;
   type: 'access';
 }
 
@@ -20,6 +21,7 @@ export interface AuthUserResponse {
   email: string;
   role: UserRole;
   tenantId: string | null;
+  collaboratorId: string | null;
   tenantName?: string;
   tenantSettings?: TenantSettingsResponse;
 }

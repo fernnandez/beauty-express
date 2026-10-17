@@ -9,6 +9,8 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Roles } from '@common/decorators/roles.decorator';
+import { UserRole } from '@domain/entities/user-role.enum';
 import { VALIDATION_CONSTANTS } from '../../common/constants/validation.constants';
 import { formatDateToString, parseDateString } from '../../utils/date.util';
 import { FinancialReportDto } from '../dtos/financial-report/financial-report.dto';
@@ -17,6 +19,7 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 @ApiTags('Financial Reports')
 @Controller('financial-reports')
+@Roles(UserRole.ADMIN)
 export class FinancialReportController {
   constructor(
     private readonly financialReportService: FinancialReportService,
