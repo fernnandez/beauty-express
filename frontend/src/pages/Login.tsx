@@ -7,7 +7,6 @@ import {
   Loader,
   Paper,
   PasswordInput,
-  Select,
   Stack,
   Text,
   TextInput,
@@ -18,27 +17,18 @@ import { notifications } from '@mantine/notifications';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useLoginPortal } from '../contexts/LoginPortalContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getErrorMessage } from '../utils/error.util';
 import {
   DEV_BANNER_HEIGHT,
   DevEnvironmentBanner,
 } from '../components/DevEnvironmentBanner';
-import { createLoginBackground } from '../utils/theme.util';
+import { createLoginBackground, DEFAULT_LOGIN_BRANDING } from '../utils/theme.util';
 import type { LoginDto } from '../types/auth.types';
 
 export function Login() {
   const { login, isAuthenticated, isLoading } = useAuth();
-  const {
-    branding,
-    isLoading: portalLoading,
-    error: portalError,
-    portalHost,
-    showPortalPicker,
-    availablePortals,
-    setPortalHost,
-  } = useLoginPortal();
+  const branding = DEFAULT_LOGIN_BRANDING;
   const navigate = useNavigate();
   const location = useLocation();
   const [submitting, setSubmitting] = useState(false);
@@ -48,7 +38,6 @@ export function Login() {
     initialValues: {
       email: '',
       password: '',
-      portalHost,
     },
     validate: {
       email: (value) => (/^\S+@\S+$/.test(value) ? null : 'E-mail inválido'),
@@ -63,7 +52,7 @@ export function Login() {
     return <Navigate to={redirectTo} replace />;
   }
 
-  if (portalLoading || isLoading) {
+  if (isLoading) {
     return (
       <Center
         mih="100vh"
@@ -84,7 +73,7 @@ export function Login() {
     setError(null);
 
     try {
-      await login({ ...values, portalHost });
+      await login(values);
       notifications.show({
         title: 'Bem-vindo',
         message: 'Login realizado com sucesso',
@@ -128,16 +117,6 @@ export function Login() {
             </Text>
           </Stack>
 
-          {portalError && (
-            <Alert
-              icon={<IconAlertCircle size={16} />}
-              color="yellow"
-              variant="light"
-            >
-              {portalError}
-            </Alert>
-          )}
-
           {error && (
             <Alert
               icon={<IconAlertCircle size={16} />}
@@ -150,22 +129,6 @@ export function Login() {
 
           <Box component="form" onSubmit={handleSubmit}>
             <Stack gap="md">
-              {showPortalPicker && availablePortals.length > 0 && (
-                <Select
-                  label="Portal (dev local)"
-                  description="Escolha o cliente para testar no localhost"
-                  value={portalHost}
-                  onChange={(value) => {
-                    if (value) {
-                      setPortalHost(value);
-                    }
-                  }}
-                  data={availablePortals.map((portal) => ({
-                    value: portal.host,
-                    label: `${portal.loginBranding.displayName} (${portal.host})`,
-                  }))}
-                />
-              )}
               <TextInput
                 label="E-mail"
                 placeholder="seu@email.com"

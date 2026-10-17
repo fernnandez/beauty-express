@@ -12,7 +12,6 @@ import { LoginThemeProvider } from "./components/LoginThemeProvider";
 import { OperationalThemeProvider } from "./components/OperationalThemeProvider";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
-import { LoginPortalProvider } from "./contexts/LoginPortalContext";
 import { Appointments } from "./pages/Appointments";
 import { Clients } from "./pages/Clients";
 import { Collaborators } from "./pages/Collaborators";
@@ -57,11 +56,9 @@ function App() {
               <Route
                 path="/login"
                 element={
-                  <LoginPortalProvider>
-                    <LoginThemeProvider>
-                      <Login />
-                    </LoginThemeProvider>
-                  </LoginPortalProvider>
+                  <LoginThemeProvider>
+                    <Login />
+                  </LoginThemeProvider>
                 }
               />
               <Route path="/backoffice/*" element={<BackofficeApp />} />

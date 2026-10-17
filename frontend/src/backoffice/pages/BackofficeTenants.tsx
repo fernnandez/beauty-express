@@ -26,7 +26,6 @@ import {
   useCreateTenant,
   useUpdateTenant,
 } from '../hooks/useAdminTenants';
-import { useAdminPortals } from '../hooks/useAdminPortals';
 import { getErrorMessage } from '../../utils/error.util';
 import { backofficeAccent } from '../utils/backoffice-theme.util';
 import type { CreateTenantDto, Tenant, UpdateTenantDto } from '../../types/admin.types';
@@ -34,7 +33,6 @@ import type { CreateTenantDto, Tenant, UpdateTenantDto } from '../../types/admin
 export function BackofficeTenants() {
   const navigate = useNavigate();
   const { data: tenants, isLoading } = useAdminTenants();
-  const { data: portals } = useAdminPortals();
   const createMutation = useCreateTenant();
   const updateMutation = useUpdateTenant();
   const [createOpened, setCreateOpened] = useState(false);
@@ -42,14 +40,13 @@ export function BackofficeTenants() {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
 
   const createForm = useForm<CreateTenantDto>({
-    initialValues: { slug: '', name: '', portalId: '', isActive: true },
+    initialValues: { slug: '', name: '', isActive: true },
     validate: {
       slug: (value) =>
         /^[a-z0-9-]+$/.test(value)
           ? null
           : 'Use apenas letras minúsculas, números e hífens',
       name: (value) => (value.trim().length > 0 ? null : 'Nome obrigatório'),
-      portalId: (value) => (value ? null : 'Selecione um portal'),
     },
   });
 
@@ -176,7 +173,6 @@ export function BackofficeTenants() {
                 <Table.Tr>
                   <Table.Th>Nome</Table.Th>
                   <Table.Th>Slug</Table.Th>
-                  <Table.Th>Portal</Table.Th>
                   <Table.Th>Status</Table.Th>
                   <Table.Th w={120}>Ativa</Table.Th>
                   <Table.Th w={90} />
@@ -189,11 +185,6 @@ export function BackofficeTenants() {
                     <Table.Td>
                       <Text ff="monospace" size="sm">
                         {tenant.slug}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" c="dimmed">
-                        {tenant.portal?.host ?? '—'}
                       </Text>
                     </Table.Td>
                     <Table.Td>
@@ -257,15 +248,6 @@ export function BackofficeTenants() {
               placeholder="nova-unidade"
               description="Identificador único (minúsculas, números e hífens)"
               {...createForm.getInputProps('slug')}
-            />
-            <Select
-              label="Portal de login"
-              placeholder="Selecione o subdomínio"
-              data={(portals ?? []).map((portal) => ({
-                value: portal.id,
-                label: `${portal.slug} (${portal.host})`,
-              }))}
-              {...createForm.getInputProps('portalId')}
             />
             <Group justify="flex-end">
               <Button variant="default" onClick={() => setCreateOpened(false)}>

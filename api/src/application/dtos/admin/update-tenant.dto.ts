@@ -4,7 +4,6 @@ import {
   IsBoolean,
   IsOptional,
   IsString,
-  IsUUID,
   Matches,
   ValidateNested,
 } from 'class-validator';
@@ -23,11 +22,6 @@ export class UpdateTenantDto {
     message: 'slug deve conter apenas letras minúsculas, números e hífens',
   })
   slug?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsUUID()
-  portalId?: string;
 
   @ApiProperty({ required: false, type: PartialTenantSettingsDto })
   @IsOptional()

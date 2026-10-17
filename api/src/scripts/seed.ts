@@ -17,7 +17,6 @@ import {
 } from '@domain/entities/scheduled-service.entity';
 import { Service } from '@domain/entities/service.entity';
 import { Tenant } from '@domain/entities/tenant.entity';
-import { Portal } from '@domain/entities/portal.entity';
 import { User } from '@domain/entities/user.entity';
 import { UserRole } from '@domain/entities/user-role.enum';
 import * as bcrypt from 'bcrypt';
@@ -26,26 +25,14 @@ import { DataSource } from 'typeorm';
 import { getDatabaseConfig } from '../config/database.config';
 import { resetDatabaseSchema } from './db-reset.util';
 import {
-  defaultLoginBranding,
   defaultTenantSettings,
 } from '../domain/services/tenant-settings.util';
-
-const PORTAL_MARIA_ID = 'b1000001-0001-4000-8000-000000000001';
-const PORTAL_LOCAL_ID = 'b1000001-0001-4000-8000-000000000002';
-const PORTAL_BARBearia_ID = 'b1000001-0001-4000-8000-000000000003';
 
 const TENANT_PAULISTA_ID = 'c1000001-0001-4000-8000-000000000001';
 const TENANT_RECIFE_ID = 'c1000001-0001-4000-8000-000000000002';
 const TENANT_BOAVIAGEM_ID = 'c1000001-0001-4000-8000-000000000003';
 const TENANT_BARBearia_ID = 'c1000001-0001-4000-8000-000000000004';
 const DEMO_TENANT_ID = TENANT_PAULISTA_ID;
-
-const BARBearia_LOGIN_BRANDING = {
-  ...defaultLoginBranding('Barbearia Lucas'),
-  logoUrl: '/lucas.jpeg',
-  primaryColor: '#1a1a2e',
-  accentColor: '#f5f5f5',
-};
 
 async function seed() {
   const dbConfig = getDatabaseConfig();
@@ -63,7 +50,6 @@ async function seed() {
 
   console.log('🌱 Iniciando seed do banco de dados...\n');
 
-  const portalRepository = dataSource.getRepository(Portal);
   const tenantRepository = dataSource.getRepository(Tenant);
   const userRepository = dataSource.getRepository(User);
   const clientRepository = dataSource.getRepository(Client);
@@ -77,35 +63,9 @@ async function seed() {
   // Limpa dados existentes (CASCADE para respeitar FKs no PostgreSQL)
   console.log('🧹 Limpando dados existentes...');
   await dataSource.query(
-    'TRUNCATE TABLE refresh_tokens, users, tenants, portals, commissions, scheduled_services, appointments, collaborator_services, collaborators, services, clients, expenses RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE refresh_tokens, users, tenants, commissions, scheduled_services, appointments, collaborator_services, collaborators, services, clients, expenses RESTART IDENTITY CASCADE',
   );
   console.log('✅ Dados limpos\n');
-
-  console.log('🌐 Criando portais de login...');
-  await portalRepository.save([
-    {
-      id: PORTAL_MARIA_ID,
-      slug: 'mariaborboleta',
-      host: 'mariaborboleta.fernnandez.com',
-      loginBranding: defaultLoginBranding('Maria Borboleta'),
-      isActive: true,
-    },
-    {
-      id: PORTAL_LOCAL_ID,
-      slug: 'local-mariaborboleta',
-      host: 'localhost',
-      loginBranding: defaultLoginBranding('Maria Borboleta'),
-      isActive: true,
-    },
-    {
-      id: PORTAL_BARBearia_ID,
-      slug: 'barbearia',
-      host: 'barbearia.fernnandez.com',
-      loginBranding: BARBearia_LOGIN_BRANDING,
-      isActive: true,
-    },
-  ]);
-  console.log('✅ 3 portais criados\n');
 
   console.log('🏢 Criando filiais...');
   const tenants = await tenantRepository.save([
@@ -113,7 +73,6 @@ async function seed() {
       id: TENANT_PAULISTA_ID,
       slug: 'paulista',
       name: 'Espaço Bella',
-      portalId: PORTAL_MARIA_ID,
       settings: defaultTenantSettings('Espaço Bella', {
         branding: {
           displayName: 'Espaço Bella',
@@ -128,7 +87,6 @@ async function seed() {
       id: TENANT_RECIFE_ID,
       slug: 'recife',
       name: 'Maria Borboleta - Recife',
-      portalId: PORTAL_MARIA_ID,
       settings: defaultTenantSettings('Maria Borboleta - Recife', {
         branding: {
           displayName: 'Maria Borboleta — Recife',
@@ -142,7 +100,6 @@ async function seed() {
       id: TENANT_BOAVIAGEM_ID,
       slug: 'boaviagem',
       name: 'Maria Borboleta - Boa Viagem',
-      portalId: PORTAL_MARIA_ID,
       settings: defaultTenantSettings('Maria Borboleta - Boa Viagem', {
         branding: {
           displayName: 'Maria Borboleta — Boa Viagem',
@@ -156,7 +113,6 @@ async function seed() {
       id: TENANT_BARBearia_ID,
       slug: 'barbearia-lucas',
       name: 'Barbearia Lucas',
-      portalId: PORTAL_BARBearia_ID,
       settings: defaultTenantSettings('Barbearia Lucas', {
         branding: {
           displayName: 'Barbearia Lucas',
@@ -1487,9 +1443,6 @@ async function seed() {
   );
   console.log(
     '   Barbearia:  admin@barbearia.fernnandez.com / Senha123! (slug: barbearia-lucas, sem comissões)',
-  );
-  console.log(
-    '               Portal: barbearia.fernnandez.com (dev: VITE_PORTAL_HOST=barbearia.fernnandez.com)\n',
   );
 
   await dataSource.destroy();

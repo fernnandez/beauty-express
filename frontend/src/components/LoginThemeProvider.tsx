@@ -1,14 +1,13 @@
 import { MantineProvider } from '@mantine/core';
 import { useMemo, useRef, type ReactNode } from 'react';
-import { useLoginPortal } from '../contexts/LoginPortalContext';
 import { useDocumentBranding } from '../hooks/useDocumentBranding';
-import { createBrandingTheme } from '../utils/theme.util';
+import { createBrandingTheme, DEFAULT_LOGIN_BRANDING } from '../utils/theme.util';
 
 const LOGIN_THEME_ROOT_ID = 'login-theme-root';
 
 export function LoginThemeProvider({ children }: { children: ReactNode }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const { branding } = useLoginPortal();
+  const branding = DEFAULT_LOGIN_BRANDING;
   useDocumentBranding(branding);
 
   const theme = useMemo(

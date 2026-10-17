@@ -3,7 +3,6 @@ import {
   Card,
   Divider,
   Group,
-  Select,
   Stack,
   Text,
   TextInput,
@@ -14,7 +13,6 @@ import { notifications } from '@mantine/notifications';
 import { useEffect } from 'react';
 import { BrandingFormFields } from '../components/BrandingFormFields';
 import { TenantFeaturesFormFields } from '../components/TenantFeaturesFormFields';
-import { useAdminPortals } from '../hooks/useAdminPortals';
 import { useUpdateTenant } from '../hooks/useAdminTenants';
 import {
   DEFAULT_TENANT_SETTINGS,
@@ -28,13 +26,11 @@ import {
   backofficeCardStyle,
   backofficeDividerStyles,
   backofficeInputStyles,
-  backofficeSelectStyles,
 } from '../utils/backoffice-theme.util';
 
 type TenantConfigFormValues = {
   name: string;
   slug: string;
-  portalId: string;
   settings: TenantSettings;
 };
 
@@ -42,13 +38,11 @@ function toFormValues(tenant: TenantDetail): TenantConfigFormValues {
   return {
     name: tenant.name,
     slug: tenant.slug,
-    portalId: tenant.portalId,
     settings: normalizeTenantSettings(tenant.settings, tenant.name),
   };
 }
 
 export function TenantConfigTab({ tenant }: { tenant: TenantDetail }) {
-  const { data: portals } = useAdminPortals();
   const updateMutation = useUpdateTenant();
 
   const form = useForm<TenantConfigFormValues>({
@@ -59,20 +53,18 @@ export function TenantConfigTab({ tenant }: { tenant: TenantDetail }) {
         /^[a-z0-9-]+$/.test(value)
           ? null
           : 'Use apenas letras minúsculas, números e hífens',
-      portalId: (value) => (value ? null : 'Selecione um portal'),
     },
   });
 
   useEffect(() => {
     form.setValues(toFormValues(tenant));
-  }, [tenant.id, tenant.name, tenant.slug, tenant.portalId, tenant.settings]);
+  }, [tenant.id, tenant.name, tenant.slug, tenant.settings]);
 
   const handleSubmit = form.onSubmit(async (values) => {
     try {
       const payload: UpdateTenantDto = {
         name: values.name,
         slug: values.slug,
-        portalId: values.portalId,
         settings: values.settings,
       };
       await updateMutation.mutateAsync({ id: tenant.id, data: payload });
@@ -115,17 +107,6 @@ export function TenantConfigTab({ tenant }: { tenant: TenantDetail }) {
               {...form.getInputProps('slug')}
             />
           </Group>
-
-          <Select
-            label="Portal de login"
-            description="Subdomínio por onde os usuários desta filial fazem login"
-            styles={backofficeSelectStyles}
-            data={(portals ?? []).map((portal) => ({
-              value: portal.id,
-              label: `${portal.loginBranding.displayName} (${portal.host})`,
-            }))}
-            {...form.getInputProps('portalId')}
-          />
 
           <Divider
             label="Branding da área logada"

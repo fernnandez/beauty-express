@@ -13,10 +13,3 @@ export interface TenantBranding {
   primaryColor: string;
   accentColor: string;
 }
-
-export interface PortalResolveResponse {
-  id: string;
-  slug: string;
-  host: string;
-  loginBranding: LoginBranding;
-}

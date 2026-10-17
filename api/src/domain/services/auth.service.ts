@@ -17,7 +17,6 @@ import {
 } from '@domain/entities/refresh-token.entity';
 import { RefreshTokenRepository } from '@domain/repositories/refresh-token.repository';
 import { UserRepository } from '@domain/repositories/user.repository';
-import { PortalService } from '@domain/services/portal.service';
 import { normalizeTenantSettings } from '@domain/services/tenant-settings.util';
 import {
   AuthTokens,
@@ -35,21 +34,14 @@ export class AuthService {
     private readonly userRepository: UserRepository,
     private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly jwtService: JwtService,
-    private readonly portalService: PortalService,
   ) {}
 
   async loginOperational(dto: LoginDto): Promise<AuthTokens & { user: AuthUserResponse }> {
-    const portal = await this.portalService.resolveByHost(dto.portalHost);
-
     const candidates = await this.userRepository.findOperationalUsersByEmail(
       dto.email,
     );
 
     const user = await this.resolveOperationalUser(candidates, dto.password);
-
-    if (user.tenant?.portalId !== portal.id) {
-      throw new UnauthorizedException('Credenciais inválidas');
-    }
 
     const tokens = await this.issueTokens(user, RefreshTokenAudience.OPERATIONAL);
 

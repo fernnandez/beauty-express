@@ -120,9 +120,9 @@ export function createLoginBackground(primaryColor: string, accentColor: string)
 }
 
 export const DEFAULT_LOGIN_BRANDING = {
-  displayName: 'Beauty Express',
+  displayName: 'Ageendoo',
   logoUrl: '/logo.png',
-  primaryColor: DEFAULT_PRIMARY,
+  primaryColor: '#bc5675',
   accentColor: DEFAULT_ACCENT,
 };
 

@@ -14,7 +14,6 @@ export interface AuthUser {
 export interface LoginDto {
   email: string;
   password: string;
-  portalHost: string;
 }
 
 export interface AdminLoginDto {

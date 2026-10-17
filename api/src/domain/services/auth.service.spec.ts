@@ -8,27 +8,13 @@ import { RefreshTokenRepository } from '@domain/repositories/refresh-token.repos
 import { UserRole } from '@domain/entities/user-role.enum';
 import { RefreshTokenAudience } from '@domain/entities/refresh-token.entity';
 
-import { PortalService } from '@domain/services/portal.service';
-
 describe('AuthService', () => {
   let service: AuthService;
-
-  const portal = {
-    id: 'b1000001-0001-4000-8000-000000000001',
-    slug: 'mariaborboleta',
-    host: 'localhost',
-    loginBranding: {
-      displayName: 'Maria Borboleta',
-      primaryColor: '#e64980',
-      accentColor: '#faf5ff',
-    },
-  };
 
   const tenant = {
     id: 'c1000001-0001-4000-8000-000000000001',
     slug: 'paulista',
     name: 'Maria Borboleta - Paulista',
-    portalId: portal.id,
     settings: {},
     isActive: true,
   };
@@ -66,10 +52,6 @@ describe('AuthService', () => {
     delete: jest.fn(),
   };
 
-  const portalService = {
-    resolveByHost: jest.fn(),
-  };
-
   const jwtService = {
     signAsync: jest.fn().mockResolvedValue('access-token'),
   };
@@ -85,7 +67,6 @@ describe('AuthService', () => {
         AuthService,
         { provide: UserRepository, useValue: userRepository },
         { provide: RefreshTokenRepository, useValue: refreshTokenRepository },
-        { provide: PortalService, useValue: portalService },
         { provide: JwtService, useValue: jwtService },
       ],
     }).compile();
@@ -95,7 +76,6 @@ describe('AuthService', () => {
   });
 
   it('should login operational user with valid credentials', async () => {
-    portalService.resolveByHost.mockResolvedValue(portal);
     userRepository.findOperationalUsersByEmail.mockResolvedValue([
       operationalUser,
     ]);
@@ -104,7 +84,6 @@ describe('AuthService', () => {
     const result = await service.loginOperational({
       email: operationalUser.email,
       password: 'Senha123!',
-      portalHost: 'localhost',
     });
 
     expect(result.accessToken).toBe('access-token');
@@ -115,26 +94,7 @@ describe('AuthService', () => {
     expect(refreshTokenRepository.save).toHaveBeenCalled();
   });
 
-  it('should reject operational login when tenant portal does not match', async () => {
-    portalService.resolveByHost.mockResolvedValue({
-      ...portal,
-      id: 'other-portal-id',
-    });
-    userRepository.findOperationalUsersByEmail.mockResolvedValue([
-      operationalUser,
-    ]);
-
-    await expect(
-      service.loginOperational({
-        email: operationalUser.email,
-        password: 'Senha123!',
-        portalHost: 'localhost',
-      }),
-    ).rejects.toThrow(UnauthorizedException);
-  });
-
   it('should reject operational login with invalid password', async () => {
-    portalService.resolveByHost.mockResolvedValue(portal);
     userRepository.findOperationalUsersByEmail.mockResolvedValue([
       operationalUser,
     ]);
@@ -143,7 +103,6 @@ describe('AuthService', () => {
       service.loginOperational({
         email: operationalUser.email,
         password: 'wrong-password',
-        portalHost: 'localhost',
       }),
     ).rejects.toThrow(UnauthorizedException);
   });

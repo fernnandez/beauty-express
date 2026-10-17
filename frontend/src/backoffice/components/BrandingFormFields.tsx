@@ -26,7 +26,7 @@ interface BrandingFormFieldsProps {
   form: UseFormReturnType<any>;
   prefix?: string;
   showPreview?: boolean;
-  /** login = tela de login do portal; operational = área logada da filial */
+  /** login = tela de login; operational = área logada da filial */
   previewVariant?: 'login' | 'operational';
 }
 

@@ -1,7 +1,5 @@
-import { CreatePortalDto } from '@application/dtos/admin/create-portal.dto';
 import { CreateTenantDto } from '@application/dtos/admin/create-tenant.dto';
 import { CreateUserDto } from '@application/dtos/admin/create-user.dto';
-import { UpdatePortalDto } from '@application/dtos/admin/update-portal.dto';
 import { UpdateTenantDto } from '@application/dtos/admin/update-tenant.dto';
 import { UpdateUserDto } from '@application/dtos/admin/update-user.dto';
 import {
@@ -12,13 +10,11 @@ import {
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '@domain/entities/user-role.enum';
 import { Tenant } from '@domain/entities/tenant.entity';
-import { Portal } from '@domain/entities/portal.entity';
 import { User } from '@domain/entities/user.entity';
 import { AppointmentRepository } from '@domain/repositories/appointment.repository';
 import { CommissionRepository } from '@domain/repositories/commission.repository';
 import { ScheduledServiceRepository } from '@domain/repositories/scheduled-service.repository';
 import { TenantRepository } from '@domain/repositories/tenant.repository';
-import { PortalRepository } from '@domain/repositories/portal.repository';
 import { UserRepository } from '@domain/repositories/user.repository';
 import {
   AdminAuditContext,
@@ -42,9 +38,7 @@ import {
 } from './tenant-financial-report.util';
 import {
   defaultTenantSettings,
-  mergeLoginBrandingForSave,
   mergeTenantSettingsForSave,
-  normalizePortalHost,
 } from './tenant-settings.util';
 
 export interface TenantMetricsSnapshot {
@@ -89,7 +83,6 @@ export interface TenantDetail extends Tenant {
 export class AdminService {
   constructor(
     private readonly tenantRepository: TenantRepository,
-    private readonly portalRepository: PortalRepository,
     private readonly userRepository: UserRepository,
     private readonly adminAuditService: AdminAuditService,
     private readonly appointmentRepository: AppointmentRepository,
@@ -103,117 +96,8 @@ export class AdminService {
     private readonly appointmentRepo: Repository<Appointment>,
   ) {}
 
-  async listPortals(): Promise<Portal[]> {
-    return await this.portalRepository.find({
-      order: { slug: 'ASC' },
-    });
-  }
-
-  async getPortal(id: string): Promise<Portal> {
-    const portal = await this.portalRepository.findOne({ where: { id } });
-    if (!portal) {
-      throw new NotFoundException('Portal não encontrado');
-    }
-    return portal;
-  }
-
-  async createPortal(
-    dto: CreatePortalDto,
-    audit: AdminAuditContext,
-  ): Promise<Portal> {
-    const host = normalizePortalHost(dto.host);
-    const existingSlug = await this.portalRepository.findBySlug(dto.slug);
-    if (existingSlug) {
-      throw new BadRequestException('Slug já está em uso');
-    }
-
-    const existingHost = await this.portalRepository.findByHost(host);
-    if (existingHost) {
-      throw new BadRequestException('Host já está em uso');
-    }
-
-    const portal = await this.portalRepository.save({
-      slug: dto.slug,
-      host,
-      loginBranding: mergeLoginBrandingForSave(
-        null,
-        dto.loginBranding,
-        dto.slug,
-      ),
-      isActive: dto.isActive ?? true,
-    });
-
-    await this.adminAuditService.log(
-      audit,
-      'portal.create',
-      'portal',
-      portal.id,
-      { slug: portal.slug, host: portal.host },
-    );
-
-    return portal;
-  }
-
-  async updatePortal(
-    id: string,
-    dto: UpdatePortalDto,
-    audit: AdminAuditContext,
-  ): Promise<Portal> {
-    const portal = await this.getPortal(id);
-
-    if (dto.slug && dto.slug !== portal.slug) {
-      const slugTaken = await this.portalRepository.findBySlug(dto.slug);
-      if (slugTaken && slugTaken.id !== id) {
-        throw new BadRequestException('Slug já está em uso');
-      }
-    }
-
-    if (dto.host) {
-      const host = normalizePortalHost(dto.host);
-      if (host !== portal.host) {
-        const hostTaken = await this.portalRepository.findByHost(host);
-        if (hostTaken && hostTaken.id !== id) {
-          throw new BadRequestException('Host já está em uso');
-        }
-      }
-    }
-
-    const updates: Partial<Portal> = {};
-
-    if (dto.slug !== undefined) {
-      updates.slug = dto.slug;
-    }
-    if (dto.host !== undefined) {
-      updates.host = normalizePortalHost(dto.host);
-    }
-    if (dto.isActive !== undefined) {
-      updates.isActive = dto.isActive;
-    }
-    if (dto.loginBranding !== undefined) {
-      updates.loginBranding = mergeLoginBrandingForSave(
-        portal.loginBranding,
-        dto.loginBranding,
-        dto.slug ?? portal.slug,
-      );
-    }
-
-    await this.portalRepository.update(id, updates);
-    const updated = await this.getPortal(id);
-
-    await this.adminAuditService.log(
-      audit,
-      'portal.update',
-      'portal',
-      id,
-      dto as Record<string, unknown>,
-    );
-
-    return updated;
-  }
-
   async listTenants(): Promise<Tenant[]> {
     return await this.tenantRepository.find({
-      relations: ['portal'],
       order: { name: 'ASC' },
     });
   }
@@ -227,17 +111,9 @@ export class AdminService {
       throw new BadRequestException('Slug já está em uso');
     }
 
-    const portal = await this.portalRepository.findOne({
-      where: { id: dto.portalId },
-    });
-    if (!portal || !portal.isActive) {
-      throw new BadRequestException('Portal inválido ou inativo');
-    }
-
     const tenant = await this.tenantRepository.save({
       slug: dto.slug,
       name: dto.name,
-      portalId: dto.portalId,
       settings: defaultTenantSettings(dto.name),
       isActive: dto.isActive ?? true,
     });
@@ -260,7 +136,6 @@ export class AdminService {
   ): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({
       where: { id },
-      relations: ['portal'],
     });
     if (!tenant) {
       throw new NotFoundException('Filial não encontrada');
@@ -273,15 +148,6 @@ export class AdminService {
       }
     }
 
-    if (dto.portalId && dto.portalId !== tenant.portalId) {
-      const portal = await this.portalRepository.findOne({
-        where: { id: dto.portalId },
-      });
-      if (!portal) {
-        throw new BadRequestException('Portal inválido');
-      }
-    }
-
     const updates: Partial<Tenant> = {};
 
     if (dto.name !== undefined) {
@@ -289,9 +155,6 @@ export class AdminService {
     }
     if (dto.slug !== undefined) {
       updates.slug = dto.slug;
-    }
-    if (dto.portalId !== undefined) {
-      updates.portalId = dto.portalId;
     }
     if (dto.isActive !== undefined) {
       updates.isActive = dto.isActive;
@@ -307,7 +170,6 @@ export class AdminService {
     await this.tenantRepository.update(id, updates);
     const updated = await this.tenantRepository.findOne({
       where: { id },
-      relations: ['portal'],
     });
 
     await this.adminAuditService.log(
@@ -541,7 +403,6 @@ export class AdminService {
   private async resolveTenantOrThrow(id: string): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({
       where: { id },
-      relations: ['portal'],
     });
     if (!tenant) {
       throw new NotFoundException('Filial não encontrada');

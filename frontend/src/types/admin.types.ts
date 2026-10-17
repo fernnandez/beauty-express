@@ -1,22 +1,10 @@
-import type { LoginBranding } from './branding.types';
 import type { TenantSettings } from './tenant-settings.types';
-
-export interface Portal {
-  id: string;
-  slug: string;
-  host: string;
-  loginBranding: LoginBranding;
-  isActive: boolean;
-  createdAt?: string;
-}
 
 export interface Tenant {
   id: string;
   slug: string;
   name: string;
-  portalId: string;
   settings?: TenantSettings;
-  portal?: Portal;
   isActive: boolean;
 }
 
@@ -77,31 +65,15 @@ export interface DashboardStats {
   byTenant: TenantDashboardRow[];
 }
 
-export interface CreatePortalDto {
-  slug: string;
-  host: string;
-  loginBranding: LoginBranding;
-  isActive?: boolean;
-}
-
-export interface UpdatePortalDto {
-  slug?: string;
-  host?: string;
-  loginBranding?: Partial<LoginBranding>;
-  isActive?: boolean;
-}
-
 export interface CreateTenantDto {
   slug: string;
   name: string;
-  portalId: string;
   isActive?: boolean;
 }
 
 export interface UpdateTenantDto {
   name?: string;
   slug?: string;
-  portalId?: string;
   settings?: Partial<TenantSettings>;
   isActive?: boolean;
 }

@@ -15,7 +15,6 @@ import {
   IconHome,
   IconLogout,
   IconUsers,
-  IconWorld,
 } from '@tabler/icons-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
@@ -30,7 +29,6 @@ import {
 
 const navigationItems = [
   { icon: IconHome, label: 'Dashboard', path: '/backoffice' },
-  { icon: IconWorld, label: 'Portais', path: '/backoffice/portals' },
   { icon: IconBuildingStore, label: 'Filiais', path: '/backoffice/tenants' },
   { icon: IconUsers, label: 'Usuários', path: '/backoffice/users' },
 ];

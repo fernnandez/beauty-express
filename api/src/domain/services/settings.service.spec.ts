@@ -13,7 +13,6 @@ describe('SettingsService', () => {
     id: TENANT_ID_MOCK,
     slug: 'paulista',
     name: 'Espaço Bella',
-    portalId: 'portal-1',
     settings: defaultTenantSettings('Espaço Bella', {
       branding: {
         displayName: 'Espaço Bella',

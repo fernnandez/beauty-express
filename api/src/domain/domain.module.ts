@@ -8,14 +8,12 @@ import { CommissionModule } from './modules/commission.module';
 import { ServiceModule } from './modules/service.module';
 import { ScheduledServiceModule } from './modules/scheduled-service.module';
 import { FinancialReportModule } from './modules/financial-report.module';
-import { PortalModule } from './modules/portal.module';
 import { SettingsModule } from './modules/settings.module';
 import { ExpenseModule } from './modules/expense.module';
 
 @Module({
   imports: [
     AuthModule,
-    PortalModule,
     AdminModule,
     AppointmentModule,
     CollaboratorModule,
@@ -29,7 +27,6 @@ import { ExpenseModule } from './modules/expense.module';
   ],
   exports: [
     AuthModule,
-    PortalModule,
     AppointmentModule,
     CollaboratorModule,
     ClientModule,

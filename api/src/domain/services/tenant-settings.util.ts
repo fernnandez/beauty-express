@@ -1,6 +1,5 @@
 import {
   TenantBranding,
-  LoginBranding,
 } from '../types/branding.types';
 import {
   TenantFeatureSettings,
@@ -10,16 +9,6 @@ import {
 
 export const DEFAULT_PRIMARY_COLOR = '#e64980';
 export const DEFAULT_ACCENT_COLOR = '#faf5ff';
-
-export function defaultLoginBranding(displayName = 'Beauty Express'): LoginBranding {
-  return {
-    displayName,
-    logoUrl: null,
-    faviconUrl: null,
-    primaryColor: DEFAULT_PRIMARY_COLOR,
-    accentColor: DEFAULT_ACCENT_COLOR,
-  };
-}
 
 export function defaultTenantSettings(
   displayName = 'Beauty Express',
@@ -74,21 +63,6 @@ export function normalizeTenantSettings(
   };
 }
 
-export function normalizeLoginBranding(
-  raw: Partial<LoginBranding> | null | undefined,
-  fallbackDisplayName: string,
-): LoginBranding {
-  const defaults = defaultLoginBranding(fallbackDisplayName);
-
-  return {
-    displayName: raw?.displayName?.trim() || defaults.displayName,
-    logoUrl: raw?.logoUrl ?? defaults.logoUrl ?? null,
-    faviconUrl: raw?.faviconUrl ?? defaults.faviconUrl ?? null,
-    primaryColor: raw?.primaryColor || defaults.primaryColor,
-    accentColor: raw?.accentColor || defaults.accentColor,
-  };
-}
-
 export function buildTenantBrandingFromName(name: string): TenantBranding {
   return defaultTenantSettings(name).branding;
 }
@@ -116,22 +90,4 @@ export function mergeTenantSettingsForSave(
     } as Partial<TenantSettings>,
     fallbackDisplayName,
   );
-}
-
-export function mergeLoginBrandingForSave(
-  current: Partial<LoginBranding> | null | undefined,
-  patch: Partial<LoginBranding> | undefined,
-  fallbackDisplayName: string,
-): LoginBranding {
-  return normalizeLoginBranding(
-    {
-      ...(current ?? {}),
-      ...(patch ?? {}),
-    },
-    fallbackDisplayName,
-  );
-}
-
-export function normalizePortalHost(host: string): string {
-  return host.trim().toLowerCase().split(':')[0];
 }
