@@ -7,22 +7,12 @@ import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import "@mantine/charts/styles.css";
 import "@mantine/notifications/styles.css";
-import { Layout } from "./components/Layout";
 import { LoginThemeProvider } from "./components/LoginThemeProvider";
-import { OperationalThemeProvider } from "./components/OperationalThemeProvider";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
-import { Appointments } from "./pages/Appointments";
-import { Clients } from "./pages/Clients";
-import { Collaborators } from "./pages/Collaborators";
-import { CollaboratorProfile } from "./pages/CollaboratorProfile";
-import { Dashboard } from "./pages/Dashboard";
-import { Expenses } from "./pages/Expenses";
-import { FinancialReports } from "./pages/FinancialReports";
 import { BackofficeApp } from "./backoffice/BackofficeApp";
 import { Login } from "./pages/Login";
-import { Services } from "./pages/Services";
-import { Settings } from "./pages/Settings";
+import { OperationalEntry } from "./OperationalEntry";
 
 const rootTheme = createTheme({
   primaryColor: "gray",
@@ -52,52 +42,26 @@ function App() {
           <AuthProvider>
             <BrowserRouter>
               <Routes>
-              <Route
-                path="/login"
-                element={
-                  <LoginThemeProvider>
-                    <Login />
-                  </LoginThemeProvider>
-                }
-              />
-              <Route path="/backoffice/*" element={<BackofficeApp />} />
-              <Route
-                path="/*"
-                element={
-                  <ProtectedRoute>
-                    <OperationalThemeProvider>
-                      <Layout>
-                        <Routes>
-                          <Route path="/" element={<Dashboard />} />
-                          <Route
-                            path="/collaborators"
-                            element={<Collaborators />}
-                          />
-                          <Route
-                            path="/collaborators/:id"
-                            element={<CollaboratorProfile />}
-                          />
-                          <Route path="/clients" element={<Clients />} />
-                          <Route path="/services" element={<Services />} />
-                          <Route
-                            path="/appointments"
-                            element={<Appointments />}
-                          />
-                          <Route
-                            path="/financial-reports"
-                            element={<FinancialReports />}
-                          />
-                          <Route path="/expenses" element={<Expenses />} />
-                          <Route path="/settings" element={<Settings />} />
-                        </Routes>
-                      </Layout>
-                    </OperationalThemeProvider>
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </BrowserRouter>
-        </AuthProvider>
+                <Route
+                  path="/login"
+                  element={
+                    <LoginThemeProvider>
+                      <Login />
+                    </LoginThemeProvider>
+                  }
+                />
+                <Route path="/backoffice/*" element={<BackofficeApp />} />
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <OperationalEntry />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </BrowserRouter>
+          </AuthProvider>
         </DatesProvider>
       </MantineProvider>
     </QueryClientProvider>
