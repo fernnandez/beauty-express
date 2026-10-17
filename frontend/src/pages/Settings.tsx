@@ -73,7 +73,7 @@ export function Settings() {
       await updateMutation.mutateAsync({
         branding: {
           displayName: values.displayName.trim(),
-          logoUrl: values.logoUrl.trim() || null,
+          // logoUrl ainda não é editável por aqui — não enviado no payload.
           primaryColor: values.primaryColor,
           accentColor: values.accentColor,
         },
@@ -128,7 +128,8 @@ export function Settings() {
               <TextInput
                 label="URL do logo"
                 placeholder="/logo.png ou https://..."
-                description="Usado na interface e como ícone da aba do navegador"
+                description="Em breve: edição do logo estará disponível"
+                disabled
                 {...form.getInputProps("logoUrl")}
               />
 
