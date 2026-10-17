@@ -6,6 +6,11 @@ import {
 import { Client } from '@domain/entities/client.entity';
 import { Collaborator } from '@domain/entities/collaborator.entity';
 import { Commission } from '@domain/entities/commission.entity';
+import { Expense } from '@domain/entities/expense.entity';
+import {
+  ExpenseCategory,
+  ExpenseType,
+} from '@domain/entities/expense-enums';
 import {
   ScheduledService,
   ScheduledServiceStatus,
@@ -67,11 +72,12 @@ async function seed() {
   const appointmentRepository = dataSource.getRepository(Appointment);
   const scheduledServiceRepository = dataSource.getRepository(ScheduledService);
   const commissionRepository = dataSource.getRepository(Commission);
+  const expenseRepository = dataSource.getRepository(Expense);
 
   // Limpa dados existentes (CASCADE para respeitar FKs no PostgreSQL)
   console.log('🧹 Limpando dados existentes...');
   await dataSource.query(
-    'TRUNCATE TABLE refresh_tokens, users, tenants, portals, commissions, scheduled_services, appointments, collaborator_services, collaborators, services, clients RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE refresh_tokens, users, tenants, portals, commissions, scheduled_services, appointments, collaborator_services, collaborators, services, clients, expenses RESTART IDENTITY CASCADE',
   );
   console.log('✅ Dados limpos\n');
 
@@ -833,6 +839,74 @@ async function seed() {
 
   console.log(
     `✅ Histórico criado: ${historyAppointments} agendamentos, ${historyServices} serviços\n`,
+  );
+
+  // ========== DESPESAS ==========
+  console.log('💸 Criando despesas...');
+
+  const toDateStr = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+      d.getDate(),
+    ).padStart(2, '0')}`;
+
+  const vigencyStart = new Date(today);
+  vigencyStart.setMonth(vigencyStart.getMonth() - 6);
+  vigencyStart.setDate(1);
+  const vigencyStartStr = toDateStr(vigencyStart);
+
+  // Despesas fixas (recorrentes)
+  const recurringExpenses = [
+    { description: 'Aluguel', category: ExpenseCategory.RENT, amount: 2500, dayOfMonth: 5 },
+    { description: 'Internet', category: ExpenseCategory.UTILITIES, amount: 150, dayOfMonth: 10 },
+    { description: 'Energia elétrica', category: ExpenseCategory.UTILITIES, amount: 480, dayOfMonth: 15 },
+    { description: 'Água', category: ExpenseCategory.UTILITIES, amount: 120, dayOfMonth: 15 },
+    { description: 'Salário recepcionista', category: ExpenseCategory.SALARIES, amount: 1800, dayOfMonth: 5 },
+  ];
+
+  for (const exp of recurringExpenses) {
+    const expense = new Expense();
+    expense.id = generateId();
+    expense.tenantId = DEMO_TENANT_ID;
+    expense.description = exp.description;
+    expense.category = exp.category;
+    expense.amount = exp.amount;
+    expense.type = ExpenseType.RECURRING;
+    expense.dayOfMonth = exp.dayOfMonth;
+    expense.startDate = vigencyStartStr;
+    expense.endDate = null;
+    expense.isActive = true;
+    await expenseRepository.save(expense);
+  }
+
+  // Despesas esporádicas espalhadas pelos últimos meses
+  const oneTimeExpenses = [
+    { description: 'Compra de produtos', category: ExpenseCategory.SUPPLIES, amount: 620, monthsAgo: 5, day: 12 },
+    { description: 'Reparo de secador', category: ExpenseCategory.OTHER, amount: 180, monthsAgo: 4, day: 20 },
+    { description: 'Campanha Instagram', category: ExpenseCategory.MARKETING, amount: 300, monthsAgo: 3, day: 8 },
+    { description: 'Reposição de esmaltes', category: ExpenseCategory.SUPPLIES, amount: 240, monthsAgo: 2, day: 18 },
+    { description: 'Impostos (DAS)', category: ExpenseCategory.TAXES, amount: 410, monthsAgo: 1, day: 20 },
+    { description: 'Compra de toalhas', category: ExpenseCategory.SUPPLIES, amount: 160, monthsAgo: 0, day: 3 },
+  ];
+
+  for (const exp of oneTimeExpenses) {
+    const d = new Date(today);
+    d.setMonth(d.getMonth() - exp.monthsAgo);
+    d.setDate(exp.day);
+
+    const expense = new Expense();
+    expense.id = generateId();
+    expense.tenantId = DEMO_TENANT_ID;
+    expense.description = exp.description;
+    expense.category = exp.category;
+    expense.amount = exp.amount;
+    expense.type = ExpenseType.ONE_TIME;
+    expense.date = toDateStr(d);
+    expense.isActive = true;
+    await expenseRepository.save(expense);
+  }
+
+  console.log(
+    `✅ Despesas criadas: ${recurringExpenses.length} fixas, ${oneTimeExpenses.length} esporádicas\n`,
   );
 
   // ========== AGENDAMENTOS DE HOJE ==========

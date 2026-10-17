@@ -10,6 +10,7 @@ import { ScheduledServiceModule } from './modules/scheduled-service.module';
 import { FinancialReportModule } from './modules/financial-report.module';
 import { PortalModule } from './modules/portal.module';
 import { SettingsModule } from './modules/settings.module';
+import { ExpenseModule } from './modules/expense.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { SettingsModule } from './modules/settings.module';
     ScheduledServiceModule,
     FinancialReportModule,
     SettingsModule,
+    ExpenseModule,
   ],
   exports: [
     AuthModule,
@@ -36,6 +38,7 @@ import { SettingsModule } from './modules/settings.module';
     ScheduledServiceModule,
     FinancialReportModule,
     SettingsModule,
+    ExpenseModule,
   ],
 })
 export class DomainModule {}

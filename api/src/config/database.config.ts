@@ -10,6 +10,7 @@ import { Tenant } from '@domain/entities/tenant.entity';
 import { User } from '@domain/entities/user.entity';
 import { AdminAuditLog } from '@domain/entities/admin-audit-log.entity';
 import { RefreshToken } from '@domain/entities/refresh-token.entity';
+import { Expense } from '@domain/entities/expense.entity';
 import { DataSourceOptions } from 'typeorm';
 
 export const entities = [
@@ -24,6 +25,7 @@ export const entities = [
   Appointment,
   Commission,
   ScheduledService,
+  Expense,
 ];
 
 const isProduction = process.env.NODE_ENV === 'production';
