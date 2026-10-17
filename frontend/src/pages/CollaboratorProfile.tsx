@@ -21,7 +21,7 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CommissionsPanel } from "../components/commission/CommissionsPanel";
-import { CollaboratorAccessCard } from "../components/collaborator/CollaboratorAccessCard";
+import { CollaboratorAccessControl } from "../components/collaborator/CollaboratorAccessControl";
 import { useCollaborator } from "../hooks/useCollaborators";
 import { useCollaboratorCommissionSummary } from "../hooks/useCommissions";
 import { useOperationalBranding } from "../hooks/useOperationalBranding";
@@ -70,6 +70,9 @@ export function CollaboratorProfile() {
           <Badge color={collaborator.isActive ? "green" : "red"}>
             {collaborator.isActive ? "Ativo" : "Inativo"}
           </Badge>
+        )}
+        {collaborator && (
+          <CollaboratorAccessControl collaboratorId={collaborator.id} />
         )}
       </Group>
       {collaborator && (
@@ -162,7 +165,6 @@ export function CollaboratorProfile() {
       >
         <Stack gap="lg">
           {profileInfo}
-          <CollaboratorAccessCard collaboratorId={collaborator.id} />
           <Stack gap="xs">
             <Title order={3}>Serviços</Title>
             {collaborator.services && collaborator.services.length > 0 ? (
@@ -191,7 +193,6 @@ export function CollaboratorProfile() {
       headerTop={
         <Stack gap="lg">
           {profileInfo}
-          <CollaboratorAccessCard collaboratorId={collaborator.id} />
           {summaryCards}
         </Stack>
       }

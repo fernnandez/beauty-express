@@ -1,14 +1,14 @@
 import {
   Badge,
   Button,
-  Card,
   Group,
+  Modal,
   PasswordInput,
   Stack,
   Switch,
   Text,
   TextInput,
-  Title,
+  Tooltip,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconKey, IconTrash } from "@tabler/icons-react";
@@ -22,7 +22,12 @@ import {
 import { useNotifications } from "../../hooks/useNotifications";
 import { ConfirmModal } from "../ConfirmModal";
 
-export function CollaboratorAccessCard({
+/**
+ * Controle discreto de acesso do colaborador: um botão/badge sutil no cabeçalho
+ * do perfil que abre um modal com a gestão do login. Mantém o foco da tela nas
+ * comissões e informações do colaborador.
+ */
+export function CollaboratorAccessControl({
   collaboratorId,
 }: {
   collaboratorId: string;
@@ -32,6 +37,7 @@ export function CollaboratorAccessCard({
   const updateMutation = useUpdateCollaboratorAccess(collaboratorId);
   const revokeMutation = useRevokeCollaboratorAccess(collaboratorId);
   const { showSuccess, showError } = useNotifications();
+  const [opened, setOpened] = useState(false);
   const [revokeOpened, setRevokeOpened] = useState(false);
 
   const grantForm = useForm({
@@ -81,32 +87,48 @@ export function CollaboratorAccessCard({
   const handleRevoke = async () => {
     try {
       await revokeMutation.mutateAsync();
+      setOpened(false);
       showSuccess("Acesso revogado");
     } catch (error) {
       showError(error, "Erro ao revogar o acesso");
     }
   };
 
-  return (
-    <Card padding="lg" radius="lg" shadow="sm">
-      <Stack gap="md">
-        <Group justify="space-between">
-          <Group gap="xs">
-            <IconKey size={18} />
-            <Title order={4}>Acesso do colaborador</Title>
-          </Group>
-          {status?.hasAccess && (
-            <Badge color={status.isActive ? "green" : "gray"}>
-              {status.isActive ? "Ativo" : "Inativo"}
-            </Badge>
-          )}
-        </Group>
+  const trigger = status?.hasAccess ? (
+    <Tooltip label={`Login: ${status.email}`} withArrow>
+      <Badge
+        variant="dot"
+        color={status.isActive ? "green" : "gray"}
+        style={{ cursor: "pointer" }}
+        onClick={() => setOpened(true)}
+      >
+        Acesso {status.isActive ? "ativo" : "inativo"}
+      </Badge>
+    </Tooltip>
+  ) : (
+    <Button
+      variant="subtle"
+      size="compact-sm"
+      color="gray"
+      leftSection={<IconKey size={14} />}
+      onClick={() => setOpened(true)}
+      loading={isLoading}
+    >
+      Conceder acesso
+    </Button>
+  );
 
-        {isLoading ? (
-          <Text c="dimmed" size="sm">
-            Carregando...
-          </Text>
-        ) : status?.hasAccess ? (
+  return (
+    <>
+      {trigger}
+
+      <Modal
+        opened={opened}
+        onClose={() => setOpened(false)}
+        title="Acesso do colaborador"
+        centered
+      >
+        {status?.hasAccess ? (
           <Stack gap="md">
             <Text size="sm">
               Login: <strong>{status.email}</strong>
@@ -151,8 +173,8 @@ export function CollaboratorAccessCard({
         ) : (
           <Stack gap="md">
             <Text size="sm" c="dimmed">
-              Este colaborador ainda não tem acesso ao app. Conceda um login
-              para que ele veja a própria agenda e comissões.
+              Conceda um login para que o colaborador veja a própria agenda e
+              comissões no app.
             </Text>
             <form onSubmit={handleGrant}>
               <Stack gap="sm">
@@ -175,7 +197,7 @@ export function CollaboratorAccessCard({
             </form>
           </Stack>
         )}
-      </Stack>
+      </Modal>
 
       <ConfirmModal
         opened={revokeOpened}
@@ -187,6 +209,6 @@ export function CollaboratorAccessCard({
         confirmColor="red"
         loading={revokeMutation.isPending}
       />
-    </Card>
+    </>
   );
 }
