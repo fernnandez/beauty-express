@@ -106,12 +106,13 @@ async function seed() {
     {
       id: TENANT_PAULISTA_ID,
       slug: 'paulista',
-      name: 'Maria Borboleta - Paulista',
+      name: 'Espaço Bella',
       portalId: PORTAL_MARIA_ID,
-      settings: defaultTenantSettings('Maria Borboleta - Paulista', {
+      settings: defaultTenantSettings('Espaço Bella', {
         branding: {
-          displayName: 'Maria Borboleta — Paulista',
-          primaryColor: '#e64980',
+          displayName: 'Espaço Bella',
+          logoUrl: '/demo-bella.svg',
+          primaryColor: '#bc5675',
           accentColor: '#fdf2f8',
         },
       }),
