@@ -10,6 +10,8 @@ import { Expenses } from "./pages/Expenses";
 import { FinancialReports } from "./pages/FinancialReports";
 import { Services } from "./pages/Services";
 import { Settings } from "./pages/Settings";
+import { ManualIndex } from "./pages/manual/ManualIndex";
+import { ManualArticle } from "./pages/manual/ManualArticle";
 
 /** App operacional completo (perfil admin / gestão da filial). */
 export function AdminApp() {
@@ -26,6 +28,8 @@ export function AdminApp() {
           <Route path="/financial-reports" element={<FinancialReports />} />
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/manual" element={<ManualIndex />} />
+          <Route path="/manual/:slug" element={<ManualArticle />} />
         </Routes>
       </Layout>
     </OperationalThemeProvider>

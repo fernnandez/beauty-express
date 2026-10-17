@@ -11,6 +11,7 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import {
+  IconBook2,
   IconCalendar,
   IconChartBar,
   IconHome,
@@ -43,6 +44,7 @@ const navigationItems = [
   { icon: IconChartBar, label: "Relatórios", path: "/financial-reports" },
   { icon: IconReceipt2, label: "Despesas", path: "/expenses" },
   { icon: IconSettings, label: "Configurações", path: "/settings" },
+  { icon: IconBook2, label: "Manual", path: "/manual" },
 ];
 
 const BOTTOM_NAV_HEIGHT = 64;
