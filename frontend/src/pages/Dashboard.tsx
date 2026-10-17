@@ -10,7 +10,6 @@ import {
 import {
   IconCalendar,
   IconChartBar,
-  IconCurrencyDollar,
   IconReceipt2,
   IconScissors,
   IconSettings,
@@ -48,14 +47,6 @@ const dashboardCards = [
     icon: IconCalendar,
     path: "/appointments",
     color: "green",
-  },
-  {
-    title: "Comissões",
-    description: "Visualizar comissões",
-    icon: IconCurrencyDollar,
-    path: "/commissions",
-    color: "orange",
-    requiresCommissions: true,
   },
   {
     title: "Relatórios",

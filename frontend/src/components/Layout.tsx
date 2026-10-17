@@ -13,7 +13,6 @@ import {
 import {
   IconCalendar,
   IconChartBar,
-  IconCurrencyDollar,
   IconHome,
   IconLogout,
   IconScissors,
@@ -41,12 +40,6 @@ const navigationItems = [
   { icon: IconUserCircle, label: "Clientes", path: "/clients" },
   { icon: IconScissors, label: "Serviços", path: "/services" },
   { icon: IconCalendar, label: "Agendamentos", path: "/appointments" },
-  {
-    icon: IconCurrencyDollar,
-    label: "Comissões",
-    path: "/commissions",
-    requiresCommissions: true,
-  },
   { icon: IconChartBar, label: "Relatórios", path: "/financial-reports" },
   { icon: IconReceipt2, label: "Despesas", path: "/expenses" },
   { icon: IconSettings, label: "Configurações", path: "/settings" },

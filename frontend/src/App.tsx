@@ -16,7 +16,6 @@ import { Appointments } from "./pages/Appointments";
 import { Clients } from "./pages/Clients";
 import { Collaborators } from "./pages/Collaborators";
 import { CollaboratorProfile } from "./pages/CollaboratorProfile";
-import { Commissions } from "./pages/Commissions";
 import { Dashboard } from "./pages/Dashboard";
 import { Expenses } from "./pages/Expenses";
 import { FinancialReports } from "./pages/FinancialReports";
@@ -83,10 +82,6 @@ function App() {
                           <Route
                             path="/appointments"
                             element={<Appointments />}
-                          />
-                          <Route
-                            path="/commissions"
-                            element={<Commissions />}
                           />
                           <Route
                             path="/financial-reports"
