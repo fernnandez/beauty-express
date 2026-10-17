@@ -6,11 +6,16 @@ import {
   Group,
   Menu,
   Paper,
+  Popover,
   ScrollArea,
   Stack,
   Text,
+  Tooltip,
+  UnstyledButton,
 } from "@mantine/core";
+import { DatePicker } from "@mantine/dates";
 import {
+  IconCalendar,
   IconCheck,
   IconChevronLeft,
   IconChevronRight,
@@ -212,6 +217,9 @@ export function AppointmentScheduleView({
     updateDate(new Date());
   };
 
+  const isToday =
+    currentDate.toDateString() === new Date().toDateString();
+
   const overlappingPositions = calculateOverlappingPositions(dayAppointments);
 
   const statusColors: Record<AppointmentStatus, string> = {
@@ -222,39 +230,99 @@ export function AppointmentScheduleView({
 
   return (
     <Stack gap="md">
-      <Group justify="space-between">
-        <Group>
-          <Button
-            variant="subtle"
-            leftSection={<IconChevronLeft size={16} />}
-            onClick={() => navigateDay("prev")}
-          >
-            Ontem
-          </Button>
-          <Button variant="subtle" onClick={goToToday}>
-            Hoje
-          </Button>
-          <Button
-            variant="subtle"
-            rightSection={<IconChevronRight size={16} />}
-            onClick={() => navigateDay("next")}
-          >
-            Amanhã
-          </Button>
+      <Paper
+        withBorder
+        p="sm"
+        radius="md"
+        style={{ borderColor: "var(--mantine-color-gray-3)" }}
+      >
+        <Group justify="space-between" wrap="wrap" gap="sm">
+          <Popover position="bottom-start" withArrow shadow="md">
+            <Popover.Target>
+              <UnstyledButton
+                aria-label="Escolher data"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "4px 8px",
+                  borderRadius: 8,
+                  transition: "background-color 120ms ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    "var(--mantine-color-gray-1)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                <Stack gap={0}>
+                  <Text size="xs" tt="capitalize" c="dimmed" fw={500}>
+                    {currentDate.toLocaleDateString("pt-BR", {
+                      weekday: "long",
+                    })}
+                  </Text>
+                  <Text size="xl" fw={600} tt="capitalize" lh={1.2}>
+                    {currentDate.toLocaleDateString("pt-BR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </Text>
+                </Stack>
+                <IconCalendar
+                  size={18}
+                  color="var(--mantine-color-dimmed)"
+                  style={{ marginTop: 2 }}
+                />
+              </UnstyledButton>
+            </Popover.Target>
+            <Popover.Dropdown p={0}>
+              <DatePicker
+                value={externalDate ?? null}
+                onChange={(value) => {
+                  if (!value) return;
+                  updateDate(new Date(value + "T00:00:00"));
+                }}
+              />
+            </Popover.Dropdown>
+          </Popover>
+
+          <Group gap={4} wrap="nowrap">
+            <Tooltip label="Dia anterior" withArrow>
+              <ActionIcon
+                variant="default"
+                size="lg"
+                radius="md"
+                onClick={() => navigateDay("prev")}
+                aria-label="Dia anterior"
+              >
+                <IconChevronLeft size={18} />
+              </ActionIcon>
+            </Tooltip>
+            <Button
+              variant={isToday ? "filled" : "light"}
+              size="sm"
+              radius="md"
+              onClick={goToToday}
+            >
+              Hoje
+            </Button>
+            <Tooltip label="Próximo dia" withArrow>
+              <ActionIcon
+                variant="default"
+                size="lg"
+                radius="md"
+                onClick={() => navigateDay("next")}
+                aria-label="Próximo dia"
+              >
+                <IconChevronRight size={18} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
         </Group>
-        <Stack mr="sm">
-          <Text size="xs" fw={500} ta="center" c="dimmed">
-            {currentDate.toLocaleDateString("pt-BR", { weekday: "long" })}
-          </Text>
-          <Text size="lg" fw={700} ta="center">
-            {currentDate.toLocaleDateString("pt-BR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </Text>
-        </Stack>
-      </Group>
+      </Paper>
 
       <ScrollArea h={650} style={{ maxHeight: "650px" }}>
         <Paper withBorder p="md">

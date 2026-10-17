@@ -1,11 +1,21 @@
 import { ActionIcon, Group, Tooltip } from "@mantine/core";
-import { IconEdit, IconEye, IconTrash } from "@tabler/icons-react";
+import {
+  IconCheck,
+  IconEdit,
+  IconEye,
+  IconTrash,
+  IconX,
+} from "@tabler/icons-react";
 
 interface RowActionsProps {
   /** Handler do "Ver detalhes" (ícone de olho). Omitir para esconder. */
   onView?: () => void;
   /** Handler do "Editar" (ícone de lápis). Omitir para esconder. */
   onEdit?: () => void;
+  /** Handler do "Concluir" (ícone de check). Omitir para esconder. */
+  onComplete?: () => void;
+  /** Handler do "Cancelar" (ícone de x). Omitir para esconder. */
+  onCancel?: () => void;
   /** Handler do "Excluir" (ícone de lixeira). Omitir para esconder. */
   onDelete?: () => void;
   /** Desabilita o botão de excluir. */
@@ -23,6 +33,8 @@ const ICON_SIZE = 18;
 export function RowActions({
   onView,
   onEdit,
+  onComplete,
+  onCancel,
   onDelete,
   deleteDisabled = false,
   deleteDisabledLabel,
@@ -50,6 +62,30 @@ export function RowActions({
             aria-label="Editar"
           >
             <IconEdit size={ICON_SIZE} />
+          </ActionIcon>
+        </Tooltip>
+      )}
+      {onComplete && (
+        <Tooltip label="Concluir" withArrow>
+          <ActionIcon
+            variant="subtle"
+            color="green"
+            onClick={onComplete}
+            aria-label="Concluir"
+          >
+            <IconCheck size={ICON_SIZE} />
+          </ActionIcon>
+        </Tooltip>
+      )}
+      {onCancel && (
+        <Tooltip label="Cancelar" withArrow>
+          <ActionIcon
+            variant="subtle"
+            color="red"
+            onClick={onCancel}
+            aria-label="Cancelar"
+          >
+            <IconX size={ICON_SIZE} />
           </ActionIcon>
         </Tooltip>
       )}

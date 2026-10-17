@@ -1,6 +1,5 @@
 import {
   Badge,
-  Button,
   Group,
   ScrollArea,
   Stack,
@@ -8,12 +7,13 @@ import {
   Text,
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
-import { IconCalendar, IconCheck, IconEdit, IconX } from "@tabler/icons-react";
+import { IconCalendar } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import { useMediaQuery } from "@mantine/hooks";
 import type { Appointment } from "../../types";
 import { AppointmentStatus } from "../../types";
 import { formatDate, formatPrice } from "../../utils/appointment.utils";
+import { RowActions } from "../RowActions";
 
 interface AppointmentListViewProps {
   appointments: Appointment[];
@@ -156,35 +156,11 @@ export function AppointmentListView({
                   <Table.Td>
                     <Group gap="xs" onClick={(e) => e.stopPropagation()}>
                       {appointment.status === AppointmentStatus.SCHEDULED && (
-                        <>
-                          <Button
-                            variant="light"
-                            color="blue"
-                            size="xs"
-                            leftSection={<IconEdit size={14} />}
-                            onClick={() => onEdit(appointment)}
-                          >
-                            Editar
-                          </Button>
-                          <Button
-                            variant="light"
-                            color="green"
-                            size="xs"
-                            leftSection={<IconCheck size={14} />}
-                            onClick={() => onComplete(appointment)}
-                          >
-                            Concluir
-                          </Button>
-                          <Button
-                            variant="light"
-                            color="red"
-                            size="xs"
-                            leftSection={<IconX size={14} />}
-                            onClick={() => onCancel(appointment)}
-                          >
-                            Cancelar
-                          </Button>
-                        </>
+                        <RowActions
+                          onEdit={() => onEdit(appointment)}
+                          onComplete={() => onComplete(appointment)}
+                          onCancel={() => onCancel(appointment)}
+                        />
                       )}
                     </Group>
                   </Table.Td>

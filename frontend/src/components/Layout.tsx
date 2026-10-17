@@ -17,6 +17,7 @@ import {
   IconHome,
   IconLogout,
   IconScissors,
+  IconReceipt2,
   IconSettings,
   IconUserCircle,
   IconUsers,
@@ -36,7 +37,6 @@ interface LayoutProps {
 }
 
 const navigationItems = [
-  { icon: IconHome, label: "Dashboard", path: "/" },
   { icon: IconUsers, label: "Colaboradores", path: "/collaborators" },
   { icon: IconUserCircle, label: "Clientes", path: "/clients" },
   { icon: IconScissors, label: "Serviços", path: "/services" },
@@ -48,6 +48,7 @@ const navigationItems = [
     requiresCommissions: true,
   },
   { icon: IconChartBar, label: "Relatórios", path: "/financial-reports" },
+  { icon: IconReceipt2, label: "Despesas", path: "/expenses" },
   { icon: IconSettings, label: "Configurações", path: "/settings" },
 ];
 
@@ -107,14 +108,70 @@ export function Layout({ children }: LayoutProps) {
           }}
         >
           <Center mb="xl" mt={4}>
-            <Avatar
-              src={branding.logoUrl || "/logo.png"}
-              size={46}
-              radius="lg"
-              style={{
-                boxShadow: "0 4px 12px rgba(16,24,40,0.10)",
-              }}
-            />
+            {(() => {
+              const isHome = location.pathname === "/";
+              return (
+                <Tooltip
+                  label="Início"
+                  position="right"
+                  withArrow
+                  transitionProps={{ duration: 0 }}
+                >
+                  <UnstyledButton
+                    onClick={() => navigate("/")}
+                    aria-label="Ir para o início"
+                    style={{
+                      position: "relative",
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      paddingBlock: 8,
+                      borderRadius: 18,
+                      backgroundColor: isHome
+                        ? withAlpha(branding.primaryColor, 0.16)
+                        : "transparent",
+                      transition: "all 160ms ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isHome) {
+                        e.currentTarget.style.backgroundColor =
+                          "var(--mantine-color-gray-1)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isHome) {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }
+                    }}
+                  >
+                    {isHome && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          left: -16,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          width: 5,
+                          height: 40,
+                          borderRadius: 4,
+                          backgroundColor: branding.primaryColor,
+                        }}
+                      />
+                    )}
+                    <Avatar
+                      src={branding.logoUrl || "/logo.png"}
+                      size={46}
+                      radius="lg"
+                      style={{
+                        boxShadow: "0 4px 12px rgba(16,24,40,0.10)",
+                        cursor: "pointer",
+                      }}
+                    />
+                  </UnstyledButton>
+                </Tooltip>
+              );
+            })()}
           </Center>
 
           <Stack justify="center" gap={6} style={{ flex: 1 }}>
