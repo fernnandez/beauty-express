@@ -64,7 +64,54 @@ export function createBrandingTheme(
     colors: {
       brand: createColorScale(safePrimary),
     },
-    defaultRadius: 'md',
+    defaultRadius: 'lg',
+    fontFamily:
+      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    headings: {
+      fontWeight: '700',
+    },
+    shadows: {
+      xs: '0 1px 3px rgba(16, 24, 40, 0.04), 0 1px 2px rgba(16, 24, 40, 0.03)',
+      sm: '0 2px 8px rgba(16, 24, 40, 0.06)',
+      md: '0 6px 18px rgba(16, 24, 40, 0.08)',
+      lg: '0 12px 32px rgba(16, 24, 40, 0.10)',
+      xl: '0 20px 48px rgba(16, 24, 40, 0.12)',
+    },
+    components: {
+      Card: {
+        defaultProps: {
+          radius: 'lg',
+          withBorder: false,
+          shadow: 'sm',
+        },
+      },
+      Paper: {
+        defaultProps: {
+          radius: 'lg',
+        },
+      },
+      Button: {
+        defaultProps: {
+          radius: 'md',
+        },
+      },
+      Badge: {
+        defaultProps: {
+          radius: 'sm',
+        },
+      },
+      TextInput: { defaultProps: { radius: 'md' } },
+      Select: { defaultProps: { radius: 'md' } },
+      NumberInput: { defaultProps: { radius: 'md' } },
+      Textarea: { defaultProps: { radius: 'md' } },
+      PasswordInput: { defaultProps: { radius: 'md' } },
+      Modal: {
+        defaultProps: {
+          radius: 'lg',
+          overlayProps: { backgroundOpacity: 0.5, blur: 3 },
+        },
+      },
+    },
   });
 }
 
