@@ -116,4 +116,47 @@ export class FinancialReportController {
       formatDateToString(end),
     );
   }
+
+  @Get('timeseries')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Monthly timeseries (semester/year)',
+    description:
+      'Returns monthly aggregates (appointments, services, revenue, average ticket) for the last 6 (semester) or 12 (year) months.',
+  })
+  @ApiQuery({
+    name: 'granularity',
+    required: false,
+    enum: ['semester', 'year'],
+    description: 'semester = últimos 6 meses, year = últimos 12 meses',
+  })
+  async getTimeseries(@Query('granularity') granularity?: string) {
+    const months = granularity === 'year' ? 12 : 6;
+    return await this.financialReportService.getMonthlyTimeseries(months);
+  }
+
+  @Get('top-services')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Top services by quantity',
+    description:
+      'Returns the most performed services (by quantity) over the last 6 (semester) or 12 (year) months.',
+  })
+  @ApiQuery({
+    name: 'granularity',
+    required: false,
+    enum: ['semester', 'year'],
+  })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getTopServices(
+    @Query('granularity') granularity?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const months = granularity === 'year' ? 12 : 6;
+    const parsedLimit = Math.min(20, Math.max(1, parseInt(limit ?? '5', 10) || 5));
+    return await this.financialReportService.getTopServices(
+      months,
+      parsedLimit,
+    );
+  }
 }

@@ -269,6 +269,102 @@ describe('FinancialReportService', () => {
 
       expect(mockQueryBuilder.where).toHaveBeenCalled();
     });
+
+  describe('getMonthlyTimeseries', () => {
+    function mockRawQueryBuilder(rawRows: unknown[]) {
+      const qb: Record<string, jest.Mock> = {};
+      [
+        'select',
+        'addSelect',
+        'innerJoin',
+        'where',
+        'andWhere',
+        'groupBy',
+        'addGroupBy',
+        'orderBy',
+        'limit',
+      ].forEach((m) => {
+        qb[m] = jest.fn().mockReturnValue(qb);
+      });
+      qb.getRawMany = jest.fn().mockResolvedValue(rawRows);
+      return qb;
+    }
+
+    it('should return a point per month and fill empty months with zeros', async () => {
+      // Sem linhas: todos os meses devem vir zerados.
+      const qb = mockRawQueryBuilder([]);
+      mockScheduledServiceRepository.createQueryBuilder.mockReturnValue(
+        qb as any,
+      );
+
+      const result = await service.getMonthlyTimeseries(6);
+
+      expect(result).toHaveLength(6);
+      expect(result.every((p) => p.appointmentsCount === 0)).toBe(true);
+      expect(result.every((p) => p.averageTicket === 0)).toBe(true);
+      // meses em ordem crescente
+      const months = result.map((p) => p.month);
+      expect([...months].sort()).toEqual(months);
+    });
+
+    it('should compute averageTicket as revenue / appointments for a month', async () => {
+      const now = new Date();
+      const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const qb = mockRawQueryBuilder([
+        {
+          month: key,
+          appointmentsCount: '4',
+          servicesCount: '5',
+          revenue: '400',
+        },
+      ]);
+      mockScheduledServiceRepository.createQueryBuilder.mockReturnValue(
+        qb as any,
+      );
+
+      const result = await service.getMonthlyTimeseries(6);
+      const current = result.find((p) => p.month === key)!;
+
+      expect(current.appointmentsCount).toBe(4);
+      expect(current.servicesCount).toBe(5);
+      expect(current.revenue).toBe(400);
+      expect(current.averageTicket).toBe(100);
+    });
+  });
+
+  describe('getTopServices', () => {
+    it('should map raw rows to typed items ordered by the query', async () => {
+      const qb: Record<string, jest.Mock> = {};
+      [
+        'select',
+        'addSelect',
+        'innerJoin',
+        'where',
+        'andWhere',
+        'groupBy',
+        'addGroupBy',
+        'orderBy',
+        'limit',
+      ].forEach((m) => {
+        qb[m] = jest.fn().mockReturnValue(qb);
+      });
+      qb.getRawMany = jest.fn().mockResolvedValue([
+        { serviceId: 's1', serviceName: 'Corte', quantity: '17', revenue: '765' },
+        { serviceId: 's2', serviceName: 'Manicure', quantity: '16', revenue: '400' },
+      ]);
+      mockScheduledServiceRepository.createQueryBuilder.mockReturnValue(
+        qb as any,
+      );
+
+      const result = await service.getTopServices(12, 5);
+
+      expect(result).toEqual([
+        { serviceId: 's1', serviceName: 'Corte', quantity: 17, revenue: 765 },
+        { serviceId: 's2', serviceName: 'Manicure', quantity: 16, revenue: 400 },
+      ]);
+      expect(qb.limit).toHaveBeenCalledWith(5);
+    });
+  });
   });
 });
 
