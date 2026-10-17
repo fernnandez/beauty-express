@@ -9,6 +9,7 @@ import { ServiceModule } from './modules/service.module';
 import { ScheduledServiceModule } from './modules/scheduled-service.module';
 import { FinancialReportModule } from './modules/financial-report.module';
 import { PortalModule } from './modules/portal.module';
+import { SettingsModule } from './modules/settings.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PortalModule } from './modules/portal.module';
     ServiceModule,
     ScheduledServiceModule,
     FinancialReportModule,
+    SettingsModule,
   ],
   exports: [
     AuthModule,
@@ -33,6 +35,7 @@ import { PortalModule } from './modules/portal.module';
     ServiceModule,
     ScheduledServiceModule,
     FinancialReportModule,
+    SettingsModule,
   ],
 })
 export class DomainModule {}
