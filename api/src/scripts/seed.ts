@@ -240,6 +240,19 @@ async function seed() {
   );
   console.log(`✅ ${savedCollaborators.length} colaboradores criados\n`);
 
+  // Login do colaborador (perfil collaborator) vinculado à Maria Silva.
+  console.log('🔑 Criando login do colaborador...');
+  await userRepository.save({
+    id: 'd1000001-0001-4000-8000-000000000006',
+    email: 'maria@paulista.mariaborboleta.com',
+    passwordHash: adminPassword,
+    role: UserRole.COLLABORATOR,
+    tenantId: TENANT_PAULISTA_ID,
+    collaboratorId: 'a0000001-0001-4000-8000-000000000001',
+    isActive: true,
+  });
+  console.log('✅ Login do colaborador criado\n');
+
   // Seed de Serviços
   console.log('💇 Criando serviços...');
   const services = [
@@ -1443,6 +1456,9 @@ async function seed() {
   );
   console.log(
     '   Barbearia:  admin@barbearia.fernnandez.com / Senha123! (slug: barbearia-lucas, sem comissões)',
+  );
+  console.log(
+    '   Colaborador: maria@paulista.mariaborboleta.com / Senha123! (perfil collaborator, Paulista)',
   );
 
   await dataSource.destroy();

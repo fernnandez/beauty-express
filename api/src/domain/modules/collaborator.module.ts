@@ -15,6 +15,10 @@ import { AuthModule } from './auth.module';
     CollaboratorService,
     CollaboratorAccessService,
   ],
-  exports: [CollaboratorRepository, CollaboratorService],
+  exports: [
+    CollaboratorRepository,
+    CollaboratorService,
+    CollaboratorAccessService,
+  ],
 })
 export class CollaboratorModule {}
