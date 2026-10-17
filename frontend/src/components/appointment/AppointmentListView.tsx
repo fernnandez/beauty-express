@@ -50,6 +50,11 @@ export function AppointmentListView({
 }: AppointmentListViewProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
+  // Ordena por horário de início (HH:MM, ordenação lexicográfica funciona).
+  const sortedAppointments = [...appointments].sort((a, b) =>
+    (a.startTime ?? "").localeCompare(b.startTime ?? ""),
+  );
+
   return (
     <Stack gap="md">
       {onDateChange && (
@@ -105,7 +110,7 @@ export function AppointmentListView({
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {appointments.length === 0 ? (
+            {sortedAppointments.length === 0 ? (
               <Table.Tr>
                 <Table.Td colSpan={7} style={{ textAlign: "center" }}>
                   <Text c="dimmed" py="md">
@@ -114,7 +119,7 @@ export function AppointmentListView({
                 </Table.Td>
               </Table.Tr>
             ) : (
-              appointments.map((appointment) => (
+              sortedAppointments.map((appointment) => (
                 <Table.Tr
                   key={appointment.id}
                   style={{
