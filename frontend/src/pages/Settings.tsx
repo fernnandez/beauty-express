@@ -5,6 +5,7 @@ import {
   Card,
   ColorInput,
   Group,
+  SegmentedControl,
   SimpleGrid,
   Stack,
   Text,
@@ -24,6 +25,8 @@ interface BrandingFormValues {
   logoUrl: string;
   primaryColor: string;
   accentColor: string;
+  periodMode: "biweekly" | "monthly";
+  payoutDays: string;
 }
 
 function resolveLogoSrc(logoUrl: string): string {
@@ -43,6 +46,8 @@ export function Settings() {
       logoUrl: "",
       primaryColor: "#e64980",
       accentColor: "#faf5ff",
+      periodMode: "biweekly",
+      payoutDays: "",
     },
     validate: {
       displayName: (value) =>
@@ -62,6 +67,8 @@ export function Settings() {
         logoUrl: settings.branding.logoUrl ?? "",
         primaryColor: settings.branding.primaryColor ?? "#e64980",
         accentColor: settings.branding.accentColor ?? "#faf5ff",
+        periodMode: settings.features?.periodMode ?? "biweekly",
+        payoutDays: (settings.features?.commissionPayoutDays ?? []).join(", "),
       });
       form.resetDirty();
     }
@@ -70,12 +77,21 @@ export function Settings() {
 
   const handleSubmit = form.onSubmit(async (values) => {
     try {
+      const parsedDays = values.payoutDays
+        .split(/[,\s]+/)
+        .map((d) => parseInt(d, 10))
+        .filter((d) => Number.isInteger(d) && d >= 1 && d <= 31);
+
       await updateMutation.mutateAsync({
         branding: {
           displayName: values.displayName.trim(),
           // logoUrl ainda não é editável por aqui — não enviado no payload.
           primaryColor: values.primaryColor,
           accentColor: values.accentColor,
+        },
+        features: {
+          periodMode: values.periodMode,
+          commissionPayoutDays: parsedDays,
         },
       });
       // Atualiza o usuário para refletir o branding no menu/favicon.
@@ -203,6 +219,61 @@ export function Settings() {
                 As cores e o logo aparecem no menu lateral, na tela de login e
                 nos relatórios do seu estabelecimento.
               </Text>
+            </Stack>
+          </Card>
+
+          {/* Período e pagamentos */}
+          <Card padding="xl" radius="lg" shadow="sm">
+            <Stack gap="md">
+              <Title order={4}>Período e pagamentos</Title>
+              <Text size="sm" c="dimmed">
+                Define como o período aparece no app e quando as comissões
+                vencem (usado nos alertas de atraso).
+              </Text>
+
+              <Stack gap={6}>
+                <Text size="sm" fw={500}>
+                  Regime de período
+                </Text>
+                <SegmentedControl
+                  value={values.periodMode}
+                  onChange={(v) =>
+                    form.setFieldValue(
+                      "periodMode",
+                      v as "biweekly" | "monthly",
+                    )
+                  }
+                  data={[
+                    { value: "biweekly", label: "Quinzenal" },
+                    { value: "monthly", label: "Mensal" },
+                  ]}
+                />
+                <Text size="xs" c="dimmed">
+                  {values.periodMode === "biweekly"
+                    ? "Pagamentos no dia 15 e no fim do mês."
+                    : "Pagamento no fim do mês."}
+                </Text>
+              </Stack>
+
+              <TextInput
+                label="Dias de pagamento (opcional)"
+                placeholder={
+                  values.periodMode === "biweekly" ? "15, 30" : "30"
+                }
+                description="Deixe vazio para usar o padrão do regime. Ex.: 15, 30"
+                {...form.getInputProps("payoutDays")}
+              />
+
+              <Group justify="flex-end" mt="sm">
+                <Button
+                  type="submit"
+                  color="brand"
+                  loading={updateMutation.isPending}
+                  disabled={!form.isDirty()}
+                >
+                  Salvar alterações
+                </Button>
+              </Group>
             </Stack>
           </Card>
         </SimpleGrid>

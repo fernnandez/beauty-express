@@ -80,14 +80,16 @@ describe('SettingsService', () => {
     });
   });
 
-  describe('updateBranding', () => {
+  describe('updateSettings', () => {
     it('should merge only branding and persist, keeping features intact', async () => {
       mockTenantRepository.findOne.mockResolvedValue(mockTenant);
       mockTenantRepository.update.mockResolvedValue(undefined);
 
-      const result = await service.updateBranding({
-        displayName: 'Novo Nome',
-        primaryColor: '#123456',
+      const result = await service.updateSettings({
+        branding: {
+          displayName: 'Novo Nome',
+          primaryColor: '#123456',
+        },
       });
 
       // persistiu
@@ -106,11 +108,25 @@ describe('SettingsService', () => {
       expect(result.branding.primaryColor).toBe('#123456');
     });
 
+    it('persiste regime de período e dias de pagamento', async () => {
+      mockTenantRepository.findOne.mockResolvedValue(mockTenant);
+      mockTenantRepository.update.mockResolvedValue(undefined);
+
+      const result = await service.updateSettings({
+        features: { periodMode: 'monthly', commissionPayoutDays: [30] },
+      });
+
+      const [, updateArg] = mockTenantRepository.update.mock.calls[0];
+      expect(updateArg.settings.features.periodMode).toBe('monthly');
+      expect(updateArg.settings.features.commissionPayoutDays).toEqual([30]);
+      expect(result.features.periodMode).toBe('monthly');
+    });
+
     it('should throw when tenant not found', async () => {
       mockTenantRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.updateBranding({ displayName: 'X' }),
+        service.updateSettings({ branding: { displayName: 'X' } }),
       ).rejects.toThrow(NotFoundException);
       expect(mockTenantRepository.update).not.toHaveBeenCalled();
     });

@@ -37,14 +37,15 @@ export class SettingsService {
     return normalizeTenantSettings(tenant.settings, tenant.name);
   }
 
-  async updateBranding(
-    branding: Partial<TenantBranding> | undefined,
-  ): Promise<TenantSettingsResponse> {
+  async updateSettings(dto: {
+    branding?: Partial<TenantBranding>;
+    features?: Partial<import('../types/tenant-settings.types').TenantFeatureSettings>;
+  }): Promise<TenantSettingsResponse> {
     const tenant = await this.requireTenant();
 
     const nextSettings = mergeTenantSettingsForSave(
       tenant.settings,
-      { branding },
+      { branding: dto.branding, features: dto.features },
       tenant.name,
     );
 
