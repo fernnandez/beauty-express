@@ -1,7 +1,7 @@
 import {
   Alert,
+  Box,
   Card,
-  Container,
   Group,
   Loader,
   SegmentedControl,
@@ -24,6 +24,7 @@ import {
 import { DateTime } from "luxon";
 import { useMemo, useState } from "react";
 import { useFinancialReports } from "../hooks/useFinancialReports";
+import { ReportsCharts } from "../components/report/ReportsCharts";
 import { useOperationalBranding } from "../hooks/useOperationalBranding";
 import {
   type FinancialReportPeriodType,
@@ -151,50 +152,32 @@ export function FinancialReports() {
   }, [report, commissionsEnabled]);
 
   return (
-    <Container fluid px={{ base: "xs", sm: "md" }}>
-      <Stack gap="lg">
-        <Group justify="space-between" align="flex-end" wrap="wrap">
-          <Title order={1} c="brand">
-            Relatórios Financeiros
+    <Box
+      style={{ width: "100%", paddingInline: "var(--mantine-spacing-md)" }}
+      pb="xl"
+    >
+      <Group justify="space-between" align="flex-end" wrap="wrap" mb="xl">
+        <Stack gap={2}>
+          <Title order={1} c="brand" fz={{ base: 28, sm: 34 }}>
+            Relatórios
           </Title>
+          <Text c="dimmed">
+            Acompanhe o desempenho financeiro e a evolução do negócio.
+          </Text>
+        </Stack>
 
-          <Stack gap="sm" align="flex-end">
-            <SegmentedControl
-              value={periodType}
-              onChange={(value) =>
-                setPeriodType(value as FinancialReportPeriodType)
-              }
-              data={PERIOD_OPTIONS}
-            />
+        <Stack gap="sm" align="flex-end">
+          <SegmentedControl
+            value={periodType}
+            onChange={(value) =>
+              setPeriodType(value as FinancialReportPeriodType)
+            }
+            data={PERIOD_OPTIONS}
+          />
 
-            <Group align="flex-end" wrap="wrap">
-              {periodType === "fortnight" && (
-                <>
-                  <MonthPickerInput
-                    label="Mês"
-                    placeholder="Escolha o mês"
-                    value={referenceDate}
-                    onChange={(value) =>
-                      setReferenceDate(toReferenceDate(value))
-                    }
-                    valueFormat="MMMM [de] YYYY"
-                    clearable={false}
-                    style={{ minWidth: 220 }}
-                  />
-                  <Select
-                    label="Quinzena"
-                    data={FORTNIGHT_OPTIONS}
-                    value={fortnightHalf}
-                    onChange={(value) =>
-                      setFortnightHalf((value as FortnightHalf) ?? "first")
-                    }
-                    allowDeselect={false}
-                    style={{ minWidth: 220 }}
-                  />
-                </>
-              )}
-
-              {periodType === "month" && (
+          <Group align="flex-end" wrap="wrap">
+            {periodType === "fortnight" && (
+              <>
                 <MonthPickerInput
                   label="Mês"
                   placeholder="Escolha o mês"
@@ -202,85 +185,126 @@ export function FinancialReports() {
                   onChange={(value) => setReferenceDate(toReferenceDate(value))}
                   valueFormat="MMMM [de] YYYY"
                   clearable={false}
-                  style={{ minWidth: 220 }}
+                  style={{ minWidth: 200 }}
                 />
-              )}
-            </Group>
-          </Stack>
-        </Group>
-
-        {error && (
-          <Alert
-            icon={<IconAlertCircle size={16} />}
-            title="Erro ao carregar relatório"
-            color="red"
-          >
-            Não foi possível carregar o relatório financeiro. Tente novamente.
-          </Alert>
-        )}
-
-        {isLoading ? (
-          <Group justify="center" py="xl">
-            <Loader size="lg" />
-          </Group>
-        ) : (
-          <>
-            <Text size="lg" c="dimmed" mb="md">
-              Relatório de {period.label}
-            </Text>
-
-            <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
-              {cards.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <Card
-                    key={card.title}
-                    shadow="sm"
-                    padding="lg"
-                    radius="md"
-                    withBorder
-                  >
-                    <Group justify="space-between" mb="xs">
-                      <ThemeIcon color={card.color} size={40} radius="md">
-                        <Icon size={24} />
-                      </ThemeIcon>
-                      <Text size="xl" fw={700} c={card.color}>
-                        {formatPrice(card.value)}
-                      </Text>
-                    </Group>
-                    <Text fw={500} size="lg" mb="xs">
-                      {card.title}
-                    </Text>
-                    <Text size="sm" c="dimmed">
-                      {card.description}
-                    </Text>
-                  </Card>
-                );
-              })}
-            </SimpleGrid>
-
-            {report && (
-              <Card shadow="sm" padding="lg" radius="md" withBorder mt="md">
-                <Stack gap="xs">
-                  <Text fw={600} size="md">
-                    Resumo do Período
-                  </Text>
-                  <Text size="sm" c="dimmed">
-                    Período:{" "}
-                    {DateTime.fromISO(report.period.startDate, {
-                      zone: SP_ZONE,
-                    }).toFormat("dd/MM/yyyy")}{" "}
-                    até{" "}
-                    {DateTime.fromISO(report.period.endDate, {
-                      zone: SP_ZONE,
-                    }).toFormat("dd/MM/yyyy")}
-                  </Text>
-                </Stack>
-              </Card>
+                <Select
+                  label="Quinzena"
+                  data={FORTNIGHT_OPTIONS}
+                  value={fortnightHalf}
+                  onChange={(value) =>
+                    setFortnightHalf((value as FortnightHalf) ?? "first")
+                  }
+                  allowDeselect={false}
+                  style={{ minWidth: 200 }}
+                />
+              </>
             )}
-          </>
-        )}
-      </Stack>
-    </Container>
+
+            {periodType === "month" && (
+              <MonthPickerInput
+                label="Mês"
+                placeholder="Escolha o mês"
+                value={referenceDate}
+                onChange={(value) => setReferenceDate(toReferenceDate(value))}
+                valueFormat="MMMM [de] YYYY"
+                clearable={false}
+                style={{ minWidth: 200 }}
+              />
+            )}
+          </Group>
+        </Stack>
+      </Group>
+
+      {error && (
+        <Alert
+          icon={<IconAlertCircle size={16} />}
+          title="Erro ao carregar relatório"
+          color="red"
+          mb="md"
+        >
+          Não foi possível carregar o relatório financeiro. Tente novamente.
+        </Alert>
+      )}
+
+      {isLoading ? (
+        <Group justify="center" py="xl">
+          <Loader size="lg" />
+        </Group>
+      ) : (
+        <Stack gap="xl">
+          <Stack gap="md">
+            <Text fw={600} tt="uppercase" fz="xs" c="dimmed">
+              Resumo de {period.label}
+            </Text>
+            <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg">
+              {cards.map((card) => (
+                <MetricCard
+                  key={card.title}
+                  icon={card.icon}
+                  color={card.color}
+                  title={card.title}
+                  value={formatPrice(card.value)}
+                  description={card.description}
+                />
+              ))}
+            </SimpleGrid>
+          </Stack>
+
+          <ReportsCharts />
+        </Stack>
+      )}
+    </Box>
+  );
+}
+
+interface MetricCardProps {
+  icon: typeof IconReceipt;
+  color: string;
+  title: string;
+  value: string;
+  description: string;
+}
+
+function MetricCard({
+  icon: Icon,
+  color,
+  title,
+  value,
+  description,
+}: MetricCardProps) {
+  return (
+    <Card
+      padding="lg"
+      radius="lg"
+      shadow="sm"
+      style={{
+        transition: "transform 160ms ease, box-shadow 160ms ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-4px)";
+        e.currentTarget.style.boxShadow = "0 12px 32px rgba(16, 24, 40, 0.12)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "0 2px 8px rgba(16, 24, 40, 0.06)";
+      }}
+    >
+      <Group gap="md" wrap="nowrap" align="flex-start">
+        <ThemeIcon color={color} size={48} radius="md" variant="light">
+          <Icon size={24} />
+        </ThemeIcon>
+        <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+          <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+            {title}
+          </Text>
+          <Text fz={24} fw={800} lh={1.1} c={color}>
+            {value}
+          </Text>
+          <Text size="xs" c="dimmed">
+            {description}
+          </Text>
+        </Stack>
+      </Group>
+    </Card>
   );
 }
