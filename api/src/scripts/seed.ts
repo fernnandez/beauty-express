@@ -727,6 +727,114 @@ async function seed() {
     return savedAppointment;
   };
 
+  // ========== HISTÓRICO (ÚLTIMOS 6 MESES) ==========
+  // Gera agendamentos concluídos em meses anteriores para alimentar os
+  // gráficos de evolução (semestral/anual) e os relatórios financeiros.
+  console.log('🗓️  Criando histórico dos últimos meses...');
+
+  const historyServiceIds = [
+    corteFeminino,
+    corteMasculino,
+    coloracao,
+    mechas,
+    manicure,
+    pedicure,
+    sobrancelha,
+    hidratacao,
+    botox,
+    depilacao,
+    tratamento,
+    penteado,
+  ]
+    .filter((s): s is NonNullable<typeof s> => Boolean(s))
+    .map((s) => s.id);
+
+  const historyCollaboratorIds = [maria, ana, juliana, fernanda, camila, larissa]
+    .filter((c): c is NonNullable<typeof c> => Boolean(c))
+    .map((c) => c.id);
+
+  const historyClients = [
+    ['Carla Mendes', '(11) 99999-1111'],
+    ['Roberta Alves', '(11) 99999-2222'],
+    ['Luciana Ferreira', '(11) 99999-3333'],
+    ['Amanda Souza', '(11) 99999-5555'],
+    ['Patrícia Lima', '(11) 99999-6666'],
+    ['Beatriz Rocha', '(11) 99999-7777'],
+    ['Gabriela Dias', '(11) 99999-8888'],
+    ['Mariana Castro', '(11) 99999-9999'],
+    ['Fernanda Pires', '(11) 98888-1010'],
+    ['Juliana Melo', '(11) 98888-2020'],
+  ] as const;
+
+  // Determinístico o suficiente para variar volume sem depender de libs.
+  let historyAppointments = 0;
+  let historyServices = 0;
+
+  for (let monthsAgo = 6; monthsAgo >= 1; monthsAgo--) {
+    const monthDate = new Date(today);
+    monthDate.setDate(1);
+    monthDate.setMonth(monthDate.getMonth() - monthsAgo);
+
+    const daysInMonth = new Date(
+      monthDate.getFullYear(),
+      monthDate.getMonth() + 1,
+      0,
+    ).getDate();
+
+    // Volume crescente ao longo dos meses (negócio "crescendo").
+    const appointmentsInMonth = 14 + (6 - monthsAgo) * 4;
+
+    for (let i = 0; i < appointmentsInMonth; i++) {
+      const day = 1 + ((i * 7 + monthsAgo * 3) % daysInMonth);
+      const appointmentDate = new Date(
+        monthDate.getFullYear(),
+        monthDate.getMonth(),
+        day,
+      );
+
+      const [clientName, clientPhone] =
+        historyClients[(i + monthsAgo) % historyClients.length];
+      const collaboratorId =
+        historyCollaboratorIds[i % historyCollaboratorIds.length];
+
+      // 1 ou 2 serviços por agendamento.
+      const serviceCount = i % 3 === 0 ? 2 : 1;
+      const servicesForAppointment = Array.from({ length: serviceCount }).map(
+        (_, j) => ({
+          serviceId:
+            historyServiceIds[(i + j * 5 + monthsAgo) % historyServiceIds.length],
+          collaboratorId,
+          status: ScheduledServiceStatus.COMPLETED,
+          // Meses mais antigos quase todos pagos; recentes com parte pendente.
+          paid: monthsAgo >= 2 ? true : i % 2 === 0,
+        }),
+      );
+
+      const startHour = 8 + (i % 9);
+      const startTime = `${String(startHour).padStart(2, '0')}:00`;
+      const endTime = `${String(startHour + 1).padStart(2, '0')}:00`;
+
+      await createAppointmentWithServices(
+        {
+          clientName,
+          clientPhone,
+          date: appointmentDate,
+          startTime,
+          endTime,
+          status: AppointmentStatus.COMPLETED,
+        },
+        servicesForAppointment,
+      );
+
+      historyAppointments++;
+      historyServices += serviceCount;
+    }
+  }
+
+  console.log(
+    `✅ Histórico criado: ${historyAppointments} agendamentos, ${historyServices} serviços\n`,
+  );
+
   // ========== AGENDAMENTOS DE HOJE ==========
   console.log('📅 Criando agendamentos de hoje...');
   const todayDate = new Date(today);
