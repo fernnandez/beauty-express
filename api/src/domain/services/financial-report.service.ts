@@ -9,6 +9,7 @@ import { AppointmentStatus } from '../entities/appointment.entity';
 import { ScheduledServiceStatus } from '../entities/scheduled-service.entity';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
+import { ExpenseService } from './expense.service';
 import { TenantContextService } from './tenant-context.service';
 
 export interface FinancialReport {
@@ -17,8 +18,11 @@ export interface FinancialReport {
   totalUnpaid: number;
   totalCommissionsPaid: number;
   totalCommissionsExpected: number;
+  totalExpenses: number;
+  expensesByCategory: Record<string, number>;
   netAmount: number;
   netAmountExpected: number;
+  netProfit: number;
   period: {
     startDate: string;
     endDate: string;
@@ -48,6 +52,7 @@ export class FinancialReportService {
   constructor(
     private scheduledServiceRepository: ScheduledServiceRepository,
     private commissionRepository: CommissionRepository,
+    private expenseService: ExpenseService,
     private tenantContext: TenantContextService,
   ) {}
 
@@ -118,14 +123,25 @@ export class FinancialReportService {
     const netAmount = totalPaid - totalCommissionsPaid;
     const netAmountExpected = totalPaid - totalCommissionsExpected;
 
+    const expenses = await this.expenseService.getExpensesForPeriod(
+      formatDateToString(start),
+      formatDateToString(end),
+    );
+
+    // Lucro: serviços pagos − comissões pagas − despesas do período.
+    const netProfit = totalPaid - totalCommissionsPaid - expenses.total;
+
     return {
       totalScheduled,
       totalPaid,
       totalUnpaid,
       totalCommissionsPaid,
       totalCommissionsExpected,
+      totalExpenses: expenses.total,
+      expensesByCategory: expenses.byCategory,
       netAmount,
       netAmountExpected,
+      netProfit,
       period: {
         startDate: formatDateToString(start),
         endDate: formatDateToString(end),

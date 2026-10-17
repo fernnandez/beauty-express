@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { FinancialReportService } from './financial-report.service';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
+import { ExpenseService } from './expense.service';
 import { ScheduledService, ScheduledServiceStatus } from '../entities/scheduled-service.entity';
 import { Commission } from '../entities/commission.entity';
 import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
@@ -21,6 +22,12 @@ describe('FinancialReportService', () => {
     findByFilters: jest.fn(),
   };
 
+  const mockExpenseService = {
+    getExpensesForPeriod: jest
+      .fn()
+      .mockResolvedValue({ total: 0, byCategory: {} }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -37,6 +44,10 @@ describe('FinancialReportService', () => {
           provide: CommissionRepository,
           useValue: mockCommissionRepository,
         },
+        {
+          provide: ExpenseService,
+          useValue: mockExpenseService,
+        },
       ],
     }).compile();
 
@@ -45,6 +56,10 @@ describe('FinancialReportService', () => {
     commissionRepository = module.get(CommissionRepository);
 
     jest.clearAllMocks();
+    mockExpenseService.getExpensesForPeriod.mockResolvedValue({
+      total: 0,
+      byCategory: {},
+    });
   });
 
   it('should be defined', () => {
@@ -140,8 +155,35 @@ describe('FinancialReportService', () => {
       expect(result.totalCommissionsExpected).toBe(23.0); // 10 + 5 + 8
       expect(result.netAmount).toBe(135.0); // 150 - 15
       expect(result.netAmountExpected).toBe(127.0); // 150 - 23
+      expect(result.totalExpenses).toBe(0);
+      expect(result.netProfit).toBe(135.0); // 150 - 15 - 0 despesas
       expect(result.period.startDate).toBeDefined();
       expect(result.period.endDate).toBeDefined();
+    });
+
+    it('should subtract expenses from net profit', async () => {
+      mockScheduledServiceRepository.createQueryBuilder.mockReturnValue(
+        mockQueryBuilder as any,
+      );
+      mockQueryBuilder.getMany.mockResolvedValue(mockScheduledServices);
+      mockCommissionRepository.findByFilters
+        .mockResolvedValueOnce(mockPaidCommissions)
+        .mockResolvedValueOnce(mockAllCommissions);
+      mockExpenseService.getExpensesForPeriod.mockResolvedValue({
+        total: 50,
+        byCategory: { aluguel: 50 },
+      });
+
+      const result = await service.getMonthlyReport(2024, 12);
+
+      expect(result.totalPaid).toBe(150.0);
+      expect(result.totalCommissionsPaid).toBe(15.0);
+      expect(result.totalExpenses).toBe(50);
+      expect(result.expensesByCategory).toEqual({ aluguel: 50 });
+      // lucro = 150 - 15 - 50
+      expect(result.netProfit).toBe(85.0);
+      // netAmount (sem despesas) permanece 135
+      expect(result.netAmount).toBe(135.0);
     });
 
     it('should handle month with no data', async () => {

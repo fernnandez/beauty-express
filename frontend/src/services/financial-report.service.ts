@@ -6,8 +6,11 @@ export interface FinancialReport {
   totalUnpaid: number;
   totalCommissionsPaid: number;
   totalCommissionsExpected: number;
+  totalExpenses: number;
+  expensesByCategory: Record<string, number>;
   netAmount: number;
   netAmountExpected: number;
+  netProfit: number;
   period: {
     startDate: string;
     endDate: string;

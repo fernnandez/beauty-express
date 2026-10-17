@@ -7,10 +7,12 @@ import { ScheduledServiceRepository } from '../repositories/scheduled-service.re
 import { CommissionRepository } from '../repositories/commission.repository';
 import { FinancialReportService } from '../services/financial-report.service';
 import { AuthModule } from './auth.module';
+import { ExpenseModule } from './expense.module';
 
 @Module({
   imports: [
     AuthModule,
+    ExpenseModule,
     TypeOrmModule.forFeature([ScheduledService, Commission, Appointment]),
   ],
   providers: [

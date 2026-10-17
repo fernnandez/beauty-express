@@ -1,4 +1,4 @@
-import { AreaChart, BarChart, LineChart } from "@mantine/charts";
+import { BarChart, LineChart } from "@mantine/charts";
 import {
   Card,
   Group,
@@ -48,12 +48,14 @@ export function ReportsCharts() {
           title="Agendamentos e serviços"
           subtitle="Quantidade por mês"
         >
-          <AreaChart
+          <LineChart
             h={260}
             data={timeseries}
             dataKey="label"
             withLegend
+            withDots
             curveType="monotone"
+            strokeWidth={2.5}
             series={[
               { name: "appointmentsCount", label: "Agendamentos", color: "blue.6" },
               { name: "servicesCount", label: "Serviços", color: "teal.6" },
@@ -68,7 +70,9 @@ export function ReportsCharts() {
             h={260}
             data={timeseries}
             dataKey="label"
+            withDots
             curveType="monotone"
+            strokeWidth={2.5}
             series={[
               { name: "averageTicket", label: "Ticket médio", color: "grape.6" },
             ]}
@@ -78,11 +82,13 @@ export function ReportsCharts() {
         </ChartCard>
 
         <ChartCard title="Receita" subtitle="Receita dos serviços por mês">
-          <AreaChart
+          <LineChart
             h={260}
             data={timeseries}
             dataKey="label"
+            withDots
             curveType="monotone"
+            strokeWidth={2.5}
             series={[{ name: "revenue", label: "Receita", color: "green.6" }]}
             valueFormatter={(value) => formatPrice(value)}
           />
@@ -121,7 +127,13 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card padding="lg" radius="lg" shadow="sm">
+    <Card
+      padding="lg"
+      radius="lg"
+      shadow="sm"
+      withBorder
+      style={{ border: "1px solid var(--mantine-color-gray-3)" }}
+    >
       <Stack gap="xs">
         <div>
           <Text fw={600}>{title}</Text>

@@ -4,6 +4,7 @@ import {
   Card,
   Group,
   Loader,
+  Paper,
   SegmentedControl,
   Select,
   SimpleGrid,
@@ -15,11 +16,10 @@ import {
 import { MonthPickerInput } from "@mantine/dates";
 import {
   IconAlertCircle,
-  IconCash,
   IconCurrencyDollar,
+  IconPigMoney,
   IconReceipt,
-  IconTrendingDown,
-  IconTrendingUp,
+  IconReceiptOff,
 } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import { useMemo, useState } from "react";
@@ -33,12 +33,15 @@ import {
 } from "../utils/financial-report-period.util";
 import { formatPrice, toMoney } from "../utils/money.util";
 
-const COMMISSION_REPORT_CARD_TITLES = new Set([
-  "Comissões Pagas",
-  "Comissões Previstas",
-  "Valor Líquido",
-  "Valor Líquido Previsto",
-]);
+const CATEGORY_LABELS: Record<string, string> = {
+  aluguel: "Aluguel",
+  contas: "Contas",
+  salarios: "Salários",
+  insumos: "Insumos",
+  impostos: "Impostos",
+  marketing: "Marketing",
+  outros: "Outros",
+};
 
 const SP_ZONE = "America/Sao_Paulo";
 
@@ -89,66 +92,101 @@ export function FinancialReports() {
     period.endDate,
   );
 
-  const cards = useMemo(() => {
-    const allCards = [
+  const groups = useMemo(() => {
+    const commissionsPending =
+      (report?.totalCommissionsExpected ?? 0) -
+      (report?.totalCommissionsPaid ?? 0);
+
+    const allGroups = [
       {
-        title: "Total Agendado",
-        value: toMoney(report?.totalScheduled),
+        key: "services",
+        title: "Serviços",
         icon: IconReceipt,
         color: "blue",
-        description: "Valor total dos serviços agendados",
+        highlight: {
+          label: "Total agendado",
+          value: toMoney(report?.totalScheduled),
+        },
+        items: [
+          { label: "Pagos", value: toMoney(report?.totalPaid), color: "green" },
+          {
+            label: "Não pagos",
+            value: toMoney(report?.totalUnpaid),
+            color: "orange",
+          },
+        ],
       },
       {
-        title: "Serviços Pagos",
-        value: toMoney(report?.totalPaid),
-        icon: IconCash,
-        color: "green",
-        description: "Valor dos serviços já pagos",
-      },
-      {
-        title: "Serviços Não Pagos",
-        value: toMoney(report?.totalUnpaid),
-        icon: IconTrendingDown,
-        color: "orange",
-        description: "Valor dos serviços pendentes",
-      },
-      {
-        title: "Comissões Pagas",
-        value: toMoney(report?.totalCommissionsPaid),
+        key: "commissions",
+        title: "Comissões",
         icon: IconCurrencyDollar,
         color: "violet",
-        description: "Total de comissões pagas",
+        requiresCommissions: true,
+        highlight: {
+          label: "Previstas",
+          value: toMoney(report?.totalCommissionsExpected),
+        },
+        items: [
+          {
+            label: "Pagas",
+            value: toMoney(report?.totalCommissionsPaid),
+            color: "green",
+          },
+          { label: "Pendentes", value: commissionsPending, color: "yellow" },
+        ],
       },
       {
-        title: "Comissões Previstas",
-        value: toMoney(report?.totalCommissionsExpected),
-        icon: IconCurrencyDollar,
-        color: "indigo",
-        description: "Total de comissões previstas (pagas + não pagas)",
+        key: "expenses",
+        title: "Despesas",
+        icon: IconReceiptOff,
+        color: "red",
+        highlight: {
+          label: "Total no período",
+          value: toMoney(report?.totalExpenses),
+        },
+        items: Object.entries(report?.expensesByCategory ?? {})
+          .sort((a, b) => b[1] - a[1])
+          .map(([category, value]) => ({
+            label: CATEGORY_LABELS[category] ?? category,
+            value,
+            color: "gray",
+          })),
       },
       {
-        title: "Valor Líquido",
-        value: toMoney(report?.netAmount),
-        icon: IconTrendingUp,
-        color: toMoney(report?.netAmount) >= 0 ? "teal" : "red",
-        description: "Valor líquido (pagos - comissões pagas)",
-      },
-      {
-        title: "Valor Líquido Previsto",
-        value: toMoney(report?.netAmountExpected),
-        icon: IconTrendingUp,
-        color: toMoney(report?.netAmountExpected) >= 0 ? "cyan" : "red",
-        description: "Valor líquido previsto (pagos - todas as comissões)",
+        key: "result",
+        title: "Resultado",
+        icon: IconPigMoney,
+        color: (report?.netProfit ?? 0) >= 0 ? "teal" : "red",
+        highlight: {
+          label: "Lucro do período",
+          value: toMoney(report?.netProfit),
+        },
+        items: [
+          {
+            label: "Líquido (sem despesas)",
+            value: toMoney(report?.netAmount),
+            color: "gray",
+          },
+          {
+            label: "Líquido previsto",
+            value: toMoney(report?.netAmountExpected),
+            color: "gray",
+            requiresCommissions: true,
+          },
+        ],
       },
     ];
 
     if (!commissionsEnabled) {
-      return allCards.filter(
-        (card) => !COMMISSION_REPORT_CARD_TITLES.has(card.title),
-      );
+      return allGroups
+        .filter((g) => !g.requiresCommissions)
+        .map((g) => ({
+          ...g,
+          items: g.items.filter((i) => !("requiresCommissions" in i) || !i.requiresCommissions),
+        }));
     }
 
-    return allCards;
+    return allGroups;
   }, [report, commissionsEnabled]);
 
   return (
@@ -164,54 +202,6 @@ export function FinancialReports() {
           <Text c="dimmed">
             Acompanhe o desempenho financeiro e a evolução do negócio.
           </Text>
-        </Stack>
-
-        <Stack gap="sm" align="flex-end">
-          <SegmentedControl
-            value={periodType}
-            onChange={(value) =>
-              setPeriodType(value as FinancialReportPeriodType)
-            }
-            data={PERIOD_OPTIONS}
-          />
-
-          <Group align="flex-end" wrap="wrap">
-            {periodType === "fortnight" && (
-              <>
-                <MonthPickerInput
-                  label="Mês"
-                  placeholder="Escolha o mês"
-                  value={referenceDate}
-                  onChange={(value) => setReferenceDate(toReferenceDate(value))}
-                  valueFormat="MMMM [de] YYYY"
-                  clearable={false}
-                  style={{ minWidth: 200 }}
-                />
-                <Select
-                  label="Quinzena"
-                  data={FORTNIGHT_OPTIONS}
-                  value={fortnightHalf}
-                  onChange={(value) =>
-                    setFortnightHalf((value as FortnightHalf) ?? "first")
-                  }
-                  allowDeselect={false}
-                  style={{ minWidth: 200 }}
-                />
-              </>
-            )}
-
-            {periodType === "month" && (
-              <MonthPickerInput
-                label="Mês"
-                placeholder="Escolha o mês"
-                value={referenceDate}
-                onChange={(value) => setReferenceDate(toReferenceDate(value))}
-                valueFormat="MMMM [de] YYYY"
-                clearable={false}
-                style={{ minWidth: 200 }}
-              />
-            )}
-          </Group>
         </Stack>
       </Group>
 
@@ -233,19 +223,60 @@ export function FinancialReports() {
       ) : (
         <Stack gap="xl">
           <Stack gap="md">
-            <Text fw={600} tt="uppercase" fz="xs" c="dimmed">
-              Resumo de {period.label}
-            </Text>
+            <Paper
+              withBorder
+              radius="lg"
+              p="md"
+              style={{ border: "1px solid var(--mantine-color-gray-3)" }}
+            >
+              <Group justify="space-between" align="center" wrap="wrap" gap="md">
+                <div>
+                  <Text fw={700} fz="lg" tt="capitalize">
+                    {period.label}
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    Resumo do período selecionado
+                  </Text>
+                </div>
+
+                <Group align="center" wrap="wrap" gap="sm">
+                  <SegmentedControl
+                    value={periodType}
+                    onChange={(value) =>
+                      setPeriodType(value as FinancialReportPeriodType)
+                    }
+                    data={PERIOD_OPTIONS}
+                  />
+                  <MonthPickerInput
+                    aria-label="Mês"
+                    placeholder="Escolha o mês"
+                    value={referenceDate}
+                    onChange={(value) =>
+                      setReferenceDate(toReferenceDate(value))
+                    }
+                    valueFormat="MMMM [de] YYYY"
+                    clearable={false}
+                    style={{ minWidth: 190 }}
+                  />
+                  {periodType === "fortnight" && (
+                    <Select
+                      aria-label="Quinzena"
+                      data={FORTNIGHT_OPTIONS}
+                      value={fortnightHalf}
+                      onChange={(value) =>
+                        setFortnightHalf((value as FortnightHalf) ?? "first")
+                      }
+                      allowDeselect={false}
+                      style={{ minWidth: 180 }}
+                    />
+                  )}
+                </Group>
+              </Group>
+            </Paper>
+
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg">
-              {cards.map((card) => (
-                <MetricCard
-                  key={card.title}
-                  icon={card.icon}
-                  color={card.color}
-                  title={card.title}
-                  value={formatPrice(card.value)}
-                  description={card.description}
-                />
+              {groups.map((group) => (
+                <SummaryGroupCard key={group.key} group={group} />
               ))}
             </SimpleGrid>
           </Stack>
@@ -257,27 +288,31 @@ export function FinancialReports() {
   );
 }
 
-interface MetricCardProps {
-  icon: typeof IconReceipt;
-  color: string;
-  title: string;
-  value: string;
-  description: string;
+interface SummaryItem {
+  label: string;
+  value: number;
+  color?: string;
 }
 
-function MetricCard({
-  icon: Icon,
-  color,
-  title,
-  value,
-  description,
-}: MetricCardProps) {
+interface SummaryGroup {
+  key: string;
+  title: string;
+  icon: typeof IconReceipt;
+  color: string;
+  highlight: { label: string; value: number };
+  items: SummaryItem[];
+}
+
+function SummaryGroupCard({ group }: { group: SummaryGroup }) {
+  const Icon = group.icon;
   return (
     <Card
       padding="lg"
       radius="lg"
       shadow="sm"
+      withBorder
       style={{
+        border: "1px solid var(--mantine-color-gray-3)",
         transition: "transform 160ms ease, box-shadow 160ms ease",
       }}
       onMouseEnter={(e) => {
@@ -289,22 +324,40 @@ function MetricCard({
         e.currentTarget.style.boxShadow = "0 2px 8px rgba(16, 24, 40, 0.06)";
       }}
     >
-      <Group gap="md" wrap="nowrap" align="flex-start">
-        <ThemeIcon color={color} size={48} radius="md" variant="light">
-          <Icon size={24} />
-        </ThemeIcon>
-        <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
-          <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-            {title}
+      <Stack gap="sm">
+        <Group gap="xs" wrap="nowrap" align="center">
+          <ThemeIcon color={group.color} size={36} radius="md" variant="light">
+            <Icon size={20} />
+          </ThemeIcon>
+          <Text size="sm" fw={600} tt="uppercase" c="dimmed">
+            {group.title}
           </Text>
-          <Text fz={24} fw={800} lh={1.1} c={color}>
-            {value}
-          </Text>
+        </Group>
+
+        <div>
           <Text size="xs" c="dimmed">
-            {description}
+            {group.highlight.label}
           </Text>
-        </Stack>
-      </Group>
+          <Text fz={26} fw={800} lh={1.1} c={group.color}>
+            {formatPrice(group.highlight.value)}
+          </Text>
+        </div>
+
+        {group.items.length > 0 && (
+          <Stack gap={6} pt={4} style={{ borderTop: "1px solid var(--mantine-color-gray-2)" }}>
+            {group.items.map((item) => (
+              <Group key={item.label} justify="space-between" gap="xs" wrap="nowrap">
+                <Text size="sm" c="dimmed">
+                  {item.label}
+                </Text>
+                <Text size="sm" fw={600} c={item.color}>
+                  {formatPrice(item.value)}
+                </Text>
+              </Group>
+            ))}
+          </Stack>
+        )}
+      </Stack>
     </Card>
   );
 }
