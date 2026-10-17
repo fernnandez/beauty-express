@@ -151,7 +151,7 @@ export function FinancialReports() {
   }, [report, commissionsEnabled]);
 
   return (
-    <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
+    <Container fluid px={{ base: "xs", sm: "md" }}>
       <Stack gap="lg">
         <Group justify="space-between" align="flex-end" wrap="wrap">
           <Title order={1} c="brand">

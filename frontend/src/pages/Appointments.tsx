@@ -1,4 +1,4 @@
-import { Button, Container, Group, Tabs, Text, Title } from "@mantine/core";
+import { Box, Button, Group, Tabs, Text, Title } from "@mantine/core";
 import { useNotifications } from "../hooks/useNotifications";
 
 import { IconCalendar, IconPlus, IconTable } from "@tabler/icons-react";
@@ -160,7 +160,9 @@ export function Appointments() {
   };
 
   return (
-    <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
+    <Box
+      style={{ width: "100%", paddingInline: "var(--mantine-spacing-md)" }}
+    >
       <Group justify="space-between" mb="xl">
         <Group gap="md">
           <Title order={1} c="brand">
@@ -320,6 +322,6 @@ export function Appointments() {
         confirmColor="orange"
         loading={reopenMutation.isPending}
       />
-    </Container>
+    </Box>
   );
 }
