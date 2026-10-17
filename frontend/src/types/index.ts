@@ -196,3 +196,51 @@ export interface CommissionCollaboratorSummary {
 
 // Re-export tipos da API
 export type { ApiError, ApiErrorResponse } from './api.types';
+
+// ===== Despesas =====
+export type ExpenseType = "one_time" | "recurring";
+
+export type ExpenseCategory =
+  | "aluguel"
+  | "contas"
+  | "salarios"
+  | "insumos"
+  | "impostos"
+  | "marketing"
+  | "outros";
+
+export interface Expense {
+  id: string;
+  description: string;
+  category: ExpenseCategory;
+  amount: number;
+  type: ExpenseType;
+  date?: string | null;
+  dayOfMonth?: number | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  isActive: boolean;
+}
+
+export interface CreateExpenseDto {
+  description: string;
+  category: ExpenseCategory;
+  amount: number;
+  type: ExpenseType;
+  date?: string;
+  dayOfMonth?: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface UpdateExpenseDto {
+  description?: string;
+  category?: ExpenseCategory;
+  amount?: number;
+  type?: ExpenseType;
+  date?: string | null;
+  dayOfMonth?: number | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  isActive?: boolean;
+}

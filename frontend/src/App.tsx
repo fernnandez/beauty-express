@@ -19,6 +19,7 @@ import { Collaborators } from "./pages/Collaborators";
 import { CollaboratorProfile } from "./pages/CollaboratorProfile";
 import { Commissions } from "./pages/Commissions";
 import { Dashboard } from "./pages/Dashboard";
+import { Expenses } from "./pages/Expenses";
 import { FinancialReports } from "./pages/FinancialReports";
 import { BackofficeApp } from "./backoffice/BackofficeApp";
 import { Login } from "./pages/Login";
@@ -94,6 +95,7 @@ function App() {
                             path="/financial-reports"
                             element={<FinancialReports />}
                           />
+                          <Route path="/expenses" element={<Expenses />} />
                           <Route path="/settings" element={<Settings />} />
                         </Routes>
                       </Layout>

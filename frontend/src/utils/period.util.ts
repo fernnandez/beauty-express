@@ -71,3 +71,52 @@ export function shiftMonth(period: Period, delta: number): Period {
   ).plus({ months: delta });
   return { year: dt.year, month: dt.month, fortnight: period.fortnight };
 }
+
+/** Rótulo "mês/ano" simples para um ano/mês, ex.: "Outubro 2026". */
+export function monthLabelFrom(year: number, month: number): string {
+  return monthLabel({ year, month, fortnight: "full" });
+}
+
+interface ExpenseLike {
+  type: "one_time" | "recurring";
+  date?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  isActive: boolean;
+}
+
+/**
+ * Diz se uma despesa incide em um mês específico.
+ * - Esporádica: a data cai dentro do mês.
+ * - Recorrente: está ativa e vigente em algum momento do mês.
+ */
+export function expenseIncidesInMonth(
+  expense: ExpenseLike,
+  year: number,
+  month: number,
+): boolean {
+  const monthStart = DateTime.fromObject(
+    { year, month, day: 1 },
+    { zone: ZONE },
+  ).startOf("month");
+  const monthEnd = monthStart.endOf("month");
+
+  if (expense.type === "one_time") {
+    if (!expense.date) return false;
+    const d = DateTime.fromISO(expense.date, { zone: ZONE });
+    return d >= monthStart && d <= monthEnd;
+  }
+
+  // recorrente
+  if (!expense.isActive) return false;
+  const vigStart = expense.startDate
+    ? DateTime.fromISO(expense.startDate, { zone: ZONE }).startOf("day")
+    : null;
+  const vigEnd = expense.endDate
+    ? DateTime.fromISO(expense.endDate, { zone: ZONE }).endOf("day")
+    : null;
+
+  const startsBeforeMonthEnds = !vigStart || vigStart <= monthEnd;
+  const endsAfterMonthStarts = !vigEnd || vigEnd >= monthStart;
+  return startsBeforeMonthEnds && endsAfterMonthStarts;
+}
