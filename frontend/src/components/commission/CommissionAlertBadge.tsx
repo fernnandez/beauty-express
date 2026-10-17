@@ -1,9 +1,5 @@
 import { Badge, Tooltip } from "@mantine/core";
-import {
-  IconAlertTriangle,
-  IconCircleCheck,
-  IconClock,
-} from "@tabler/icons-react";
+import { IconAlertTriangle, IconCircleCheck } from "@tabler/icons-react";
 import type { CollaboratorCommissionAlert } from "../../types";
 import { formatPrice } from "../../utils/money.util";
 
@@ -12,34 +8,15 @@ interface CommissionAlertBadgeProps {
 }
 
 /**
- * Badge de conciliação de comissões por colaborador:
- * - vermelho: há comissões vencidas não pagas (mostra valor atrasado)
- * - amarelo: só há pendentes dentro do prazo
- * - verde: em dia (sem não pagas)
+ * Badge de conciliação de comissões por colaborador. Dois estados:
+ * - vermelho "Atrasado": há comissões vencidas não pagas (mostra o valor)
+ * - verde "Em dia": todo o resto (inclui pendências ainda no prazo)
  */
 export function CommissionAlertBadge({ alert }: CommissionAlertBadgeProps) {
-  if (!alert || alert.status === "ok") {
-    return (
-      <Tooltip label="Sem comissões pendentes" withArrow>
-        <Badge
-          color="green"
-          variant="light"
-          leftSection={<IconCircleCheck size={13} />}
-        >
-          Em dia
-        </Badge>
-      </Tooltip>
-    );
-  }
-
-  if (alert.status === "overdue") {
+  if (alert?.status === "overdue") {
     return (
       <Tooltip
-        label={`${alert.overdueCount} comissão(ões) atrasada(s)${
-          alert.pendingCount > 0
-            ? ` · ${formatPrice(alert.pendingAmount)} ainda no prazo`
-            : ""
-        }`}
+        label={`${alert.overdueCount} comissão(ões) vencida(s) não paga(s)`}
         withArrow
       >
         <Badge
@@ -54,16 +31,13 @@ export function CommissionAlertBadge({ alert }: CommissionAlertBadgeProps) {
   }
 
   return (
-    <Tooltip
-      label={`${alert.pendingCount} comissão(ões) a pagar dentro do prazo`}
-      withArrow
-    >
+    <Tooltip label="Sem comissões vencidas" withArrow>
       <Badge
-        color="yellow"
+        color="green"
         variant="light"
-        leftSection={<IconClock size={13} />}
+        leftSection={<IconCircleCheck size={13} />}
       >
-        Pendente · {formatPrice(alert.pendingAmount)}
+        Em dia
       </Badge>
     </Tooltip>
   );
