@@ -3,6 +3,7 @@ import {
   Container,
   Group,
   SimpleGrid,
+  Stack,
   Text,
   ThemeIcon,
   Title,
@@ -93,37 +94,57 @@ export function Dashboard() {
   };
 
   return (
-    <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
-      <Group gap="md" mb="xl">
-        <Title order={1} c="brand">
-          Dashboard
+    <Container fluid px={{ base: "xs", sm: "md" }}>
+      <Stack gap={2} mb="xl">
+        <Title order={1} c="brand" fz={{ base: 28, sm: 34 }}>
+          Olá, bem-vindo 👋
         </Title>
-      </Group>
+        <Text c="dimmed">
+          Aqui está um resumo rápido do seu negócio.
+        </Text>
+      </Stack>
 
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
         {visibleCards.map((card) => {
           const Icon = card.icon;
+          const count = getCount(card.path);
           return (
             <Card
               key={card.path}
-              shadow="sm"
-              padding="lg"
-              radius="md"
-              withBorder
-              style={{ cursor: "pointer" }}
+              padding="xl"
+              radius="lg"
+              style={{
+                cursor: "pointer",
+                transition: "transform 160ms ease, box-shadow 160ms ease",
+              }}
               onClick={() => navigate(card.path)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.boxShadow =
+                  "0 12px 32px rgba(16, 24, 40, 0.12)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow =
+                  "0 2px 8px rgba(16, 24, 40, 0.06)";
+              }}
             >
-              <Group justify="space-between" mb="xs">
-                <ThemeIcon color={card.color} size={40} radius="md">
-                  <Icon size={24} />
+              <Group justify="space-between" align="flex-start" mb="md">
+                <ThemeIcon
+                  color={card.color}
+                  size={52}
+                  radius="md"
+                  variant="light"
+                >
+                  <Icon size={26} />
                 </ThemeIcon>
-                {getCount(card.path) !== null && (
-                  <Text size="xl" fw={700}>
-                    {getCount(card.path)}
+                {count !== null && (
+                  <Text fz={28} fw={800} lh={1}>
+                    {count}
                   </Text>
                 )}
               </Group>
-              <Text fw={500} size="lg" mb="xs">
+              <Text fw={700} size="lg">
                 {card.title}
               </Text>
               <Text size="sm" c="dimmed">
