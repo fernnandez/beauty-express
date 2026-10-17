@@ -33,6 +33,7 @@ describe('CommissionService', () => {
     findManyByIds: jest.fn(),
     update: jest.fn(),
     createQueryBuilder: jest.fn(),
+    findUnpaidWithServiceDate: jest.fn(),
   };
 
   const mockScheduledServiceRepository = {
@@ -84,6 +85,72 @@ describe('CommissionService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('getCollaboratorAlerts', () => {
+    const dateISO = (iso: string) => new Date(`${iso}T00:00:00-03:00`);
+
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(dateISO('2026-10-17'));
+      (mockTenantSettingsService.getFeatures as jest.Mock).mockResolvedValue({
+        commissionsEnabled: true,
+        financialReportsMode: 'full',
+        periodMode: 'biweekly',
+      });
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('classifica atrasado e pendente por colaborador (quinzenal 15/31)', async () => {
+      mockCommissionRepository.findUnpaidWithServiceDate.mockResolvedValue([
+        // col-1: serviço 05/10 vence 15/10 -> hoje 17/10 => ATRASADO
+        { collaboratorId: 'col-1', amount: 100, serviceDate: dateISO('2026-10-05') },
+        // col-1: serviço 16/10 vence 31/10 -> hoje 17/10 => PENDENTE
+        { collaboratorId: 'col-1', amount: 50, serviceDate: dateISO('2026-10-16') },
+        // col-2: serviço 20/10 vence 31/10 -> PENDENTE
+        { collaboratorId: 'col-2', amount: 30, serviceDate: dateISO('2026-10-20') },
+      ]);
+
+      const alerts = await service.getCollaboratorAlerts();
+      const byId = Object.fromEntries(alerts.map((a) => [a.collaboratorId, a]));
+
+      expect(byId['col-1'].status).toBe('overdue');
+      expect(byId['col-1'].overdueAmount).toBe(100);
+      expect(byId['col-1'].overdueCount).toBe(1);
+      expect(byId['col-1'].pendingAmount).toBe(50);
+      expect(byId['col-1'].pendingCount).toBe(1);
+
+      expect(byId['col-2'].status).toBe('pending');
+      expect(byId['col-2'].overdueCount).toBe(0);
+      expect(byId['col-2'].pendingAmount).toBe(30);
+    });
+
+    it('modo mensal: só vence no fim do mês', async () => {
+      (mockTenantSettingsService.getFeatures as jest.Mock).mockResolvedValue({
+        commissionsEnabled: true,
+        financialReportsMode: 'full',
+        periodMode: 'monthly',
+      });
+
+      mockCommissionRepository.findUnpaidWithServiceDate.mockResolvedValue([
+        // serviço 05/10 vence 31/10 -> hoje 17/10 => PENDENTE (não atrasa no mensal)
+        { collaboratorId: 'col-1', amount: 100, serviceDate: dateISO('2026-10-05') },
+        // serviço 05/09 vence 30/09 -> hoje 17/10 => ATRASADO
+        { collaboratorId: 'col-1', amount: 70, serviceDate: dateISO('2026-09-05') },
+      ]);
+
+      const alerts = await service.getCollaboratorAlerts();
+      expect(alerts[0].status).toBe('overdue');
+      expect(alerts[0].overdueAmount).toBe(70);
+      expect(alerts[0].pendingAmount).toBe(100);
+    });
+
+    it('sem comissões não pagas retorna lista vazia', async () => {
+      mockCommissionRepository.findUnpaidWithServiceDate.mockResolvedValue([]);
+      expect(await service.getCollaboratorAlerts()).toEqual([]);
+    });
   });
 
   describe('calculateCommission', () => {

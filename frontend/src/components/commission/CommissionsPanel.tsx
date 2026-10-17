@@ -38,10 +38,11 @@ import { useNotifications } from "../../hooks/useNotifications";
 import { formatDate } from "../../utils/appointment.utils";
 import { formatPrice, toMoney } from "../../utils/money.util";
 import {
-  currentMonthPeriod,
+  initialPeriodForMode,
   periodToDateRange,
   type Period,
 } from "../../utils/period.util";
+import { useOperationalBranding } from "../../hooks/useOperationalBranding";
 
 interface CommissionsPanelProps {
   /**
@@ -70,6 +71,7 @@ export function CommissionsPanel({
   withTablePageLayout = true,
 }: CommissionsPanelProps) {
   const isScoped = Boolean(fixedCollaboratorId);
+  const { periodMode } = useOperationalBranding();
 
   const [selectedCommissions, setSelectedCommissions] = useState<Set<string>>(
     new Set(),
@@ -81,7 +83,9 @@ export function CommissionsPanel({
   const [statusFilter, setStatusFilter] = useState<"pending" | "paid" | "all">(
     "pending",
   );
-  const [period, setPeriod] = useState<Period>(() => currentMonthPeriod());
+  const [period, setPeriod] = useState<Period>(() =>
+    initialPeriodForMode(periodMode),
+  );
   const [markAsPaidModalOpened, setMarkAsPaidModalOpened] = useState(false);
   const [markAsUnpaidModalOpened, setMarkAsUnpaidModalOpened] = useState(false);
 
@@ -257,14 +261,14 @@ export function CommissionsPanel({
             leftSection={<IconFilter size={16} />}
             style={{ maxWidth: 160 }}
           />
-          <PeriodFilter value={period} onChange={setPeriod} />
+          <PeriodFilter value={period} onChange={setPeriod} mode={periodMode} />
           {hasActiveFilters && (
             <ActionIcon
               variant="light"
               color="gray"
               onClick={() => {
                 setStatusFilter("pending");
-                setPeriod(currentMonthPeriod());
+                setPeriod(initialPeriodForMode(periodMode));
                 setCollaboratorFilter([]);
               }}
               title="Limpar filtros"

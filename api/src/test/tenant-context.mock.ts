@@ -16,7 +16,12 @@ export const mockTenantContextService: Pick<
 
 export const mockTenantSettingsService: Pick<
   TenantSettingsService,
-  'areCommissionsEnabled'
+  'areCommissionsEnabled' | 'getFeatures'
 > = {
   areCommissionsEnabled: jest.fn().mockResolvedValue(true),
+  getFeatures: jest.fn().mockResolvedValue({
+    commissionsEnabled: true,
+    financialReportsMode: 'full',
+    periodMode: 'biweekly',
+  }),
 };

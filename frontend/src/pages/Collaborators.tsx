@@ -12,6 +12,7 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import {
+  IconAlertTriangle,
   IconInfoCircle,
   IconPlus,
   IconSearch,
@@ -22,6 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { RowActions } from "../components/RowActions";
 import { TablePage } from "../components/TablePage";
+import { CommissionAlertBadge } from "../components/commission/CommissionAlertBadge";
 import { CollaboratorCreateModal } from "../components/collaborator/CollaboratorCreateModal";
 import { CollaboratorEditModal } from "../components/collaborator/CollaboratorEditModal";
 import {
@@ -29,8 +31,11 @@ import {
   useDeleteCollaborator,
   useUpdateCollaborator,
 } from "../hooks/useCollaborators";
+import { useCommissionAlerts } from "../hooks/useCommissions";
+import { useOperationalBranding } from "../hooks/useOperationalBranding";
 import { useNotifications } from "../hooks/useNotifications";
 import { MESSAGES } from "../constants/messages.constants";
+import { formatPrice } from "../utils/money.util";
 import type { Collaborator } from "../types";
 
 export function Collaborators() {
@@ -40,6 +45,17 @@ export function Collaborators() {
   const { data: collaborators, isLoading } = useCollaborators(
     debouncedSearchTerm.trim() || undefined
   );
+  const { commissionsEnabled } = useOperationalBranding();
+  const { data: alerts } = useCommissionAlerts(commissionsEnabled);
+  const alertByCollaborator = new Map(
+    (alerts ?? []).map((alert) => [alert.collaboratorId, alert]),
+  );
+  const overdueTotal = (alerts ?? [])
+    .filter((a) => a.status === "overdue")
+    .reduce((sum, a) => sum + a.overdueAmount, 0);
+  const overdueCollaborators = (alerts ?? []).filter(
+    (a) => a.status === "overdue",
+  ).length;
   const deleteMutation = useDeleteCollaborator();
   const updateMutation = useUpdateCollaborator();
   const { showSuccess, showError } = useNotifications();
@@ -133,6 +149,19 @@ export function Collaborators() {
             A exclusão de colaboradores está desabilitada por hora. Para
             desativar um colaborador, utilize a opção de edição.
           </Alert>
+
+          {commissionsEnabled && overdueCollaborators > 0 && (
+            <Alert
+              icon={<IconAlertTriangle size={16} />}
+              title="Comissões atrasadas"
+              color="red"
+              variant="light"
+            >
+              {overdueCollaborators} colaborador(es) com comissões vencidas não
+              pagas, totalizando {formatPrice(overdueTotal)}. Verifique a coluna
+              "Comissões" para conciliar os pagamentos.
+            </Alert>
+          )}
         </Stack>
       }
     >
@@ -148,6 +177,7 @@ export function Collaborators() {
               <Table.Th>Área de Atuação</Table.Th>
               <Table.Th>Telefone</Table.Th>
               <Table.Th>Status</Table.Th>
+              {commissionsEnabled && <Table.Th>Comissões</Table.Th>}
               <Table.Th>Ações</Table.Th>
             </Table.Tr>
           </Table.Thead>
@@ -166,6 +196,13 @@ export function Collaborators() {
                     {collaborator.isActive ? "Ativo" : "Inativo"}
                   </Badge>
                 </Table.Td>
+                {commissionsEnabled && (
+                  <Table.Td>
+                    <CommissionAlertBadge
+                      alert={alertByCollaborator.get(collaborator.id)}
+                    />
+                  </Table.Td>
+                )}
                 <Table.Td onClick={(e) => e.stopPropagation()}>
                   <RowActions
                     onView={() =>

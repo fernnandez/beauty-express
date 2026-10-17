@@ -209,6 +209,36 @@ export class CommissionRepository extends Repository<Commission> {
     };
   }
 
+  /**
+   * Comissões não pagas do tenant com a data do agendamento, usadas para
+   * calcular alertas de atraso. Retorna apenas os campos necessários.
+   */
+  async findUnpaidWithServiceDate(
+    tenantId: string,
+  ): Promise<
+    { collaboratorId: string; amount: number; serviceDate: Date | null }[]
+  > {
+    const rows = await this.createQueryBuilder('commission')
+      .leftJoin('commission.scheduledService', 'scheduledService')
+      .leftJoin('scheduledService.appointment', 'appointment')
+      .select('commission.collaboratorId', 'collaboratorId')
+      .addSelect('commission.amount', 'amount')
+      .addSelect('appointment.date', 'serviceDate')
+      .where('commission.tenantId = :tenantId', { tenantId })
+      .andWhere('commission.paid = false')
+      .getRawMany<{
+        collaboratorId: string;
+        amount: string;
+        serviceDate: Date | string | null;
+      }>();
+
+    return rows.map((row) => ({
+      collaboratorId: row.collaboratorId,
+      amount: Number(row.amount ?? 0),
+      serviceDate: row.serviceDate ? new Date(row.serviceDate) : null,
+    }));
+  }
+
   private applyFilters(
     queryBuilder: SelectQueryBuilder<Commission>,
     filters: CommissionFilterParams,

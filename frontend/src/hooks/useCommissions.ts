@@ -26,6 +26,14 @@ export const useCommissions = (
 
 export { COMMISSIONS_PAGE_SIZE };
 
+export const useCommissionAlerts = (enabled = true) => {
+  return useQuery({
+    queryKey: ['commission-alerts'],
+    queryFn: () => commissionService.getAlerts(),
+    enabled,
+  });
+};
+
 export const useCollaboratorCommissionSummary = (
   collaboratorId?: string,
   filters?: {

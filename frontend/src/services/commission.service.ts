@@ -1,5 +1,9 @@
 import { api } from '../config/api';
-import type { CommissionListResponse, CommissionCollaboratorSummary } from '../types';
+import type {
+  CommissionListResponse,
+  CommissionCollaboratorSummary,
+  CollaboratorCommissionAlert,
+} from '../types';
 
 export const COMMISSIONS_PAGE_SIZE = 50;
 
@@ -66,6 +70,13 @@ export const commissionService = {
       queryString ? `?${queryString}` : ''
     }`;
     const response = await api.get<CommissionCollaboratorSummary>(url);
+    return response.data;
+  },
+
+  getAlerts: async (): Promise<CollaboratorCommissionAlert[]> => {
+    const response = await api.get<CollaboratorCommissionAlert[]>(
+      '/commissions/alerts',
+    );
     return response.data;
   },
 

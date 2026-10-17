@@ -20,7 +20,12 @@ import {
   CommissionFilterParams,
   CommissionListResult,
   CommissionCollaboratorSummary,
+  CollaboratorCommissionAlert,
 } from '../repositories/commission-list.types';
+import {
+  isCommissionOverdue,
+  resolvePayoutDays,
+} from './commission-payout.util';
 
 @Injectable({ scope: Scope.REQUEST })
 export class CommissionService {
@@ -148,6 +153,62 @@ export class CommissionService {
       collaboratorId,
       filters ?? {},
     );
+  }
+
+  /**
+   * Alertas de comissão por colaborador: classifica as comissões não pagas em
+   * atrasadas (vencidas, D+1) e pendentes (dentro do prazo), somando valores.
+   * Usa o regime de período do tenant (ou override) para derivar vencimentos.
+   */
+  async getCollaboratorAlerts(): Promise<CollaboratorCommissionAlert[]> {
+    const tenantId = this.getTenantId();
+    const features = await this.tenantSettingsService.getFeatures(tenantId);
+    const payoutDays = resolvePayoutDays(
+      features.periodMode,
+      features.commissionPayoutDays,
+    );
+    const now = new Date();
+
+    const unpaid =
+      await this.commissionRepository.findUnpaidWithServiceDate(tenantId);
+
+    const byCollaborator = new Map<string, CollaboratorCommissionAlert>();
+
+    for (const row of unpaid) {
+      const current =
+        byCollaborator.get(row.collaboratorId) ??
+        ({
+          collaboratorId: row.collaboratorId,
+          status: 'ok',
+          overdueAmount: 0,
+          overdueCount: 0,
+          pendingAmount: 0,
+          pendingCount: 0,
+        } as CollaboratorCommissionAlert);
+
+      // Sem data do agendamento não há como derivar vencimento → trata como pendente.
+      const overdue = row.serviceDate
+        ? isCommissionOverdue(row.serviceDate, payoutDays, now)
+        : false;
+
+      if (overdue) {
+        current.overdueAmount += row.amount;
+        current.overdueCount += 1;
+      } else {
+        current.pendingAmount += row.amount;
+        current.pendingCount += 1;
+      }
+
+      byCollaborator.set(row.collaboratorId, current);
+    }
+
+    // Define o status final e arredonda os valores monetários.
+    return Array.from(byCollaborator.values()).map((alert) => ({
+      ...alert,
+      overdueAmount: Math.round(alert.overdueAmount * 100) / 100,
+      pendingAmount: Math.round(alert.pendingAmount * 100) / 100,
+      status: alert.overdueCount > 0 ? 'overdue' : 'pending',
+    }));
   }
 
   private async markCommissionsStatus(

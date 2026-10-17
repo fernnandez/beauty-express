@@ -194,6 +194,17 @@ export interface CommissionCollaboratorSummary {
   uniqueClients: number;
 }
 
+export type CommissionAlertStatus = "overdue" | "pending" | "ok";
+
+export interface CollaboratorCommissionAlert {
+  collaboratorId: string;
+  status: CommissionAlertStatus;
+  overdueAmount: number;
+  overdueCount: number;
+  pendingAmount: number;
+  pendingCount: number;
+}
+
 // Re-export tipos da API
 export type { ApiError, ApiErrorResponse } from './api.types';
 

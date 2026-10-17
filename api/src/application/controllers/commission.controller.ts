@@ -114,6 +114,19 @@ export class CommissionController {
     );
   }
 
+  @Get('alerts')
+  @ApiOperation({
+    summary: 'Alertas de comissões não pagas por colaborador (atraso/pendência)',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Lista por colaborador com status (overdue/pending/ok) e valores atrasados/pendentes',
+  })
+  async getCollaboratorAlerts() {
+    return await this.commissionDomainService.getCollaboratorAlerts();
+  }
+
   @Get('collaborator/:collaboratorId/summary')
   @ApiOperation({
     summary: 'Get commission summary for a single collaborator',
