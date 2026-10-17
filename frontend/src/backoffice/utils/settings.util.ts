@@ -14,6 +14,7 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettings = {
   features: {
     commissionsEnabled: true,
     financialReportsMode: 'full',
+    periodMode: 'biweekly',
   },
 };
 
@@ -42,6 +43,12 @@ export function normalizeTenantSettings(
         settings?.features?.financialReportsMode === 'revenue_only'
           ? 'revenue_only'
           : 'full',
+      periodMode:
+        settings?.features?.periodMode === 'monthly' ? 'monthly' : 'biweekly',
+      ...(settings?.features?.commissionPayoutDays &&
+      settings.features.commissionPayoutDays.length > 0
+        ? { commissionPayoutDays: settings.features.commissionPayoutDays }
+        : {}),
     },
   };
 }

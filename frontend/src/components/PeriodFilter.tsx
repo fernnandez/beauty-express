@@ -5,17 +5,21 @@ import {
   shiftMonth,
   type Fortnight,
   type Period,
+  type PeriodMode,
 } from "../utils/period.util";
 
 interface PeriodFilterProps {
   value: Period;
   onChange: (period: Period) => void;
+  /** Regime do estabelecimento. 'monthly' esconde o seletor de quinzena. */
+  mode?: PeriodMode;
 }
 
 /**
  * Navegação de período por mês (setas) + quinzena (mês inteiro / 1ª / 2ª).
+ * No modo mensal o seletor de quinzena fica oculto.
  */
-export function PeriodFilter({ value, onChange }: PeriodFilterProps) {
+export function PeriodFilter({ value, onChange, mode = "biweekly" }: PeriodFilterProps) {
   return (
     <Group gap="sm" wrap="wrap">
       <Group gap={4} wrap="nowrap">
@@ -44,16 +48,18 @@ export function PeriodFilter({ value, onChange }: PeriodFilterProps) {
         </ActionIcon>
       </Group>
 
-      <SegmentedControl
-        size="sm"
-        value={value.fortnight}
-        onChange={(f) => onChange({ ...value, fortnight: f as Fortnight })}
-        data={[
-          { value: "full", label: "Mês" },
-          { value: "first", label: "1ª quinzena" },
-          { value: "second", label: "2ª quinzena" },
-        ]}
-      />
+      {mode === "biweekly" && (
+        <SegmentedControl
+          size="sm"
+          value={value.fortnight}
+          onChange={(f) => onChange({ ...value, fortnight: f as Fortnight })}
+          data={[
+            { value: "full", label: "Mês" },
+            { value: "first", label: "1ª quinzena" },
+            { value: "second", label: "2ª quinzena" },
+          ]}
+        />
+      )}
     </Group>
   );
 }

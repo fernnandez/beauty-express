@@ -1,9 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsIn,
+  IsInt,
   IsOptional,
+  Max,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { BrandingDto, PartialBrandingDto } from './branding.dto';
@@ -16,6 +21,19 @@ export class TenantFeatureSettingsDto {
   @ApiProperty({ enum: ['full', 'revenue_only'], example: 'full' })
   @IsIn(['full', 'revenue_only'])
   financialReportsMode: 'full' | 'revenue_only';
+
+  @ApiProperty({ enum: ['biweekly', 'monthly'], example: 'biweekly' })
+  @IsIn(['biweekly', 'monthly'])
+  periodMode: 'biweekly' | 'monthly';
+
+  @ApiProperty({ required: false, type: [Number], example: [15, 30] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(6)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @Max(31, { each: true })
+  commissionPayoutDays?: number[];
 }
 
 export class PartialTenantFeatureSettingsDto {
@@ -28,6 +46,20 @@ export class PartialTenantFeatureSettingsDto {
   @IsOptional()
   @IsIn(['full', 'revenue_only'])
   financialReportsMode?: 'full' | 'revenue_only';
+
+  @ApiProperty({ required: false, enum: ['biweekly', 'monthly'] })
+  @IsOptional()
+  @IsIn(['biweekly', 'monthly'])
+  periodMode?: 'biweekly' | 'monthly';
+
+  @ApiProperty({ required: false, type: [Number], example: [15, 30] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(6)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @Max(31, { each: true })
+  commissionPayoutDays?: number[];
 }
 
 export class TenantSettingsDto {

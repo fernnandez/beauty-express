@@ -19,6 +19,25 @@ export function currentMonthPeriod(): Period {
   return { year: now.year, month: now.month, fortnight: "full" };
 }
 
+export type PeriodMode = "biweekly" | "monthly";
+
+/**
+ * Período inicial conforme o regime do estabelecimento:
+ * - monthly: mês atual inteiro.
+ * - biweekly: quinzena vigente (1ª se hoje <= 15, senão 2ª).
+ */
+export function initialPeriodForMode(mode: PeriodMode): Period {
+  const now = DateTime.now().setZone(ZONE);
+  if (mode === "monthly") {
+    return { year: now.year, month: now.month, fortnight: "full" };
+  }
+  return {
+    year: now.year,
+    month: now.month,
+    fortnight: now.day <= 15 ? "first" : "second",
+  };
+}
+
 /** Converte o período em datas yyyy-MM-dd (início/fim) para a API. */
 export function periodToDateRange(period: Period): {
   startDate: string;

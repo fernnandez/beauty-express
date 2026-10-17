@@ -35,6 +35,16 @@ export function TenantFeaturesFormFields({
         ]}
         {...form.getInputProps(`${prefix}.financialReportsMode`)}
       />
+      <Select
+        label="Regime de período"
+        description="Define o padrão de período no app (quinzenal mostra 1ª/2ª quinzena) e o vencimento das comissões"
+        styles={backofficeSelectStyles}
+        data={[
+          { value: 'biweekly', label: 'Quinzenal (pagamentos dia 15 e fim do mês)' },
+          { value: 'monthly', label: 'Mensal (pagamento no fim do mês)' },
+        ]}
+        {...form.getInputProps(`${prefix}.periodMode`)}
+      />
     </Stack>
   );
 }

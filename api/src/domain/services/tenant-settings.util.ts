@@ -6,13 +6,20 @@ import {
   TenantSettings,
   TenantSettingsResponse,
 } from '../types/tenant-settings.types';
+import {
+  DEFAULT_PERIOD_MODE,
+  normalizePayoutDays,
+} from './commission-payout.util';
 
 export const DEFAULT_PRIMARY_COLOR = '#e64980';
 export const DEFAULT_ACCENT_COLOR = '#faf5ff';
 
 export function defaultTenantSettings(
   displayName = 'Beauty Express',
-  overrides?: Partial<TenantSettings> | null,
+  overrides?: {
+    branding?: Partial<TenantBranding>;
+    features?: Partial<TenantFeatureSettings>;
+  } | null,
 ): TenantSettings {
   const base: TenantSettings = {
     branding: {
@@ -25,6 +32,7 @@ export function defaultTenantSettings(
     features: {
       commissionsEnabled: true,
       financialReportsMode: 'full',
+      periodMode: DEFAULT_PERIOD_MODE,
     },
   };
 
@@ -44,6 +52,23 @@ export function normalizeTenantSettings(
 ): TenantSettingsResponse {
   const defaults = defaultTenantSettings(fallbackDisplayName, raw ?? undefined);
 
+  const payoutOverride = defaults.features.commissionPayoutDays;
+
+  const features: TenantFeatureSettings = {
+    commissionsEnabled: defaults.features.commissionsEnabled !== false,
+    financialReportsMode:
+      defaults.features.financialReportsMode === 'revenue_only'
+        ? 'revenue_only'
+        : 'full',
+    periodMode:
+      defaults.features.periodMode === 'monthly' ? 'monthly' : 'biweekly',
+  };
+
+  // Só persiste os dias de pagamento quando houver override explícito válido.
+  if (payoutOverride && payoutOverride.length > 0) {
+    features.commissionPayoutDays = normalizePayoutDays(payoutOverride);
+  }
+
   return {
     branding: {
       displayName:
@@ -53,13 +78,7 @@ export function normalizeTenantSettings(
       primaryColor: defaults.branding.primaryColor || DEFAULT_PRIMARY_COLOR,
       accentColor: defaults.branding.accentColor || DEFAULT_ACCENT_COLOR,
     },
-    features: {
-      commissionsEnabled: defaults.features.commissionsEnabled !== false,
-      financialReportsMode:
-        defaults.features.financialReportsMode === 'revenue_only'
-          ? 'revenue_only'
-          : 'full',
-    },
+    features,
   };
 }
 

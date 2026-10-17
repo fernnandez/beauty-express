@@ -15,6 +15,7 @@ const DEFAULT_TENANT_SETTINGS: TenantSettings = {
   features: {
     commissionsEnabled: true,
     financialReportsMode: 'full',
+    periodMode: 'biweekly',
   },
 };
 
@@ -22,6 +23,7 @@ export function useOperationalBranding(): {
   branding: TenantBranding | LoginBranding;
   settings: TenantSettings;
   commissionsEnabled: boolean;
+  periodMode: 'biweekly' | 'monthly';
 } {
   const { user } = useAuth();
 
@@ -35,6 +37,7 @@ export function useOperationalBranding(): {
       },
       settings,
       commissionsEnabled: settings.features.commissionsEnabled,
+      periodMode: settings.features.periodMode === 'monthly' ? 'monthly' : 'biweekly',
     };
   }, [
     user?.id,
@@ -44,5 +47,6 @@ export function useOperationalBranding(): {
     user?.tenantSettings?.branding.logoUrl,
     user?.tenantSettings?.features.commissionsEnabled,
     user?.tenantSettings?.features.financialReportsMode,
+    user?.tenantSettings?.features.periodMode,
   ]);
 }
