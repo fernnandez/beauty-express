@@ -1,16 +1,15 @@
 import {
   Alert,
-  Avatar,
   Box,
   Button,
   Center,
+  Image,
   Loader,
   Paper,
   PasswordInput,
   Stack,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
@@ -108,10 +107,12 @@ export function Login() {
       <Paper shadow="md" radius="lg" p="xl" w={420} withBorder>
         <Stack gap="lg">
           <Stack gap="xs" align="center">
-            <Avatar src={branding.logoUrl || '/logo.png'} size={64} radius="md" />
-            <Title order={2} ta="center">
-              {branding.displayName}
-            </Title>
+            <Image
+              src="/logo-ageendoo.svg"
+              alt="Ageendoo"
+              w={200}
+              fit="contain"
+            />
             <Text c="dimmed" size="sm" ta="center">
               Entre com seu e-mail e senha
             </Text>
