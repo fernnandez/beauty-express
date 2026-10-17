@@ -17,6 +17,7 @@ import {
   IconHome,
   IconLogout,
   IconScissors,
+  IconSettings,
   IconUserCircle,
   IconUsers,
 } from "@tabler/icons-react";
@@ -47,6 +48,7 @@ const navigationItems = [
     requiresCommissions: true,
   },
   { icon: IconChartBar, label: "Relatórios", path: "/financial-reports" },
+  { icon: IconSettings, label: "Configurações", path: "/settings" },
 ];
 
 const BOTTOM_NAV_HEIGHT = 64;

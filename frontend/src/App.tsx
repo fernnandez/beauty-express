@@ -22,6 +22,7 @@ import { FinancialReports } from "./pages/FinancialReports";
 import { BackofficeApp } from "./backoffice/BackofficeApp";
 import { Login } from "./pages/Login";
 import { Services } from "./pages/Services";
+import { Settings } from "./pages/Settings";
 
 const rootTheme = createTheme({
   primaryColor: "gray",
@@ -92,6 +93,7 @@ function App() {
                             path="/financial-reports"
                             element={<FinancialReports />}
                           />
+                          <Route path="/settings" element={<Settings />} />
                         </Routes>
                       </Layout>
                     </OperationalThemeProvider>
