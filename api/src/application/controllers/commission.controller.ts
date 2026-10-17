@@ -3,11 +3,12 @@ import {
   Get,
   Put,
   Body,
+  Param,
   Query,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CommissionService } from '@domain/services/commission.service';
 import { endOfDay, parseDateString } from '../../utils/date.util';
 import { validateDateFormat } from '../../common/utils/date-validation.util';
@@ -110,6 +111,54 @@ export class CommissionController {
       Object.keys(filters).length > 0 ? filters : undefined,
       parsedPage,
       parsedLimit,
+    );
+  }
+
+  @Get('collaborator/:collaboratorId/summary')
+  @ApiOperation({
+    summary: 'Get commission summary for a single collaborator',
+  })
+  @ApiParam({ name: 'collaboratorId', type: String })
+  @ApiQuery({ name: 'paid', required: false, type: Boolean })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Aggregated summary: services count, commission totals and unique clients',
+  })
+  async getCollaboratorSummary(
+    @Param('collaboratorId') collaboratorId: string,
+    @Query('paid') paid?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('search') search?: string,
+  ) {
+    const filters: CommissionFilterParams = {};
+
+    if (paid !== undefined) {
+      filters.paid = paid === 'true';
+    }
+
+    if (startDate) {
+      validateDateFormat(startDate);
+      filters.startDate = parseDateString(startDate);
+    }
+
+    if (endDate) {
+      validateDateFormat(endDate);
+      filters.endDate = endOfDay(endDate);
+    }
+
+    const trimmedSearch = search?.trim();
+    if (trimmedSearch) {
+      filters.search = trimmedSearch;
+    }
+
+    return await this.commissionDomainService.getCollaboratorSummary(
+      collaboratorId,
+      filters,
     );
   }
 

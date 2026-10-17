@@ -29,6 +29,7 @@ describe('CommissionService', () => {
     findByScheduledServiceId: jest.fn(),
     findByFilters: jest.fn(),
     findPaginated: jest.fn(),
+    getCollaboratorSummary: jest.fn(),
     findManyByIds: jest.fn(),
     update: jest.fn(),
     createQueryBuilder: jest.fn(),
@@ -431,6 +432,51 @@ describe('CommissionService', () => {
       );
     });
   });
+  describe('getCollaboratorSummary', () => {
+    const mockSummary = {
+      servicesCount: 3,
+      totalAmount: 120,
+      pendingAmount: 70,
+      paidAmount: 50,
+      uniqueClients: 2,
+    };
+
+    it('should return the collaborator summary with tenant from context', async () => {
+      mockCommissionRepository.getCollaboratorSummary.mockResolvedValue(
+        mockSummary,
+      );
+
+      const result = await service.getCollaboratorSummary('collaborator-1');
+
+      expect(result).toEqual(mockSummary);
+      expect(
+        mockCommissionRepository.getCollaboratorSummary,
+      ).toHaveBeenCalledWith(TENANT_ID_MOCK, 'collaborator-1', {});
+    });
+
+    it('should forward filters to the repository', async () => {
+      const startDate = new Date('2024-12-01');
+      const endDate = new Date('2024-12-31');
+      mockCommissionRepository.getCollaboratorSummary.mockResolvedValue(
+        mockSummary,
+      );
+
+      await service.getCollaboratorSummary('collaborator-1', {
+        paid: false,
+        startDate,
+        endDate,
+      });
+
+      expect(
+        mockCommissionRepository.getCollaboratorSummary,
+      ).toHaveBeenCalledWith(TENANT_ID_MOCK, 'collaborator-1', {
+        paid: false,
+        startDate,
+        endDate,
+      });
+    });
+  });
+
 
   describe('markAsPaid', () => {
     const mockCommissions: Commission[] = [

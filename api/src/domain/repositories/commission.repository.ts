@@ -5,6 +5,7 @@ import { Commission } from '../entities/commission.entity';
 import {
   CommissionFilterParams,
   CommissionListResult,
+  CommissionCollaboratorSummary,
 } from './commission-list.types';
 
 @Injectable()
@@ -165,6 +166,47 @@ export class CommissionRepository extends Repository<Commission> {
       .orderBy('appointment.date', 'DESC')
       .addOrderBy('appointment.startTime', 'DESC')
       .getMany();
+  }
+
+  async getCollaboratorSummary(
+    tenantId: string,
+    collaboratorId: string,
+    filters: CommissionFilterParams,
+  ): Promise<CommissionCollaboratorSummary> {
+    const summaryRaw = await this.createFilteredQueryBuilder(
+      tenantId,
+      { ...filters, collaboratorIds: [collaboratorId] },
+      false,
+    )
+      .select('COUNT(commission.id)', 'servicesCount')
+      .addSelect('COALESCE(SUM(commission.amount), 0)', 'totalAmount')
+      .addSelect(
+        'COALESCE(SUM(CASE WHEN commission.paid = false THEN commission.amount ELSE 0 END), 0)',
+        'pendingAmount',
+      )
+      .addSelect(
+        'COALESCE(SUM(CASE WHEN commission.paid = true THEN commission.amount ELSE 0 END), 0)',
+        'paidAmount',
+      )
+      .addSelect(
+        'COUNT(DISTINCT COALESCE(CAST(appointment.clientId AS text), LOWER(appointment.clientName)))',
+        'uniqueClients',
+      )
+      .getRawOne<{
+        servicesCount: string;
+        totalAmount: string;
+        pendingAmount: string;
+        paidAmount: string;
+        uniqueClients: string;
+      }>();
+
+    return {
+      servicesCount: Number(summaryRaw?.servicesCount ?? 0),
+      totalAmount: Number(summaryRaw?.totalAmount ?? 0),
+      pendingAmount: Number(summaryRaw?.pendingAmount ?? 0),
+      paidAmount: Number(summaryRaw?.paidAmount ?? 0),
+      uniqueClients: Number(summaryRaw?.uniqueClients ?? 0),
+    };
   }
 
   private applyFilters(

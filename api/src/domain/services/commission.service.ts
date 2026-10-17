@@ -19,6 +19,7 @@ import { AppointmentStatus } from '../entities/appointment.entity';
 import {
   CommissionFilterParams,
   CommissionListResult,
+  CommissionCollaboratorSummary,
 } from '../repositories/commission-list.types';
 
 @Injectable({ scope: Scope.REQUEST })
@@ -133,6 +134,19 @@ export class CommissionService {
       filters ?? {},
       page,
       limit,
+    );
+  }
+
+  async getCollaboratorSummary(
+    collaboratorId: string,
+    filters?: CommissionFilterParams,
+  ): Promise<CommissionCollaboratorSummary> {
+    const tenantId = this.getTenantId();
+
+    return await this.commissionRepository.getCollaboratorSummary(
+      tenantId,
+      collaboratorId,
+      filters ?? {},
     );
   }
 
