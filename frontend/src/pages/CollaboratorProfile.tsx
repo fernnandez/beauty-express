@@ -61,20 +61,20 @@ export function CollaboratorProfile() {
 
   const profileInfo = (
     <Stack gap="xs">
-      <Group gap="sm" wrap="nowrap">
+      <Group gap="sm" wrap="nowrap" align="center">
         {backButton}
-        <Title order={1} c="brand">
+        <Title order={1} c="brand" fz={{ base: 24, sm: 32 }} lineClamp={2}>
           {collaborator?.name ?? "Colaborador"}
         </Title>
-        {collaborator && (
+      </Group>
+      {collaborator && (
+        <Group gap="sm" wrap="wrap" pl={44}>
           <Badge color={collaborator.isActive ? "green" : "red"}>
             {collaborator.isActive ? "Ativo" : "Inativo"}
           </Badge>
-        )}
-        {collaborator && (
           <CollaboratorAccessControl collaboratorId={collaborator.id} />
-        )}
-      </Group>
+        </Group>
+      )}
       {collaborator && (
         <Group gap="lg" wrap="wrap" pl={44}>
           {collaborator.area && (
@@ -209,16 +209,16 @@ interface SummaryCardProps {
 
 function SummaryCard({ icon, color, label, value }: SummaryCardProps) {
   return (
-    <Card padding="lg" radius="lg" shadow="sm">
-      <Group gap="md" wrap="nowrap" align="center">
-        <ThemeIcon color={color} size={48} radius="md" variant="light">
+    <Card padding="md" radius="lg" shadow="sm">
+      <Group gap="sm" wrap="nowrap" align="center">
+        <ThemeIcon color={color} size={40} radius="md" variant="light">
           {icon}
         </ThemeIcon>
-        <Stack gap={2}>
-          <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+        <Stack gap={2} style={{ minWidth: 0, flex: 1 }}>
+          <Text size="xs" c="dimmed" tt="uppercase" fw={600} lineClamp={2}>
             {label}
           </Text>
-          <Text fz={24} fw={800} lh={1}>
+          <Text fz={{ base: 18, sm: 24 }} fw={800} lh={1.1}>
             {value}
           </Text>
         </Stack>
