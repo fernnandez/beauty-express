@@ -27,6 +27,10 @@ import { resetDatabaseSchema } from './db-reset.util';
 import {
   defaultTenantSettings,
 } from '../domain/services/tenant-settings.util';
+import {
+  resolvePayoutDays,
+  isCommissionOverdue,
+} from '../domain/services/commission-payout.util';
 
 const TENANT_PAULISTA_ID = 'c1000001-0001-4000-8000-000000000001';
 const TENANT_RECIFE_ID = 'c1000001-0001-4000-8000-000000000002';
@@ -602,6 +606,9 @@ async function seed() {
   today.setHours(0, 0, 0, 0);
   const generateId = () => randomUUID();
 
+  // Regime padrão (quinzenal): vencimentos no dia 15 e no fim do mês.
+  const PAYOUT_DAYS = resolvePayoutDays('biweekly');
+
   // Função auxiliar para criar comissão manualmente (para seed)
   const createCommission = async (
     scheduledService: ScheduledService,
@@ -690,11 +697,15 @@ async function seed() {
           (c) => c.id === servico.collaboratorId,
         );
         if (collaborator) {
-          await createCommission(
-            savedScheduledService,
-            collaborator,
-            servico.paid ?? false,
+          // Nenhuma comissão ATRASADA no seed: se o serviço já venceu (fora do
+          // ciclo de pagamento atual), marca como paga.
+          const overdue = isCommissionOverdue(
+            appointmentData.date,
+            PAYOUT_DAYS,
+            today,
           );
+          const paid = overdue ? true : servico.paid ?? false;
+          await createCommission(savedScheduledService, collaborator, paid);
         }
       }
     }
@@ -808,6 +819,60 @@ async function seed() {
 
   console.log(
     `✅ Histórico criado: ${historyAppointments} agendamentos, ${historyServices} serviços\n`,
+  );
+
+  // ========== MOVIMENTO DO MÊS CORRENTE ==========
+  // Garante receita suficiente para o Espaço Bella fechar o mês no lucro
+  // (receita > comissões + despesas). Atendimentos concluídos distribuídos
+  // do dia 1 até hoje, com serviços de maior ticket.
+  console.log('💰 Criando movimento do mês corrente...');
+
+  const highTicketServiceIds = [
+    coloracao, // 180
+    mechas, // 250
+    savedServices.find((s) => s.id === 'b0000001-0001-4000-8000-000000000005'), // Progressiva 350
+    botox, // 200
+    tratamento, // 120
+    corteFeminino, // 45
+  ]
+    .filter((s): s is NonNullable<typeof s> => Boolean(s))
+    .map((s) => s.id);
+
+  let currentMonthServices = 0;
+  const currentDay = today.getDate();
+
+  for (let day = 1; day <= currentDay; day++) {
+    const date = new Date(today.getFullYear(), today.getMonth(), day);
+    // 2 atendimentos por dia, cada um com 2 serviços de maior ticket.
+    for (let k = 0; k < 2; k++) {
+      const collaboratorId =
+        historyCollaboratorIds[(day + k) % historyCollaboratorIds.length];
+      const servicesForAppointment = [0, 1].map((j) => ({
+        serviceId:
+          highTicketServiceIds[(day + k + j) % highTicketServiceIds.length],
+        collaboratorId,
+        status: ScheduledServiceStatus.COMPLETED,
+        paid: true,
+      }));
+
+      const startHour = 9 + ((day + k) % 8);
+      await createAppointmentWithServices(
+        {
+          clientName: `Cliente ${day}-${k + 1}`,
+          clientPhone: `(11) 94444-${String(day).padStart(2, '0')}${k}0`,
+          date,
+          startTime: `${String(startHour).padStart(2, '0')}:00`,
+          endTime: `${String(startHour + 1).padStart(2, '0')}:30`,
+          status: AppointmentStatus.COMPLETED,
+        },
+        servicesForAppointment,
+      );
+      currentMonthServices += servicesForAppointment.length;
+    }
+  }
+
+  console.log(
+    `✅ Movimento do mês: ${currentDay * 2} agendamentos, ${currentMonthServices} serviços\n`,
   );
 
   // ========== DESPESAS ==========
