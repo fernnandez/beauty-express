@@ -17,7 +17,6 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
-import { useOperationalBranding } from "../hooks/useOperationalBranding";
 
 const dashboardCards = [
   {
@@ -73,11 +72,8 @@ const dashboardCards = [
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const { commissionsEnabled } = useOperationalBranding();
 
-  const visibleCards = dashboardCards.filter(
-    (card) => !card.requiresCommissions || commissionsEnabled,
-  );
+  const visibleCards = dashboardCards;
 
   return (
     <Box

@@ -7,7 +7,6 @@ import {
   Loader,
   Modal,
   ScrollArea,
-  Select,
   Stack,
   Switch,
   Table,
