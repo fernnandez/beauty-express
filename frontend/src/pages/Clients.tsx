@@ -2,8 +2,6 @@ import {
   Button,
   Group,
   Stack,
-  Table,
-  Text,
   TextInput,
   Title,
 } from "@mantine/core";
@@ -16,6 +14,7 @@ import { useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { RowActions } from "../components/RowActions";
 import { TablePage } from "../components/TablePage";
+import { DataTable } from "../components/DataTable";
 import { ClientCreateModal } from "../components/client/ClientCreateModal";
 import { ClientEditModal } from "../components/client/ClientEditModal";
 import { MESSAGES } from "../constants/messages.constants";
@@ -87,47 +86,22 @@ export function Clients() {
         </Stack>
       }
     >
-      <Table striped highlightOnHover miw={720}>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Nome</Table.Th>
-            <Table.Th>Telefone</Table.Th>
-            <Table.Th w={100}>Ações</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {isLoading ? (
-            <Table.Tr>
-              <Table.Td colSpan={3}>
-                <Text ta="center" c="dimmed">
-                  Carregando...
-                </Text>
-              </Table.Td>
-            </Table.Tr>
-          ) : clients && clients.length > 0 ? (
-            clients.map((client) => (
-              <Table.Tr key={client.id}>
-                <Table.Td>{client.name}</Table.Td>
-                <Table.Td>{client.phone}</Table.Td>
-                <Table.Td>
-                  <RowActions
-                    onEdit={() => handleEdit(client)}
-                    onDelete={() => handleDelete(client)}
-                  />
-                </Table.Td>
-              </Table.Tr>
-            ))
-          ) : (
-            <Table.Tr>
-              <Table.Td colSpan={3}>
-                <Text ta="center" c="dimmed">
-                  Nenhum cliente encontrado
-                </Text>
-              </Table.Td>
-            </Table.Tr>
-          )}
-        </Table.Tbody>
-      </Table>
+      <DataTable<Client>
+        data={clients ?? []}
+        loading={isLoading}
+        rowKey={(c) => c.id}
+        emptyMessage="Nenhum cliente encontrado"
+        columns={[
+          { key: "name", header: "Nome", primary: true, render: (c) => c.name },
+          { key: "phone", header: "Telefone", render: (c) => c.phone },
+        ]}
+        actions={(client) => (
+          <RowActions
+            onEdit={() => handleEdit(client)}
+            onDelete={() => handleDelete(client)}
+          />
+        )}
+      />
 
       <ClientCreateModal
         opened={createModalOpened}

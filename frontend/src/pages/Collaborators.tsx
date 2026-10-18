@@ -1,28 +1,20 @@
 import {
   ActionIcon,
-  Alert,
   Badge,
   Button,
   Group,
   Stack,
-  Table,
-  Text,
   TextInput,
   Title,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import {
-  IconAlertTriangle,
-  IconInfoCircle,
-  IconPlus,
-  IconSearch,
-  IconX,
-} from "@tabler/icons-react";
+import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { RowActions } from "../components/RowActions";
 import { TablePage } from "../components/TablePage";
+import { DataTable } from "../components/DataTable";
 import { CommissionAlertBadge } from "../components/commission/CommissionAlertBadge";
 import { CollaboratorCreateModal } from "../components/collaborator/CollaboratorCreateModal";
 import { CollaboratorEditModal } from "../components/collaborator/CollaboratorEditModal";
@@ -35,7 +27,6 @@ import { useCommissionAlerts } from "../hooks/useCommissions";
 import { useOperationalBranding } from "../hooks/useOperationalBranding";
 import { useNotifications } from "../hooks/useNotifications";
 import { MESSAGES } from "../constants/messages.constants";
-import { formatPrice } from "../utils/money.util";
 import type { Collaborator } from "../types";
 
 export function Collaborators() {
@@ -50,12 +41,6 @@ export function Collaborators() {
   const alertByCollaborator = new Map(
     (alerts ?? []).map((alert) => [alert.collaboratorId, alert]),
   );
-  const overdueTotal = (alerts ?? [])
-    .filter((a) => a.status === "overdue")
-    .reduce((sum, a) => sum + a.overdueAmount, 0);
-  const overdueCollaborators = (alerts ?? []).filter(
-    (a) => a.status === "overdue",
-  ).length;
   const deleteMutation = useDeleteCollaborator();
   const updateMutation = useUpdateCollaborator();
   const { showSuccess, showError } = useNotifications();
@@ -139,86 +124,52 @@ export function Collaborators() {
             onChange={(e) => setSearchTerm(e.currentTarget.value)}
             style={{ maxWidth: "100%" }}
           />
-
-          <Alert
-            icon={<IconInfoCircle size={16} />}
-            title="Informação"
-            color="blue"
-            variant="light"
-          >
-            A exclusão de colaboradores está desabilitada por hora. Para
-            desativar um colaborador, utilize a opção de edição.
-          </Alert>
-
-          {commissionsEnabled && overdueCollaborators > 0 && (
-            <Alert
-              icon={<IconAlertTriangle size={16} />}
-              title="Comissões atrasadas"
-              color="red"
-              variant="light"
-            >
-              {overdueCollaborators} colaborador(es) com comissões vencidas não
-              pagas, totalizando {formatPrice(overdueTotal)}. Verifique a coluna
-              "Comissões" para conciliar os pagamentos.
-            </Alert>
-          )}
         </Stack>
       }
     >
-      {isLoading ? (
-        <Text>Carregando...</Text>
-      ) : !collaborators || collaborators.length === 0 ? (
-        <Text c="dimmed">Nenhum colaborador encontrado.</Text>
-      ) : (
-        <Table striped highlightOnHover miw={720}>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Nome</Table.Th>
-              <Table.Th>Área de Atuação</Table.Th>
-              <Table.Th>Telefone</Table.Th>
-              <Table.Th>Status</Table.Th>
-              {commissionsEnabled && <Table.Th>Comissões</Table.Th>}
-              <Table.Th>Ações</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {collaborators.map((collaborator) => (
-              <Table.Tr
-                key={collaborator.id}
-                style={{ cursor: "pointer" }}
-                onClick={() => navigate(`/collaborators/${collaborator.id}`)}
-              >
-                <Table.Td>{collaborator.name}</Table.Td>
-                <Table.Td>{collaborator.area}</Table.Td>
-                <Table.Td>{collaborator.phone}</Table.Td>
-                <Table.Td>
-                  <Badge color={collaborator.isActive ? "green" : "red"}>
-                    {collaborator.isActive ? "Ativo" : "Inativo"}
-                  </Badge>
-                </Table.Td>
-                {commissionsEnabled && (
-                  <Table.Td>
+      <DataTable
+        data={collaborators ?? []}
+        loading={isLoading}
+        rowKey={(c) => c.id}
+        emptyMessage="Nenhum colaborador encontrado."
+        onRowClick={(c) => navigate(`/collaborators/${c.id}`)}
+        columns={[
+          { key: "name", header: "Nome", primary: true, render: (c) => c.name },
+          { key: "area", header: "Área de Atuação", render: (c) => c.area },
+          { key: "phone", header: "Telefone", render: (c) => c.phone },
+          {
+            key: "status",
+            header: "Status",
+            render: (c) => (
+              <Badge color={c.isActive ? "green" : "red"}>
+                {c.isActive ? "Ativo" : "Inativo"}
+              </Badge>
+            ),
+          },
+          ...(commissionsEnabled
+            ? [
+                {
+                  key: "commissions",
+                  header: "Comissões",
+                  render: (c: Collaborator) => (
                     <CommissionAlertBadge
-                      alert={alertByCollaborator.get(collaborator.id)}
+                      alert={alertByCollaborator.get(c.id)}
                     />
-                  </Table.Td>
-                )}
-                <Table.Td onClick={(e) => e.stopPropagation()}>
-                  <RowActions
-                    onView={() =>
-                      navigate(`/collaborators/${collaborator.id}`)
-                    }
-                    onEdit={() => handleEdit(collaborator)}
-                    onDelete={() => handleDelete(collaborator)}
-                    deleteDisabled
-                    deleteDisabledLabel="Exclusão desabilitada. Use a edição para desativar."
-                  />
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      )}
+                  ),
+                },
+              ]
+            : []),
+        ]}
+        actions={(collaborator) => (
+          <RowActions
+            onView={() => navigate(`/collaborators/${collaborator.id}`)}
+            onEdit={() => handleEdit(collaborator)}
+            onDelete={() => handleDelete(collaborator)}
+            deleteDisabled
+            deleteDisabledLabel="Exclusão desabilitada. Use a edição para desativar."
+          />
+        )}
+      />
 
       <CollaboratorCreateModal
         opened={createModalOpened}

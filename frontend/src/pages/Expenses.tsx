@@ -4,10 +4,8 @@ import {
   Button,
   Card,
   Group,
-  SegmentedControl,
   SimpleGrid,
   Stack,
-  Table,
   Text,
   TextInput,
   ThemeIcon,
@@ -28,6 +26,7 @@ import { useMemo, useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { RowActions } from "../components/RowActions";
 import { TablePage } from "../components/TablePage";
+import { DataTable } from "../components/DataTable";
 import { ExpenseFormModal } from "../components/expense/ExpenseFormModal";
 import { useDeleteExpense, useExpenses } from "../hooks/useExpenses";
 import { useNotifications } from "../hooks/useNotifications";
@@ -67,9 +66,6 @@ export function Expenses() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch] = useDebouncedValue(searchTerm, 300);
-  const [typeFilter, setTypeFilter] = useState<"all" | "one_time" | "recurring">(
-    "all",
-  );
   const [refMonth, setRefMonth] = useState(() => {
     const now = DateTime.now().setZone("America/Sao_Paulo");
     return { year: now.year, month: now.month };
@@ -93,15 +89,12 @@ export function Expenses() {
     list = list.filter((e) =>
       expenseIncidesInMonth(e, refMonth.year, refMonth.month),
     );
-    if (typeFilter !== "all") {
-      list = list.filter((e) => e.type === typeFilter);
-    }
     const term = debouncedSearch.trim().toLowerCase();
     if (term) {
       list = list.filter((e) => e.description.toLowerCase().includes(term));
     }
     return list;
-  }, [expenses, typeFilter, debouncedSearch, refMonth]);
+  }, [expenses, debouncedSearch, refMonth]);
 
   const total = filtered.reduce((sum, e) => sum + Number(e.amount), 0);
 
@@ -182,17 +175,6 @@ export function Expenses() {
                   <IconChevronRight size={18} />
                 </ActionIcon>
               </Group>
-              <SegmentedControl
-                value={typeFilter}
-                onChange={(v) =>
-                  setTypeFilter(v as "all" | "one_time" | "recurring")
-                }
-                data={[
-                  { value: "all", label: "Todas" },
-                  { value: "recurring", label: "Fixas" },
-                  { value: "one_time", label: "Esporádicas" },
-                ]}
-              />
             </Group>
             <TextInput
               placeholder="Buscar por descrição..."
@@ -232,52 +214,54 @@ export function Expenses() {
         </Stack>
       }
     >
-      {isLoading ? (
-        <Text>Carregando...</Text>
-      ) : filtered.length === 0 ? (
-        <Text c="dimmed" ta="center" py="xl">
-          Nenhuma despesa neste mês
-        </Text>
-      ) : (
-        <Table striped highlightOnHover miw={720}>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Descrição</Table.Th>
-              <Table.Th>Categoria</Table.Th>
-              <Table.Th>Tipo</Table.Th>
-              <Table.Th>Recorrência</Table.Th>
-              <Table.Th>Valor</Table.Th>
-              <Table.Th>Ações</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {filtered.map((expense) => (
-              <Table.Tr key={expense.id}>
-                <Table.Td>{expense.description}</Table.Td>
-                <Table.Td>{CATEGORY_LABELS[expense.category]}</Table.Td>
-                <Table.Td>
-                  <Badge
-                    variant="light"
-                    color={expense.type === "recurring" ? "blue" : "gray"}
-                  >
-                    {expense.type === "recurring" ? "Fixa" : "Esporádica"}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>{formatRecurrence(expense)}</Table.Td>
-                <Table.Td>
-                  <Text fw={500}>{formatPrice(expense.amount)}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <RowActions
-                    onEdit={() => handleEdit(expense)}
-                    onDelete={() => handleDelete(expense)}
-                  />
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      )}
+      <DataTable
+        data={filtered}
+        loading={isLoading}
+        rowKey={(e) => e.id}
+        emptyMessage="Nenhuma despesa neste mês"
+        columns={[
+          {
+            key: "description",
+            header: "Descrição",
+            primary: true,
+            render: (e) => e.description,
+          },
+          {
+            key: "category",
+            header: "Categoria",
+            render: (e) => CATEGORY_LABELS[e.category],
+          },
+          {
+            key: "type",
+            header: "Tipo",
+            render: (e) => (
+              <Badge
+                variant="light"
+                color={e.type === "recurring" ? "blue" : "gray"}
+              >
+                {e.type === "recurring" ? "Fixa" : "Esporádica"}
+              </Badge>
+            ),
+          },
+          {
+            key: "recurrence",
+            header: "Recorrência",
+            hideOnMobile: true,
+            render: (e) => formatRecurrence(e),
+          },
+          {
+            key: "amount",
+            header: "Valor",
+            render: (e) => <Text fw={500}>{formatPrice(e.amount)}</Text>,
+          },
+        ]}
+        actions={(expense) => (
+          <RowActions
+            onEdit={() => handleEdit(expense)}
+            onDelete={() => handleDelete(expense)}
+          />
+        )}
+      />
 
       <ExpenseFormModal
         opened={formOpened}

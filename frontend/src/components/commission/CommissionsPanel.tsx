@@ -2,6 +2,7 @@ import {
   ActionIcon,
   Badge,
   Button,
+  Card,
   Checkbox,
   Group,
   MultiSelect,
@@ -13,7 +14,7 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
-import { useDebouncedValue } from "@mantine/hooks";
+import { useDebouncedValue, useMediaQuery } from "@mantine/hooks";
 import {
   IconCalendar,
   IconCheck,
@@ -72,6 +73,7 @@ export function CommissionsPanel({
 }: CommissionsPanelProps) {
   const isScoped = Boolean(fixedCollaboratorId);
   const { periodMode } = useOperationalBranding();
+  const isMobile = useMediaQuery("(max-width: 48em)");
 
   const [selectedCommissions, setSelectedCommissions] = useState<Set<string>>(
     new Set(),
@@ -368,6 +370,74 @@ export function CommissionsPanel({
         </Text>
       ) : (
         <>
+          {isMobile ? (
+            <Stack gap="sm">
+              {commissionsToShow.map((commission) => (
+                <Card
+                  key={commission.id}
+                  withBorder
+                  radius="md"
+                  padding="md"
+                  style={{ opacity: commission.paid ? 0.7 : 1 }}
+                >
+                  <Stack gap={8}>
+                    <Group justify="space-between" wrap="nowrap">
+                      <Group gap="xs" wrap="nowrap">
+                        {canManagePayments && (
+                          <Checkbox
+                            checked={selectedCommissions.has(commission.id)}
+                            onChange={() =>
+                              handleSelectCommission(commission.id)
+                            }
+                          />
+                        )}
+                        <Text fw={600} size="sm">
+                          {commission.scheduledService?.service?.name || "-"}
+                        </Text>
+                      </Group>
+                      <Badge
+                        color={commission.paid ? "green" : "yellow"}
+                        variant="light"
+                      >
+                        {commission.paid ? "Pago" : "Pendente"}
+                      </Badge>
+                    </Group>
+                    {!isScoped && (
+                      <Group gap={6}>
+                        <IconUser size={14} />
+                        <Text size="sm" c="dimmed">
+                          {commission.collaborator?.name || "-"}
+                        </Text>
+                      </Group>
+                    )}
+                    {commission.scheduledService?.appointment && (
+                      <Group gap={6}>
+                        <IconCalendar size={14} />
+                        <Text size="sm" c="dimmed">
+                          {formatDate(
+                            commission.scheduledService.appointment?.date || "",
+                          )}
+                          {commission.scheduledService.appointment?.clientName
+                            ? ` · ${commission.scheduledService.appointment.clientName}`
+                            : ""}
+                        </Text>
+                      </Group>
+                    )}
+                    <Group justify="space-between">
+                      <Text size="xs" c="dimmed">
+                        {toMoney(commission.percentage)}% de{" "}
+                        {formatPrice(commission.scheduledService?.price ?? 0)}
+                      </Text>
+                      <Group gap={4}>
+                        <IconCurrencyDollar size={14} />
+                        <Text fw={700}>{formatPrice(commission.amount)}</Text>
+                      </Group>
+                    </Group>
+                  </Stack>
+                </Card>
+              ))}
+            </Stack>
+          ) : (
           <Table striped highlightOnHover miw={isScoped ? 640 : 720}>
             <Table.Thead>
               <Table.Tr>
@@ -467,6 +537,7 @@ export function CommissionsPanel({
               ))}
             </Table.Tbody>
           </Table>
+          )}
           <Group justify="space-between" mt="md" mb="sm" wrap="wrap" gap="sm">
             <Text size="sm" c="dimmed">
               {commissionsData?.total ?? 0} comissão(ões) encontrada(s)

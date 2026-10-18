@@ -1,17 +1,13 @@
 import {
   ActionIcon,
-  Alert,
   Button,
   Group,
   Stack,
-  Table,
-  Text,
   TextInput,
   Title,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import {
-  IconInfoCircle,
   IconPlus,
   IconSearch,
   IconX,
@@ -20,6 +16,7 @@ import { useState } from "react";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { RowActions } from "../components/RowActions";
 import { TablePage } from "../components/TablePage";
+import { DataTable } from "../components/DataTable";
 import { ServiceCreateModal } from "../components/service/ServiceCreateModal";
 import { ServiceEditModal } from "../components/service/ServiceEditModal";
 import { useDeleteService, useServices } from "../hooks/useServices";
@@ -105,55 +102,44 @@ export function Services() {
             onChange={(e) => setSearchTerm(e.currentTarget.value)}
             style={{ maxWidth: "100%" }}
           />
-
-          <Alert
-            icon={<IconInfoCircle size={16} />}
-            title="Informação"
-            color="blue"
-            variant="light"
-          >
-            Não é possível excluir serviços que estão em uso em algum
-            agendamento. Para excluir um serviço, é necessário cancelar ou
-            concluir todos os agendamentos relacionados primeiro.
-          </Alert>
         </Stack>
       }
     >
-      {isLoading ? (
-        <Text>Carregando...</Text>
-      ) : !services || services.length === 0 ? (
-        <Text c="dimmed">Nenhum serviço encontrado.</Text>
-      ) : (
-        <Table striped highlightOnHover miw={720}>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Nome</Table.Th>
-              <Table.Th>Preço Padrão</Table.Th>
-              {commissionsEnabled && <Table.Th>Comissão</Table.Th>}
-              <Table.Th>Descrição</Table.Th>
-              <Table.Th>Ações</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {services.map((service) => (
-              <Table.Tr key={service.id}>
-                <Table.Td>{service.name}</Table.Td>
-                <Table.Td>{formatPrice(service.defaultPrice)}</Table.Td>
-                {commissionsEnabled && (
-                  <Table.Td>{toMoney(service.commissionPercentage)}%</Table.Td>
-                )}
-                <Table.Td>{service.description || "-"}</Table.Td>
-                <Table.Td>
-                  <RowActions
-                    onEdit={() => handleEdit(service)}
-                    onDelete={() => handleDelete(service)}
-                  />
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      )}
+      <DataTable
+        data={services ?? []}
+        loading={isLoading}
+        rowKey={(s) => s.id}
+        emptyMessage="Nenhum serviço encontrado."
+        columns={[
+          { key: "name", header: "Nome", primary: true, render: (s) => s.name },
+          {
+            key: "price",
+            header: "Preço Padrão",
+            render: (s) => formatPrice(s.defaultPrice),
+          },
+          ...(commissionsEnabled
+            ? [
+                {
+                  key: "commission",
+                  header: "Comissão",
+                  render: (s: Service) => `${toMoney(s.commissionPercentage)}%`,
+                },
+              ]
+            : []),
+          {
+            key: "description",
+            header: "Descrição",
+            hideOnMobile: true,
+            render: (s) => s.description || "-",
+          },
+        ]}
+        actions={(service) => (
+          <RowActions
+            onEdit={() => handleEdit(service)}
+            onDelete={() => handleDelete(service)}
+          />
+        )}
+      />
 
       <ServiceCreateModal
         opened={createModalOpened}
