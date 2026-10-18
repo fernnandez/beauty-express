@@ -4,16 +4,19 @@ import {
   Avatar,
   Box,
   Center,
+  Drawer,
   Group,
   Stack,
   Text,
   Tooltip,
   UnstyledButton,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import {
   IconBook2,
   IconCalendar,
   IconChartBar,
+  IconDotsCircleHorizontal,
   IconHome,
   IconLogout,
   IconScissors,
@@ -22,7 +25,6 @@ import {
   IconUserCircle,
   IconUsers,
 } from "@tabler/icons-react";
-import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useOperationalBranding } from "../hooks/useOperationalBranding";
@@ -53,15 +55,9 @@ export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const { branding, commissionsEnabled } = useOperationalBranding();
+  const { branding } = useOperationalBranding();
 
-  const visibleNavigationItems = useMemo(
-    () =>
-      navigationItems.filter(
-        (item) => !item.requiresCommissions || commissionsEnabled,
-      ),
-    [commissionsEnabled],
-  );
+  const visibleNavigationItems = navigationItems;
 
   const handleLogout = async () => {
     await logout();
@@ -349,6 +345,14 @@ interface MobileBottomNavProps {
   onLogout: () => void;
 }
 
+/** Caminhos que ficam fixos na barra inferior (destinos principais). */
+const PRIMARY_MOBILE_PATHS = [
+  "/",
+  "/appointments",
+  "/collaborators",
+  "/financial-reports",
+];
+
 function MobileBottomNav({
   items,
   activePath,
@@ -356,62 +360,138 @@ function MobileBottomNav({
   onNavigate,
   onLogout,
 }: MobileBottomNavProps) {
+  const [moreOpened, { open: openMore, close: closeMore }] =
+    useDisclosure(false);
+
+  const primaryItems = [
+    { icon: IconHome, label: "Início", path: "/" },
+    ...items.filter((i) => PRIMARY_MOBILE_PATHS.includes(i.path)),
+  ];
+  const moreItems = items.filter(
+    (i) => !PRIMARY_MOBILE_PATHS.includes(i.path),
+  );
+  const moreActive = moreItems.some((i) => activePath === i.path);
+
+  const tabStyle = (active: boolean) => ({
+    flex: 1,
+    height: "100%",
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+    color: active ? primaryColor : "var(--mantine-color-gray-6)",
+  });
+
   return (
-    <Group
-      hiddenFrom="sm"
-      gap={0}
-      wrap="nowrap"
-      justify="space-around"
-      style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: BOTTOM_NAV_HEIGHT,
-        backgroundColor: "#fff",
-        borderTop: "1px solid #e9ecef",
-        zIndex: 200,
-        paddingBottom: "env(safe-area-inset-bottom)",
-      }}
-    >
-      {items.map((item) => {
-        const Icon = item.icon;
-        const isActive = activePath === item.path;
-        return (
-          <UnstyledButton
-            key={item.path}
-            onClick={() => onNavigate(item.path)}
-            aria-label={item.label}
-            style={{
-              flex: 1,
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: isActive ? primaryColor : "var(--mantine-color-gray-6)",
-              backgroundColor: isActive
-                ? withAlpha(primaryColor, 0.1)
-                : "transparent",
-            }}
-          >
-            <Icon size={24} stroke={isActive ? 2 : 1.6} />
-          </UnstyledButton>
-        );
-      })}
-      <UnstyledButton
-        onClick={onLogout}
-        aria-label="Sair"
+    <>
+      <Group
+        hiddenFrom="sm"
+        gap={0}
+        wrap="nowrap"
+        justify="space-around"
         style={{
-          flex: 1,
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--mantine-color-gray-6)",
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: BOTTOM_NAV_HEIGHT,
+          backgroundColor: "#fff",
+          borderTop: "1px solid #e9ecef",
+          zIndex: 200,
+          paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        <IconLogout size={24} stroke={1.6} />
-      </UnstyledButton>
-    </Group>
+        {primaryItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activePath === item.path;
+          return (
+            <UnstyledButton
+              key={item.path}
+              onClick={() => onNavigate(item.path)}
+              aria-label={item.label}
+              style={tabStyle(isActive)}
+            >
+              <Icon size={22} stroke={isActive ? 2 : 1.6} />
+              <Text fz={10} fw={isActive ? 600 : 400} lh={1}>
+                {item.label}
+              </Text>
+            </UnstyledButton>
+          );
+        })}
+        <UnstyledButton
+          onClick={openMore}
+          aria-label="Mais"
+          style={tabStyle(moreActive)}
+        >
+          <IconDotsCircleHorizontal
+            size={22}
+            stroke={moreActive ? 2 : 1.6}
+          />
+          <Text fz={10} fw={moreActive ? 600 : 400} lh={1}>
+            Mais
+          </Text>
+        </UnstyledButton>
+      </Group>
+
+      <Drawer
+        opened={moreOpened}
+        onClose={closeMore}
+        position="bottom"
+        size="auto"
+        title="Menu"
+        hiddenFrom="sm"
+        radius="md"
+      >
+        <Stack gap={4} pb="md">
+          {moreItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activePath === item.path;
+            return (
+              <UnstyledButton
+                key={item.path}
+                onClick={() => {
+                  onNavigate(item.path);
+                  closeMore();
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px 8px",
+                  borderRadius: 10,
+                  color: isActive
+                    ? primaryColor
+                    : "var(--mantine-color-gray-8)",
+                  backgroundColor: isActive
+                    ? withAlpha(primaryColor, 0.1)
+                    : "transparent",
+                }}
+              >
+                <Icon size={22} stroke={isActive ? 2 : 1.6} />
+                <Text fw={isActive ? 600 : 500}>{item.label}</Text>
+              </UnstyledButton>
+            );
+          })}
+          <UnstyledButton
+            onClick={() => {
+              closeMore();
+              onLogout();
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "12px 8px",
+              borderRadius: 10,
+              color: "var(--mantine-color-red-6)",
+            }}
+          >
+            <IconLogout size={22} stroke={1.6} />
+            <Text fw={500}>Sair</Text>
+          </UnstyledButton>
+        </Stack>
+      </Drawer>
+    </>
   );
 }

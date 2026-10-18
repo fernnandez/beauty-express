@@ -73,4 +73,9 @@ export default defineConfig({
       include: [/node_modules/],
     },
   },
+  // Teste de PWA via túnel (cloudflared): habilite com PREVIEW_TUNNEL=1.
+  preview: {
+    allowedHosts:
+      process.env.PREVIEW_TUNNEL === '1' ? ['.trycloudflare.com'] : undefined,
+  },
 })

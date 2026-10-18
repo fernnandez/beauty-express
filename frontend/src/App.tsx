@@ -9,6 +9,7 @@ import "@mantine/charts/styles.css";
 import "@mantine/notifications/styles.css";
 import { LoginThemeProvider } from "./components/LoginThemeProvider";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { PwaInstallPrompt } from "./components/PwaInstallPrompt";
 import { AuthProvider } from "./contexts/AuthContext";
 import { BackofficeApp } from "./backoffice/BackofficeApp";
 import { Login } from "./pages/Login";
@@ -39,6 +40,7 @@ function App() {
           }}
         >
           <Notifications />
+          <PwaInstallPrompt />
           <AuthProvider>
             <BrowserRouter>
               <Routes>
