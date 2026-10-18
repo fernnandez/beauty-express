@@ -10,8 +10,8 @@ const phones = [
 ]
 
 const bullets = [
-  'Veja a agenda do dia direto do celular',
-  'Acompanhe comissões e financeiro em qualquer lugar',
+  'Instale como app e abra em tela cheia',
+  'Cada profissional vê a própria agenda e comissões',
   'Navegação pensada para a tela do celular',
 ]
 

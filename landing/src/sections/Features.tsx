@@ -1,13 +1,13 @@
 import { Box, Card, Container, Grid, Stack, Text, ThemeIcon, Title } from '@mantine/core'
 import {
+  IconAlertTriangle,
   IconCalendarEvent,
   IconCash,
   IconChartBar,
+  IconDeviceMobile,
   IconListCheck,
   IconReceipt2,
   IconUsers,
-  IconUserHeart,
-  IconDeviceLaptop,
   type IconProps,
 } from '@tabler/icons-react'
 import type { ComponentType } from 'react'
@@ -23,19 +23,13 @@ const features: Feature[] = [
     icon: IconCalendarEvent,
     title: 'Agendamentos',
     description:
-      'Marque atendimentos com múltiplos serviços, controle de status e até registro retroativo de atendimentos já realizados.',
+      'Marque atendimentos com múltiplos serviços, visão de agenda ou lista, e até registro retroativo de atendimentos já realizados.',
   },
   {
     icon: IconUsers,
-    title: 'Gestão de colaboradores',
+    title: 'Equipe com acesso próprio',
     description:
-      'Cadastre profissionais, defina a comissão de cada um, associe os serviços que executam e ative ou desative quando precisar.',
-  },
-  {
-    icon: IconListCheck,
-    title: 'Catálogo de serviços',
-    description:
-      'Mantenha preços e descrições organizados, prontos para usar em qualquer agendamento.',
+      'Cadastre profissionais, defina comissões e dê a cada um acesso ao app para ver a própria agenda e comissões — sem depender do gestor.',
   },
   {
     icon: IconCash,
@@ -44,28 +38,34 @@ const features: Feature[] = [
       'A comissão é calculada sozinha pelo percentual do profissional assim que o serviço é concluído. Nada de planilha.',
   },
   {
-    icon: IconReceipt2,
-    title: 'Controle de pagamentos',
+    icon: IconAlertTriangle,
+    title: 'Alertas de atraso',
     description:
-      'Filtre comissões por período, profissional e status, e marque pagamentos em lote como pagos ou pendentes.',
+      'Veja na hora quais profissionais têm comissões vencidas a pagar. Regime quinzenal ou mensal, do seu jeito.',
+  },
+  {
+    icon: IconReceipt2,
+    title: 'Despesas e lucro real',
+    description:
+      'Registre custos fixos e esporádicos e enxergue o lucro líquido do negócio: receita menos comissões menos despesas.',
   },
   {
     icon: IconChartBar,
     title: 'Relatórios financeiros',
     description:
-      'Visão mensal clara de receita, total de comissões e valor líquido do negócio.',
+      'Receita, comissões, despesas e lucro líquido com gráficos de evolução e filtro por mês ou quinzena.',
   },
   {
-    icon: IconUserHeart,
-    title: 'Gestão de clientes',
+    icon: IconListCheck,
+    title: 'Serviços e clientes',
     description:
-      'Mantenha a base de clientes do negócio organizada e vinculada aos agendamentos.',
+      'Catálogo de serviços com preços e comissão, e a base de clientes do negócio sempre organizada.',
   },
   {
-    icon: IconDeviceLaptop,
-    title: 'Acesse de qualquer lugar',
+    icon: IconDeviceMobile,
+    title: 'Instale como aplicativo',
     description:
-      'Sistema 100% web: use no computador do negócio ou no celular, sem instalar nada. Seus dados sempre seguros e disponíveis.',
+      'Instale o Ageendoo no celular como um aplicativo. Abre em tela cheia, direto na tela inicial, sem lojas e sem complicação.',
   },
 ]
 
