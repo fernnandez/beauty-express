@@ -1,19 +1,38 @@
 import { Box, ScrollArea } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import type { ReactNode } from "react";
 
 interface TablePageProps {
-  /** Cabeçalho fixo: título, botões, filtros, alertas. */
+  /** Cabeçalho fixo (desktop): título, botões, filtros, alertas. */
   header: ReactNode;
-  /** Conteúdo rolável (a tabela). */
+  /** Conteúdo (tabela no desktop; cards no mobile). */
   children: ReactNode;
 }
 
 /**
- * Layout padrão para páginas com tabela.
- * A página ocupa a altura disponível da tela; o cabeçalho/filtros ficam fixos
- * e apenas o corpo da tabela rola (scroll interno), nunca a página inteira.
+ * Layout de páginas de listagem.
+ * - Desktop: cabeçalho/filtros fixos e apenas o corpo rola (scroll interno).
+ * - Mobile: sem tabelas (são cards), a página inteira rola normalmente —
+ *   nada fica preso, nenhum conteúdo some atrás de um scroll interno.
  */
 export function TablePage({ header, children }: TablePageProps) {
+  const isMobile = useMediaQuery("(max-width: 48em)");
+
+  if (isMobile) {
+    return (
+      <Box
+        style={{
+          width: "100%",
+          paddingInline: "var(--mantine-spacing-md)",
+          paddingBottom: "var(--mantine-spacing-md)",
+        }}
+      >
+        <Box>{header}</Box>
+        <Box>{children}</Box>
+      </Box>
+    );
+  }
+
   return (
     <Box
       style={{

@@ -21,6 +21,7 @@ import {
   IconCurrencyDollar,
   IconFilter,
   IconFilterOff,
+  IconSearch,
   IconUser,
   IconX,
 } from "@tabler/icons-react";
@@ -232,63 +233,129 @@ export function CommissionsPanel({
 
       {/* Filtros */}
       <Stack gap="md">
-        <Group>
-          {!isScoped && (
-            <MultiSelect
-              placeholder="Filtrar por colaborador(es)"
-              data={
-                collaborators
-                  ?.filter((c) => c.isActive)
-                  .map((c) => ({ value: c.id, label: c.name })) || []
+        {isMobile ? (
+          <Stack gap="sm">
+            <TextInput
+              placeholder={
+                isScoped ? "Buscar..." : "Buscar serviço, cliente..."
               }
-              value={collaboratorFilter}
-              onChange={setCollaboratorFilter}
-              clearable
-              searchable
-              leftSection={<IconUser size={16} />}
-              style={{ flex: 1, maxWidth: 320 }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.currentTarget.value)}
+              leftSection={<IconSearch size={16} />}
             />
-          )}
-          <Select
-            data={[
-              { value: "pending", label: "Pendentes" },
-              { value: "paid", label: "Pagas" },
-              { value: "all", label: "Todas" },
-            ]}
-            value={statusFilter}
-            onChange={(value) =>
-              setStatusFilter((value as "pending" | "paid" | "all") || "pending")
-            }
-            allowDeselect={false}
-            leftSection={<IconFilter size={16} />}
-            style={{ maxWidth: 160 }}
-          />
-          <PeriodFilter value={period} onChange={setPeriod} mode={periodMode} />
-          {hasActiveFilters && (
-            <ActionIcon
-              variant="light"
-              color="gray"
-              onClick={() => {
-                setStatusFilter("pending");
-                setPeriod(initialPeriodForMode(periodMode));
-                setCollaboratorFilter([]);
-              }}
-              title="Limpar filtros"
-            >
-              <IconFilterOff size={18} />
-            </ActionIcon>
-          )}
-          <TextInput
-            placeholder={
-              isScoped
-                ? "Buscar por serviço ou cliente..."
-                : "Buscar por serviço, cliente ou colaborador..."
-            }
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.currentTarget.value)}
-            style={{ flex: 1, maxWidth: 300 }}
-          />
-        </Group>
+            {!isScoped && (
+              <MultiSelect
+                placeholder="Colaborador(es)"
+                data={
+                  collaborators
+                    ?.filter((c) => c.isActive)
+                    .map((c) => ({ value: c.id, label: c.name })) || []
+                }
+                value={collaboratorFilter}
+                onChange={setCollaboratorFilter}
+                clearable
+                searchable
+                leftSection={<IconUser size={16} />}
+              />
+            )}
+            <Group gap="sm" wrap="nowrap" align="center">
+              <Select
+                data={[
+                  { value: "pending", label: "Pendentes" },
+                  { value: "paid", label: "Pagas" },
+                  { value: "all", label: "Todas" },
+                ]}
+                value={statusFilter}
+                onChange={(value) =>
+                  setStatusFilter(
+                    (value as "pending" | "paid" | "all") || "pending",
+                  )
+                }
+                allowDeselect={false}
+                leftSection={<IconFilter size={16} />}
+                style={{ flex: 1 }}
+              />
+              {hasActiveFilters && (
+                <ActionIcon
+                  variant="light"
+                  color="gray"
+                  size="lg"
+                  onClick={() => {
+                    setStatusFilter("pending");
+                    setPeriod(initialPeriodForMode(periodMode));
+                    setCollaboratorFilter([]);
+                  }}
+                  aria-label="Limpar filtros"
+                >
+                  <IconFilterOff size={18} />
+                </ActionIcon>
+              )}
+            </Group>
+            <Group justify="center">
+              <PeriodFilter value={period} onChange={setPeriod} mode={periodMode} />
+            </Group>
+          </Stack>
+        ) : (
+          <Group align="flex-end" gap="sm" wrap="wrap">
+            {!isScoped && (
+              <MultiSelect
+                placeholder="Filtrar por colaborador(es)"
+                data={
+                  collaborators
+                    ?.filter((c) => c.isActive)
+                    .map((c) => ({ value: c.id, label: c.name })) || []
+                }
+                value={collaboratorFilter}
+                onChange={setCollaboratorFilter}
+                clearable
+                searchable
+                leftSection={<IconUser size={16} />}
+                style={{ flex: 1, maxWidth: 320 }}
+              />
+            )}
+            <Select
+              data={[
+                { value: "pending", label: "Pendentes" },
+                { value: "paid", label: "Pagas" },
+                { value: "all", label: "Todas" },
+              ]}
+              value={statusFilter}
+              onChange={(value) =>
+                setStatusFilter(
+                  (value as "pending" | "paid" | "all") || "pending",
+                )
+              }
+              allowDeselect={false}
+              leftSection={<IconFilter size={16} />}
+              style={{ maxWidth: 160 }}
+            />
+            <PeriodFilter value={period} onChange={setPeriod} mode={periodMode} />
+            {hasActiveFilters && (
+              <ActionIcon
+                variant="light"
+                color="gray"
+                onClick={() => {
+                  setStatusFilter("pending");
+                  setPeriod(initialPeriodForMode(periodMode));
+                  setCollaboratorFilter([]);
+                }}
+                title="Limpar filtros"
+              >
+                <IconFilterOff size={18} />
+              </ActionIcon>
+            )}
+            <TextInput
+              placeholder={
+                isScoped
+                  ? "Buscar por serviço ou cliente..."
+                  : "Buscar por serviço, cliente ou colaborador..."
+              }
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.currentTarget.value)}
+              style={{ flex: 1, maxWidth: 300 }}
+            />
+          </Group>
+        )}
 
         {/* Totais */}
         {showTotals && (
@@ -538,8 +605,14 @@ export function CommissionsPanel({
             </Table.Tbody>
           </Table>
           )}
-          <Group justify="space-between" mt="md" mb="sm" wrap="wrap" gap="sm">
-            <Text size="sm" c="dimmed">
+          <Group
+            justify={isMobile ? "center" : "space-between"}
+            mt="md"
+            mb="sm"
+            wrap="wrap"
+            gap="sm"
+          >
+            <Text size="sm" c="dimmed" ta={isMobile ? "center" : undefined} w={isMobile ? "100%" : undefined}>
               {commissionsData?.total ?? 0} comissão(ões) encontrada(s)
               {isFetching ? " · atualizando..." : ""}
             </Text>

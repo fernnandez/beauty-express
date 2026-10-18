@@ -1,4 +1,5 @@
 import {
+  Accordion,
   ActionIcon,
   Badge,
   Box,
@@ -99,37 +100,48 @@ export function CollaboratorProfile() {
   );
 
   const summaryCards = commissionsEnabled && (
-    <Stack gap="xs">
-      <Text size="sm" c="dimmed" fw={500}>
-        Resumo de {monthLabel(currentMonth)}
-      </Text>
-      <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
-      <SummaryCard
-        icon={<IconScissors size={22} />}
-        color="blue"
-        label="Serviços feitos"
-        value={String(summary?.servicesCount ?? 0)}
-      />
-      <SummaryCard
-        icon={<IconCash size={22} />}
-        color="green"
-        label="Comissão recebida"
-        value={formatPrice(summary?.paidAmount ?? 0)}
-      />
-      <SummaryCard
-        icon={<IconClock size={22} />}
-        color="yellow"
-        label="Comissão pendente"
-        value={formatPrice(summary?.pendingAmount ?? 0)}
-      />
-      <SummaryCard
-        icon={<IconUsers size={22} />}
-        color="grape"
-        label="Clientes únicos"
-        value={String(summary?.uniqueClients ?? 0)}
-      />
-    </SimpleGrid>
-    </Stack>
+    <Accordion
+      variant="separated"
+      radius="md"
+      defaultValue="resumo"
+      styles={{ content: { paddingInline: 0 } }}
+    >
+      <Accordion.Item value="resumo">
+        <Accordion.Control>
+          <Text size="sm" fw={600}>
+            Resumo de {monthLabel(currentMonth)}
+          </Text>
+        </Accordion.Control>
+        <Accordion.Panel>
+          <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
+            <SummaryCard
+              icon={<IconScissors size={20} />}
+              color="blue"
+              label="Serviços feitos"
+              value={String(summary?.servicesCount ?? 0)}
+            />
+            <SummaryCard
+              icon={<IconCash size={20} />}
+              color="green"
+              label="Comissão recebida"
+              value={formatPrice(summary?.paidAmount ?? 0)}
+            />
+            <SummaryCard
+              icon={<IconClock size={20} />}
+              color="yellow"
+              label="Comissão pendente"
+              value={formatPrice(summary?.pendingAmount ?? 0)}
+            />
+            <SummaryCard
+              icon={<IconUsers size={20} />}
+              color="grape"
+              label="Clientes únicos"
+              value={String(summary?.uniqueClients ?? 0)}
+            />
+          </SimpleGrid>
+        </Accordion.Panel>
+      </Accordion.Item>
+    </Accordion>
   );
 
   if (isLoading) {
@@ -210,19 +222,17 @@ interface SummaryCardProps {
 function SummaryCard({ icon, color, label, value }: SummaryCardProps) {
   return (
     <Card padding="md" radius="lg" shadow="sm">
-      <Group gap="sm" wrap="nowrap" align="center">
-        <ThemeIcon color={color} size={40} radius="md" variant="light">
+      <Stack gap="xs">
+        <ThemeIcon color={color} size={38} radius="md" variant="light">
           {icon}
         </ThemeIcon>
-        <Stack gap={2} style={{ minWidth: 0, flex: 1 }}>
-          <Text size="xs" c="dimmed" tt="uppercase" fw={600} lineClamp={2}>
-            {label}
-          </Text>
-          <Text fz={{ base: 18, sm: 24 }} fw={800} lh={1.1}>
-            {value}
-          </Text>
-        </Stack>
-      </Group>
+        <Text size="xs" c="dimmed" tt="uppercase" fw={600} lineClamp={2}>
+          {label}
+        </Text>
+        <Text fz={{ base: 20, sm: 24 }} fw={800} lh={1.1}>
+          {value}
+        </Text>
+      </Stack>
     </Card>
   );
 }

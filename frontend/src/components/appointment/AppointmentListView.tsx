@@ -1,5 +1,6 @@
 import {
   Badge,
+  Card,
   Group,
   ScrollArea,
   Stack,
@@ -96,30 +97,85 @@ export function AppointmentListView({
           />
         </Group>
       )}
-      <ScrollArea>
-        <Table striped highlightOnHover miw={720}>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Data/Hora</Table.Th>
-              <Table.Th>Cliente</Table.Th>
-              <Table.Th>Telefone</Table.Th>
-              <Table.Th>Serviços</Table.Th>
-              <Table.Th>Preço Total</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th>Ações</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {sortedAppointments.length === 0 ? (
-              <Table.Tr>
-                <Table.Td colSpan={7} style={{ textAlign: "center" }}>
-                  <Text c="dimmed" py="md">
-                    Nenhum agendamento encontrado
+      {sortedAppointments.length === 0 ? (
+        <Text c="dimmed" ta="center" py="xl">
+          Nenhum agendamento encontrado
+        </Text>
+      ) : isMobile ? (
+        <Stack gap="sm">
+          {sortedAppointments.map((appointment) => (
+            <Card
+              key={appointment.id}
+              withBorder
+              radius="md"
+              padding="md"
+              onClick={() => onAppointmentClick?.(appointment)}
+              style={{
+                cursor: onAppointmentClick ? "pointer" : "default",
+                borderLeft: `4px solid var(--mantine-color-${statusColors[appointment.status]}-6)`,
+              }}
+            >
+              <Stack gap={8}>
+                <Group justify="space-between" wrap="nowrap">
+                  <Group gap={6} wrap="nowrap">
+                    {appointment.startTime && (
+                      <Text fw={700} size="lg">
+                        {appointment.startTime}
+                      </Text>
+                    )}
+                    <Badge color={statusColors[appointment.status]}>
+                      {statusLabels[appointment.status]}
+                    </Badge>
+                  </Group>
+                  <Text fw={600}>{formatPrice(getTotalPrice(appointment))}</Text>
+                </Group>
+
+                <Text fw={500}>{appointment.clientName || "-"}</Text>
+                {appointment.clientPhone && (
+                  <Text size="sm" c="dimmed">
+                    {appointment.clientPhone}
                   </Text>
-                </Table.Td>
+                )}
+                <Text size="sm" c="dimmed">
+                  {appointment.scheduledServices &&
+                  appointment.scheduledServices.length > 0
+                    ? `${appointment.scheduledServices.length} serviço(s)`
+                    : "Sem serviços"}
+                </Text>
+
+                {appointment.status === AppointmentStatus.SCHEDULED && (
+                  <Group
+                    justify="flex-end"
+                    mt={4}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <RowActions
+                      onEdit={() => onEdit(appointment)}
+                      onComplete={() => onComplete(appointment)}
+                      onCancel={() => onCancel(appointment)}
+                    />
+                  </Group>
+                )}
+              </Stack>
+            </Card>
+          ))}
+        </Stack>
+      ) : (
+        <ScrollArea>
+          <Table striped highlightOnHover miw={720}>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Data/Hora</Table.Th>
+                <Table.Th>Cliente</Table.Th>
+                <Table.Th>Telefone</Table.Th>
+                <Table.Th>Serviços</Table.Th>
+                <Table.Th>Preço Total</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.Th>Ações</Table.Th>
               </Table.Tr>
-            ) : (
-              sortedAppointments.map((appointment) => (
+            </Table.Thead>
+            <Table.Tbody>
+              {sortedAppointments.map((appointment) => (
                 <Table.Tr
                   key={appointment.id}
                   style={{
@@ -165,11 +221,11 @@ export function AppointmentListView({
                     </Group>
                   </Table.Td>
                 </Table.Tr>
-              ))
-            )}
-          </Table.Tbody>
-        </Table>
-      </ScrollArea>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </ScrollArea>
+      )}
     </Stack>
   );
 }
