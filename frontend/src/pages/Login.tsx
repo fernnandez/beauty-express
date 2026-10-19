@@ -35,8 +35,9 @@ export function Login() {
 
   const form = useForm<LoginDto>({
     initialValues: {
-      email: '',
-      password: '',
+      // Em dev, pré-preenche com o admin do seed para agilizar os testes.
+      email: import.meta.env.DEV ? 'admin@paulista.mariaborboleta.com' : '',
+      password: import.meta.env.DEV ? 'Senha123!' : '',
     },
     validate: {
       email: (value) => (/^\S+@\S+$/.test(value) ? null : 'E-mail inválido'),

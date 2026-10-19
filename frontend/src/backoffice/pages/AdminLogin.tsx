@@ -38,8 +38,9 @@ export function AdminLogin() {
 
   const form = useForm<AdminLoginDto>({
     initialValues: {
-      email: '',
-      password: '',
+      // Em dev, pré-preenche com o super admin do seed.
+      email: import.meta.env.DEV ? 'owner@beautyexpress.com' : '',
+      password: import.meta.env.DEV ? 'SenhaAdmin123!' : '',
     },
     validate: {
       email: (value) => (/^\S+@\S+$/.test(value) ? null : 'E-mail inválido'),
