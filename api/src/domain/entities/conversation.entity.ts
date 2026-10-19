@@ -18,6 +18,7 @@ import { ConversationStatus } from './whatsapp-enums';
  */
 @Entity('whatsapp_conversations')
 @Index(['tenantId', 'waChatId'], { unique: true })
+@Index(['tenantId', 'lastMessageAt'])
 export class Conversation {
   @PrimaryGeneratedColumn('uuid')
   id: string;

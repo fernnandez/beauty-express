@@ -17,6 +17,7 @@ import { MessageDirection, MessageStatus, MessageType } from './whatsapp-enums';
  */
 @Entity('whatsapp_messages')
 @Index(['tenantId', 'waMessageId'], { unique: true })
+@Index(['tenantId', 'conversationId', 'timestamp'])
 export class Message {
   @PrimaryGeneratedColumn('uuid')
   id: string;
