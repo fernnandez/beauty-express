@@ -190,7 +190,6 @@ describe('CollaboratorService', () => {
     };
 
     const updatedCollaborator: Collaborator = {
-      tenantId: TENANT_ID_MOCK,
       ...existingCollaborator,
       name: 'João Silva Santos',
       phone: '11988888888',
@@ -204,7 +203,7 @@ describe('CollaboratorService', () => {
 
       repository.findById.mockResolvedValueOnce(existingCollaborator);
       repository.findById.mockResolvedValueOnce(updatedCollaborator);
-      repository.update.mockResolvedValue(undefined);
+      repository.update.mockResolvedValue({ affected: 1 } as any);
 
       const result = await service.updateCollaborator(
         existingCollaborator.id,
@@ -231,14 +230,13 @@ describe('CollaboratorService', () => {
     it('should update isActive status', async () => {
       const updateDto: UpdateCollaboratorDto = { isActive: false };
       const deactivatedCollaborator: Collaborator = {
-        tenantId: TENANT_ID_MOCK,
         ...existingCollaborator,
         isActive: false,
       };
 
       repository.findById.mockResolvedValueOnce(existingCollaborator);
       repository.findById.mockResolvedValueOnce(deactivatedCollaborator);
-      repository.update.mockResolvedValue(undefined);
+      repository.update.mockResolvedValue({ affected: 1 } as any);
 
       const result = await service.updateCollaborator(
         existingCollaborator.id,
@@ -266,7 +264,7 @@ describe('CollaboratorService', () => {
 
     it('should delete collaborator when found', async () => {
       repository.findById.mockResolvedValue(existingCollaborator);
-      repository.delete.mockResolvedValue(undefined);
+      repository.delete.mockResolvedValue({ affected: 1 } as any);
 
       await service.delete(existingCollaborator.id);
 

@@ -214,7 +214,7 @@ describe('WhatsappService', () => {
         'WA-1',
         '👍',
       );
-      const saved = mockMessageRepository.save.mock.calls.at(-1)[0];
+      const saved = mockMessageRepository.save.mock.calls.at(-1)![0];
       expect(saved.reaction).toBe('👍');
     });
 
@@ -383,7 +383,7 @@ describe('WhatsappService', () => {
       });
 
       expect(result).toBeNull();
-      const saved = mockMessageRepository.save.mock.calls.at(-1)[0];
+      const saved = mockMessageRepository.save.mock.calls.at(-1)![0];
       expect(saved.status).toBe('read');
     });
 
@@ -437,7 +437,7 @@ describe('WhatsappService', () => {
 
       expect(result).toBeNull();
       expect(mockMessageRepository.create).not.toHaveBeenCalled();
-      const saved = mockMessageRepository.save.mock.calls.at(-1)[0];
+      const saved = mockMessageRepository.save.mock.calls.at(-1)![0];
       expect(saved.reaction).toBe('👍');
     });
 

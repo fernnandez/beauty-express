@@ -9,7 +9,10 @@ import { ScheduledServiceRepository } from '../repositories/scheduled-service.re
 import { CommissionService } from './commission.service';
 import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
 import { TenantContextService } from './tenant-context.service';
-import { mockTenantContextService, mockTenantSettingsService } from '../../test/tenant-context.mock';
+import {
+  mockTenantContextService,
+  mockTenantSettingsService,
+} from '../../test/tenant-context.mock';
 import { TenantSettingsService } from './tenant-settings.service';
 
 describe('CommissionService', () => {
@@ -106,11 +109,23 @@ describe('CommissionService', () => {
     it('classifica atrasado e pendente por colaborador (quinzenal 15/31)', async () => {
       mockCommissionRepository.findUnpaidWithServiceDate.mockResolvedValue([
         // col-1: serviço 05/10 vence 15/10 -> hoje 17/10 => ATRASADO
-        { collaboratorId: 'col-1', amount: 100, serviceDate: dateISO('2026-10-05') },
+        {
+          collaboratorId: 'col-1',
+          amount: 100,
+          serviceDate: dateISO('2026-10-05'),
+        },
         // col-1: serviço 16/10 vence 31/10 -> hoje 17/10 => PENDENTE
-        { collaboratorId: 'col-1', amount: 50, serviceDate: dateISO('2026-10-16') },
+        {
+          collaboratorId: 'col-1',
+          amount: 50,
+          serviceDate: dateISO('2026-10-16'),
+        },
         // col-2: serviço 20/10 vence 31/10 -> PENDENTE
-        { collaboratorId: 'col-2', amount: 30, serviceDate: dateISO('2026-10-20') },
+        {
+          collaboratorId: 'col-2',
+          amount: 30,
+          serviceDate: dateISO('2026-10-20'),
+        },
       ]);
 
       const alerts = await service.getCollaboratorAlerts();
@@ -136,9 +151,17 @@ describe('CommissionService', () => {
 
       mockCommissionRepository.findUnpaidWithServiceDate.mockResolvedValue([
         // serviço 05/10 vence 31/10 -> hoje 17/10 => PENDENTE (não atrasa no mensal)
-        { collaboratorId: 'col-1', amount: 100, serviceDate: dateISO('2026-10-05') },
+        {
+          collaboratorId: 'col-1',
+          amount: 100,
+          serviceDate: dateISO('2026-10-05'),
+        },
         // serviço 05/09 vence 30/09 -> hoje 17/10 => ATRASADO
-        { collaboratorId: 'col-1', amount: 70, serviceDate: dateISO('2026-09-05') },
+        {
+          collaboratorId: 'col-1',
+          amount: 70,
+          serviceDate: dateISO('2026-09-05'),
+        },
       ]);
 
       const alerts = await service.getCollaboratorAlerts();
@@ -192,8 +215,8 @@ describe('CommissionService', () => {
       const result = await service.calculateCommission('scheduled-1');
 
       expect(result).toEqual(expectedCommission);
-      expect(result.amount).toBe(10.0);
-      expect(result.percentage).toBe(10);
+      expect(result!.amount).toBe(10.0);
+      expect(result!.percentage).toBe(10);
       expect(mockCommissionRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           collaboratorId: 'collaborator-1',
@@ -305,8 +328,8 @@ describe('CommissionService', () => {
 
       const result = await service.calculateCommission('scheduled-1');
 
-      expect(result.amount).toBe(15.0);
-      expect(result.percentage).toBe(15);
+      expect(result!.amount).toBe(15.0);
+      expect(result!.percentage).toBe(15);
     });
   });
 
@@ -331,7 +354,7 @@ describe('CommissionService', () => {
 
     const pendingService: ScheduledService = {
       id: 'scheduled-2',
-        tenantId: TENANT_ID_MOCK,
+      tenantId: TENANT_ID_MOCK,
       appointmentId: 'appointment-1',
       serviceId: 'service-2',
       collaboratorId: 'collaborator-1',
@@ -544,7 +567,6 @@ describe('CommissionService', () => {
     });
   });
 
-
   describe('markAsPaid', () => {
     const mockCommissions: Commission[] = [
       {
@@ -575,9 +597,13 @@ describe('CommissionService', () => {
     it('should mark multiple commissions as paid', async () => {
       const commissionIds = ['commission-1', 'commission-2'];
 
-      mockCommissionRepository.findManyByIds.mockResolvedValueOnce(mockCommissions);
+      mockCommissionRepository.findManyByIds.mockResolvedValueOnce(
+        mockCommissions,
+      );
       mockCommissionRepository.update.mockResolvedValue(undefined);
-      mockCommissionRepository.findManyByIds.mockResolvedValueOnce(paidCommissions);
+      mockCommissionRepository.findManyByIds.mockResolvedValueOnce(
+        paidCommissions,
+      );
 
       const result = await service.markAsPaid(commissionIds);
 
@@ -590,7 +616,9 @@ describe('CommissionService', () => {
       const commissionIds = ['commission-1', 'non-existent'];
       const foundCommissions = [mockCommissions[0]];
 
-      mockCommissionRepository.findManyByIds.mockResolvedValue(foundCommissions);
+      mockCommissionRepository.findManyByIds.mockResolvedValue(
+        foundCommissions,
+      );
 
       await expect(service.markAsPaid(commissionIds)).rejects.toThrow(
         'Some commissions were not found',
@@ -619,7 +647,9 @@ describe('CommissionService', () => {
     it('should mark commissions as unpaid', async () => {
       const commissionIds = ['commission-1'];
 
-      mockCommissionRepository.findManyByIds.mockResolvedValueOnce(paidCommissions);
+      mockCommissionRepository.findManyByIds.mockResolvedValueOnce(
+        paidCommissions,
+      );
       mockCommissionRepository.update.mockResolvedValue(undefined);
       mockCommissionRepository.findManyByIds.mockResolvedValueOnce(
         unpaidCommissions,

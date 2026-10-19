@@ -80,9 +80,7 @@ export class ScheduledServiceService {
       return;
     }
 
-    throw new BadRequestException(
-      'Cannot modify cancelled scheduled services',
-    );
+    throw new BadRequestException('Cannot modify cancelled scheduled services');
   }
 
   private async syncCommissionForCompletedService(
@@ -202,10 +200,14 @@ export class ScheduledServiceService {
       await this.syncCommissionForCompletedService(savedService);
     }
 
-    return await this.scheduledServiceRepository.findById(
+    const created = await this.scheduledServiceRepository.findById(
       savedService.id,
       tenantId,
     );
+    if (!created) {
+      throw new NotFoundException('ScheduledService not found');
+    }
+    return created;
   }
 
   async findByAppointmentId(
@@ -272,6 +274,9 @@ export class ScheduledServiceService {
       id,
       tenantId,
     );
+    if (!updatedService) {
+      throw new NotFoundException('ScheduledService not found');
+    }
 
     if (
       updatedService?.status === ScheduledServiceStatus.COMPLETED &&
@@ -370,10 +375,8 @@ export class ScheduledServiceService {
       await this.scheduledServiceRepository.save(scheduledService);
 
     if (savedService.status === ScheduledServiceStatus.CANCELLED) {
-      const commission = await this.commissionRepository.findByScheduledServiceId(
-        id,
-        tenantId,
-      );
+      const commission =
+        await this.commissionRepository.findByScheduledServiceId(id, tenantId);
       if (commission && !commission.paid) {
         await this.commissionRepository.delete({ id: commission.id, tenantId });
       }

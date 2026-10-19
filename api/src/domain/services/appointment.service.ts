@@ -10,6 +10,7 @@ import {
   Scope,
 } from '@nestjs/common';
 import { Between } from 'typeorm';
+import { DeepPartial } from 'typeorm';
 import {
   endOfDay,
   isDateBeforeToday,
@@ -81,7 +82,7 @@ export class AppointmentService {
       createDto.clientId,
     );
 
-    const savedAppointment = await this.appointmentRepository.save({
+    const appointmentPayload: DeepPartial<Appointment> = {
       tenantId,
       clientName: resolvedClient.clientName,
       clientPhone: resolvedClient.clientPhone,
@@ -91,7 +92,10 @@ export class AppointmentService {
       endTime: createDto.endTime,
       status: AppointmentStatus.SCHEDULED,
       observations: normalizeString(createDto.observations),
-    });
+    };
+
+    const savedAppointment =
+      await this.appointmentRepository.save(appointmentPayload);
 
     for (const servico of createDto.servicos) {
       await this.scheduledServiceService.createScheduledService(
@@ -108,7 +112,11 @@ export class AppointmentService {
       return await this.completeAppointment(savedAppointment.id);
     }
 
-    return await this.findById(savedAppointment.id);
+    const created = await this.findById(savedAppointment.id);
+    if (!created) {
+      throw new NotFoundException('Appointment not found');
+    }
+    return created;
   }
 
   async findAll(): Promise<Appointment[]> {
@@ -210,11 +218,12 @@ export class AppointmentService {
       updateDto.clientPhone !== undefined ||
       updateDto.clientId !== undefined
     ) {
-      const resolvedClient = await this.clientService.resolveClientForAppointment(
-        updateDto.clientName ?? appointment.clientName,
-        updateDto.clientPhone ?? appointment.clientPhone,
-        updateDto.clientId ?? appointment.clientId ?? undefined,
-      );
+      const resolvedClient =
+        await this.clientService.resolveClientForAppointment(
+          updateDto.clientName ?? appointment.clientName,
+          updateDto.clientPhone ?? appointment.clientPhone,
+          updateDto.clientId ?? appointment.clientId ?? undefined,
+        );
       updatePayload.clientName = resolvedClient.clientName;
       updatePayload.clientPhone = resolvedClient.clientPhone;
       updatePayload.clientId = resolvedClient.clientId;
@@ -240,7 +249,11 @@ export class AppointmentService {
       );
     }
 
-    return await this.findById(appointmentId);
+    const updated = await this.findById(appointmentId);
+    if (!updated) {
+      throw new NotFoundException('Appointment not found');
+    }
+    return updated;
   }
 
   async completeAppointment(appointmentId: string): Promise<Appointment> {
@@ -309,9 +322,7 @@ export class AppointmentService {
     }
 
     if (appointment.status !== AppointmentStatus.COMPLETED) {
-      throw new BadRequestException(
-        'Can only reopen completed appointments',
-      );
+      throw new BadRequestException('Can only reopen completed appointments');
     }
 
     await this.commissionService.assertAppointmentCommissionsEditable(

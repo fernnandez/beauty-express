@@ -8,6 +8,7 @@ import {
   Scope,
 } from '@nestjs/common';
 import { normalizeString } from '../../common/utils/string.util';
+import { DeepPartial } from 'typeorm';
 import { VALIDATION_CONSTANTS } from '../../common/constants/validation.constants';
 import { Service } from '../entities/service.entity';
 import { ServiceRepository } from '../repositories/service.repository';
@@ -49,12 +50,14 @@ export class ServiceService {
       this.validateCommissionPercentage(createDto.commissionPercentage);
     }
 
-    return await this.repository.save({
+    const payload: DeepPartial<Service> = {
       ...createDto,
       commissionPercentage: createDto.commissionPercentage ?? 0,
       tenantId: this.getTenantId(),
       description: normalizeString(createDto.description),
-    });
+    };
+
+    return await this.repository.save(payload);
   }
 
   async findAll(search?: string): Promise<Service[]> {
@@ -95,9 +98,16 @@ export class ServiceService {
       updatePayload.description = normalizeString(updateDto.description);
     }
 
-    await this.repository.update({ id, tenantId: this.getTenantId() }, updatePayload);
+    await this.repository.update(
+      { id, tenantId: this.getTenantId() },
+      updatePayload,
+    );
 
-    return await this.repository.findById(id, this.getTenantId());
+    const updated = await this.repository.findById(id, this.getTenantId());
+    if (!updated) {
+      throw new NotFoundException('Service not found');
+    }
+    return updated;
   }
 
   async delete(id: string): Promise<void> {

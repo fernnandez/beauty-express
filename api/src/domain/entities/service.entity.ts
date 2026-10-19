@@ -31,7 +31,7 @@ export class Service {
   commissionPercentage: number;
 
   @Column({ type: 'text', nullable: true })
-  description?: string;
+  description?: string | null;
 
   @ManyToMany(() => Collaborator, (collaborator) => collaborator.services)
   collaborators?: Collaborator[];

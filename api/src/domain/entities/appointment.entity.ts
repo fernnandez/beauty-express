@@ -57,7 +57,7 @@ export class Appointment {
   status: AppointmentStatus;
 
   @Column({ type: 'text', nullable: true })
-  observations?: string;
+  observations?: string | null;
 
   @OneToMany(
     () => ScheduledService,

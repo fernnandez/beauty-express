@@ -43,7 +43,7 @@ export class ScheduledService {
   service?: Service;
 
   @Column({ nullable: true })
-  collaboratorId?: string;
+  collaboratorId?: string | null;
 
   @ManyToOne(() => Collaborator, { nullable: true })
   @JoinColumn({ name: 'collaboratorId' })

@@ -31,7 +31,10 @@ export class ClientService {
     return this.tenantContext.requireTenantId();
   }
 
-  private validatePhone(phone: string): { phone: string; phoneNormalized: string } {
+  private validatePhone(phone: string): {
+    phone: string;
+    phoneNormalized: string;
+  } {
     if (!isValidPhone(phone)) {
       throw new BadRequestException(
         'Telefone inválido. Use DDD + número (BR) ou internacional com +.',
@@ -117,7 +120,11 @@ export class ClientService {
       updatePayload,
     );
 
-    return await this.repository.findById(id, this.getTenantId());
+    const updated = await this.repository.findById(id, this.getTenantId());
+    if (!updated) {
+      throw new NotFoundException('Cliente não encontrado');
+    }
+    return updated;
   }
 
   async delete(id: string): Promise<void> {
@@ -154,7 +161,9 @@ export class ClientService {
           tenantId,
         );
         if (phoneOwner && phoneOwner.id !== clientId) {
-          throw new BadRequestException('Já existe um cliente com este telefone');
+          throw new BadRequestException(
+            'Já existe um cliente com este telefone',
+          );
         }
       }
 

@@ -16,21 +16,18 @@ import { CommissionRepository } from '@domain/repositories/commission.repository
 import { ScheduledServiceRepository } from '@domain/repositories/scheduled-service.repository';
 import { TenantRepository } from '@domain/repositories/tenant.repository';
 import { UserRepository } from '@domain/repositories/user.repository';
-import {
-  AdminAuditContext,
-  AdminAuditService,
-} from './admin-audit.service';
+import { AdminAuditContext, AdminAuditService } from './admin-audit.service';
 import { Collaborator } from '@domain/entities/collaborator.entity';
 import { Service } from '@domain/entities/service.entity';
-import { Appointment, AppointmentStatus } from '@domain/entities/appointment.entity';
+import {
+  Appointment,
+  AppointmentStatus,
+} from '@domain/entities/appointment.entity';
 import { Commission } from '@domain/entities/commission.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Not, Repository } from 'typeorm';
 import { DateTime } from 'luxon';
-import {
-  endOfDay,
-  parseDateString,
-} from '../../utils/date.util';
+import { endOfDay, parseDateString } from '../../utils/date.util';
 import {
   buildTenantFinancialReport,
   getMonthPeriod,
@@ -171,6 +168,9 @@ export class AdminService {
     const updated = await this.tenantRepository.findOne({
       where: { id },
     });
+    if (!updated) {
+      throw new NotFoundException('Filial não encontrada');
+    }
 
     await this.adminAuditService.log(
       audit,
@@ -230,13 +230,11 @@ export class AdminService {
       isActive: true,
     });
 
-    await this.adminAuditService.log(
-      audit,
-      'user.create',
-      'user',
-      user.id,
-      { email: user.email, role: user.role, tenantId: user.tenantId },
-    );
+    await this.adminAuditService.log(audit, 'user.create', 'user', user.id, {
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId,
+    });
 
     const { passwordHash: _, ...safeUser } = user;
     return safeUser;
@@ -254,7 +252,10 @@ export class AdminService {
 
     const isSuperAdmin = user.role === UserRole.SUPER_ADMIN;
 
-    if (isSuperAdmin && (dto.role !== undefined || dto.tenantId !== undefined)) {
+    if (
+      isSuperAdmin &&
+      (dto.role !== undefined || dto.tenantId !== undefined)
+    ) {
       throw new BadRequestException(
         'Super admin não pode ter papel ou filial alterados',
       );
@@ -326,20 +327,17 @@ export class AdminService {
 
     await this.userRepository.update(id, updates);
     const updated = await this.userRepository.findByIdWithTenant(id);
+    if (!updated) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
 
-    await this.adminAuditService.log(
-      audit,
-      'user.update',
-      'user',
-      id,
-      {
-        email: dto.email,
-        role: dto.role,
-        tenantId: dto.tenantId,
-        isActive: dto.isActive,
-        passwordChanged: Boolean(dto.password),
-      },
-    );
+    await this.adminAuditService.log(audit, 'user.update', 'user', id, {
+      email: dto.email,
+      role: dto.role,
+      tenantId: dto.tenantId,
+      isActive: dto.isActive,
+      passwordChanged: Boolean(dto.password),
+    });
 
     const { passwordHash: _, ...safeUser } = updated;
     return safeUser;
