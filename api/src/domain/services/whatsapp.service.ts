@@ -23,6 +23,7 @@ import { ServiceRepository } from '../repositories/service.repository';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { EvolutionClient } from './evolution.client';
 import { WhatsappGateway } from './whatsapp.gateway';
+import { WhatsappRateLimiter } from './whatsapp-rate-limiter.service';
 import { EvolutionWebhookPayload } from './evolution-webhook.types';
 import { TenantContextService } from './tenant-context.service';
 import {
@@ -51,6 +52,7 @@ export class WhatsappService {
     private readonly appointmentRepository: AppointmentRepository,
     private readonly evolution: EvolutionClient,
     private readonly gateway: WhatsappGateway,
+    private readonly rateLimiter: WhatsappRateLimiter,
     private readonly tenantContext: TenantContextService,
     @Inject(MEDIA_STORAGE)
     private readonly mediaStorage: MediaStorage,
@@ -239,6 +241,9 @@ export class WhatsappService {
       );
     }
 
+    // Protege o número contra rajadas (risco de ban no WhatsApp não-oficial).
+    this.rateLimiter.check(tenantId);
+
     let status = MessageStatus.SENT;
     let waMessageId: string | null = null;
     try {
@@ -336,6 +341,8 @@ export class WhatsappService {
     if (!message.waMessageId) {
       throw new BadRequestException('Mensagem sem identificador do WhatsApp');
     }
+
+    this.rateLimiter.check(tenantId);
 
     try {
       await this.evolution.sendReaction(

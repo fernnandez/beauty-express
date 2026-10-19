@@ -11,6 +11,7 @@ import { EvolutionClient } from './evolution.client';
 import { WhatsappGateway } from './whatsapp.gateway';
 import { TenantContextService } from './tenant-context.service';
 import { MEDIA_STORAGE } from './media-storage/media-storage.interface';
+import { WhatsappRateLimiter } from './whatsapp-rate-limiter.service';
 import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
 import {
   MessageDirection,
@@ -69,6 +70,9 @@ describe('WhatsappService', () => {
         Promise.resolve(`data:${input.mime};base64,${input.base64}`),
       ),
   };
+  const mockRateLimiter = {
+    check: jest.fn(),
+  };
   const mockTenantContext = {
     requireTenantId: jest.fn().mockReturnValue(TENANT_ID_MOCK),
     getUserId: jest.fn().mockReturnValue('user-1'),
@@ -97,6 +101,7 @@ describe('WhatsappService', () => {
         { provide: WhatsappGateway, useValue: mockGateway },
         { provide: TenantContextService, useValue: mockTenantContext },
         { provide: MEDIA_STORAGE, useValue: mockMediaStorage },
+        { provide: WhatsappRateLimiter, useValue: mockRateLimiter },
       ],
     }).compile();
 

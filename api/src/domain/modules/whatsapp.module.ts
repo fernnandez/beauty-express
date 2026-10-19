@@ -10,6 +10,7 @@ import { MessageRepository } from '../repositories/message.repository';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { WhatsappService } from '../services/whatsapp.service';
 import { WhatsappGateway } from '../services/whatsapp.gateway';
+import { WhatsappRateLimiter } from '../services/whatsapp-rate-limiter.service';
 import { EvolutionClient } from '../services/evolution.client';
 import { WhatsappController } from '@application/controllers/whatsapp.controller';
 import { WhatsappWebhookController } from '@application/controllers/whatsapp-webhook.controller';
@@ -38,6 +39,7 @@ import { mediaStorageProvider } from '../services/media-storage/media-storage.pr
     AppointmentRepository,
     EvolutionClient,
     WhatsappGateway,
+    WhatsappRateLimiter,
     WhatsappService,
     mediaStorageProvider,
   ],
