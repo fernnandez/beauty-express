@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   Matches,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -21,6 +22,7 @@ export class ScheduledServiceInputDto {
 
   @ApiProperty({ example: 100.0, required: false })
   @IsNumber()
+  @Min(0.01)
   @IsOptional()
   price?: number;
 }
