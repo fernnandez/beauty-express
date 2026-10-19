@@ -167,8 +167,25 @@ function ConnectPanel({ status }: { status?: string }) {
   const qrLoading = qrQuery.isLoading;
 
   return (
-    <Center h="100%" p="md">
-      <Card withBorder shadow="sm" radius="lg" p="xl" maw={440} w="100%">
+    <Box
+      h="100%"
+      p="md"
+      style={{
+        overflowY: "auto",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Card
+        withBorder
+        shadow="sm"
+        radius="lg"
+        p="xl"
+        maw={440}
+        w="100%"
+        my="auto"
+      >
         <Stack align="center" gap="md">
           <ThemeIcon
             size={64}
@@ -237,7 +254,7 @@ function ConnectPanel({ status }: { status?: string }) {
           )}
         </Stack>
       </Card>
-    </Center>
+    </Box>
   );
 }
 
