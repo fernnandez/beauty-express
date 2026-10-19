@@ -190,7 +190,7 @@ describe('AppointmentService', () => {
     });
 
     it('should throw error when no services provided', async () => {
-      const invalidDto = { ...createDto, servicos: [] };
+      const invalidDto: CreateAppointmentDto = { ...createDto, servicos: [] };
 
       await expect(service.createAppointment(invalidDto)).rejects.toThrow(
         'Appointment must have at least one service',
