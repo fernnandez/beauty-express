@@ -69,6 +69,7 @@ import type {
 import { ClientPickerModal } from "../components/client/ClientPickerModal";
 import { TodayAppointmentsModal } from "../components/whatsapp/TodayAppointmentsModal";
 import { WhatsappConfigPanel } from "../components/whatsapp/WhatsappConfigPanel";
+import { UnofficialApiNotice } from "../components/whatsapp/UnofficialApiNotice";
 import { useSettings } from "../hooks/useSettings";
 import { formatBrazilianPhone } from "../utils/phone.util";
 
@@ -187,6 +188,8 @@ function ConnectPanel({ status }: { status?: string }) {
             escaneie o código.
           </Text>
 
+          <UnofficialApiNotice variant="full" />
+
           {!started && (
             <Button
               leftSection={<IconBrandWhatsapp size={18} />}
@@ -296,6 +299,8 @@ function SettingsModal({
             </Badge>
           </Group>
         </Paper>
+
+        <UnofficialApiNotice variant="compact" />
 
         {/* Ação de desconectar */}
         <div>
