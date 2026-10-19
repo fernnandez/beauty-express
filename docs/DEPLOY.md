@@ -1,6 +1,8 @@
-# Guia de Implantação — Maria Borboleta
+# Guia de Implantação — Ageendoo
 
 Deploy recomendado via **plataformas gerenciadas** (sem servidor próprio).
+
+> O produto é o **Ageendoo**; o repositório, pacotes e serviço no Railway mantêm o nome técnico `beauty-express`.
 
 ## Arquitetura
 
@@ -232,6 +234,10 @@ Push no repositório → rebuild automático no Vercel/Netlify.
 
 ---
 
+## WhatsApp / Evolution API
+
+O módulo de atendimento via WhatsApp está **em desenvolvimento** (branch `feat/whatsapp`) e **não faz parte deste deploy**. As variáveis `EVOLUTION_*` e o `docker-compose.evolution.yml` são apenas para ambiente de desenvolvimento; não configure a Evolution em produção até o módulo estar liberado.
+
 ## Checklist
 
 - [ ] PostgreSQL provisionado
@@ -246,4 +252,4 @@ Push no repositório → rebuild automático no Vercel/Netlify.
 
 ---
 
-**Última atualização**: Junho 2026
+**Última atualização**: Outubro 2026
