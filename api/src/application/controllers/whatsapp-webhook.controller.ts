@@ -1,7 +1,9 @@
+import { timingSafeEqual } from 'crypto';
 import {
   Body,
   Controller,
   ForbiddenException,
+  Headers,
   HttpCode,
   HttpStatus,
   Logger,
@@ -14,9 +16,24 @@ import { WhatsappService } from '@domain/services/whatsapp.service';
 import { EvolutionWebhookPayload } from '@domain/services/evolution-webhook.types';
 
 /**
+ * Compara duas strings em tempo constante (evita timing attacks).
+ * Retorna false se tamanhos diferirem ou se algum valor for vazio.
+ */
+export function safeTokenEquals(provided: string, expected: string): boolean {
+  if (!provided || !expected) return false;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+/**
  * Endpoint público que recebe os eventos da Evolution API.
- * Protegido por um token secreto na query string (?token=...), configurado
- * em EVOLUTION_WEBHOOK_TOKEN e também na URL de webhook da instância.
+ *
+ * Autenticação por token secreto (`EVOLUTION_WEBHOOK_TOKEN`), aceito via
+ * query string (`?token=...`, usado pela Evolution ao montar a URL) ou via
+ * header `x-webhook-token`. É *fail-closed*: se o token não estiver
+ * configurado no ambiente, toda requisição é recusada.
  */
 @ApiExcludeController()
 @Controller('webhooks/whatsapp')
@@ -30,16 +47,22 @@ export class WhatsappWebhookController {
   @HttpCode(HttpStatus.OK)
   async receive(
     @Body() payload: EvolutionWebhookPayload,
-    @Query('token') token?: string,
+    @Query('token') queryToken?: string,
+    @Headers('x-webhook-token') headerToken?: string,
   ) {
     const expected = process.env.EVOLUTION_WEBHOOK_TOKEN;
-    if (expected && token !== expected) {
-      throw new ForbiddenException('Token de webhook inválido');
+    if (!expected) {
+      // Fail-closed: sem token configurado, não aceitamos nada.
+      this.logger.error(
+        'EVOLUTION_WEBHOOK_TOKEN não configurado — webhook recusado',
+      );
+      throw new ForbiddenException('Webhook não configurado');
     }
 
-    this.logger.debug(
-      `webhook recebido: event=${payload.event} status=${payload.data?.status ?? '-'} msgId=${payload.data?.keyId ?? payload.data?.key?.id ?? '-'}`,
-    );
+    const provided = headerToken ?? queryToken ?? '';
+    if (!safeTokenEquals(provided, expected)) {
+      throw new ForbiddenException('Token de webhook inválido');
+    }
 
     await this.whatsappService.processInboundWebhook(payload);
     return { received: true };
