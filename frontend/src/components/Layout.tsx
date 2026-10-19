@@ -14,6 +14,7 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconBook2,
+  IconBrandWhatsapp,
   IconCalendar,
   IconChartBar,
   IconDotsCircleHorizontal,
@@ -43,6 +44,7 @@ const navigationItems = [
   { icon: IconUserCircle, label: "Clientes", path: "/clients" },
   { icon: IconScissors, label: "Serviços", path: "/services" },
   { icon: IconCalendar, label: "Agendamentos", path: "/appointments" },
+  { icon: IconBrandWhatsapp, label: "Atendimento", path: "/whatsapp" },
   { icon: IconChartBar, label: "Relatórios", path: "/financial-reports" },
   { icon: IconReceipt2, label: "Despesas", path: "/expenses" },
   { icon: IconSettings, label: "Configurações", path: "/settings" },
@@ -349,7 +351,7 @@ interface MobileBottomNavProps {
 const PRIMARY_MOBILE_PATHS = [
   "/",
   "/appointments",
-  "/collaborators",
+  "/whatsapp",
   "/financial-reports",
 ];
 
