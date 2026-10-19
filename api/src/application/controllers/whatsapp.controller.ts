@@ -58,6 +58,12 @@ export class WhatsappController {
     return await this.whatsappService.listConversations(parsed);
   }
 
+  @Get('unread-count')
+  @ApiOperation({ summary: 'Total de conversas com mensagens não lidas' })
+  async unreadCount() {
+    return await this.whatsappService.getUnreadCount();
+  }
+
   @Post('conversations/from-client')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Iniciar conversa com um cliente cadastrado' })

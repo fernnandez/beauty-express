@@ -263,6 +263,7 @@ function SettingsModal({
       onClose={onClose}
       title="Configurações do atendimento"
       radius="lg"
+      size="lg"
       centered
     >
       <Stack gap="lg">

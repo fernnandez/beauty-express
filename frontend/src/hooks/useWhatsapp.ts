@@ -13,6 +13,17 @@ import type {
 
 const INSTANCE_KEY = ["whatsapp", "instance"];
 const CONVERSATIONS_KEY = ["whatsapp", "conversations"];
+const UNREAD_KEY = ["whatsapp", "unread-count"];
+
+/** Total de conversas com mensagens não lidas (badge na sidebar). */
+export const useWhatsappUnreadCount = (enabled = true) => {
+  return useQuery<{ count: number }>({
+    queryKey: UNREAD_KEY,
+    queryFn: () => whatsappService.getUnreadCount(),
+    enabled,
+    refetchInterval: enabled ? 30000 : false,
+  });
+};
 
 /** Status da instância; faz polling enquanto não estiver conectada. */
 export const useWhatsappInstance = (poll = true) => {
@@ -100,6 +111,7 @@ export const useMarkConversationRead = () => {
       whatsappService.markRead(conversationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY });
+      queryClient.invalidateQueries({ queryKey: UNREAD_KEY });
     },
   });
 };
@@ -183,6 +195,7 @@ export const useWhatsappSocket = (enabled: boolean) => {
 
     const onUpdate = (payload: { conversationId?: string }) => {
       queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY });
+      queryClient.invalidateQueries({ queryKey: UNREAD_KEY });
       if (payload?.conversationId) {
         queryClient.invalidateQueries({
           queryKey: ["whatsapp", "messages", payload.conversationId],

@@ -171,6 +171,14 @@ export class WhatsappService {
     }));
   }
 
+  /** Nº de conversas com mensagens não lidas (para o badge da sidebar). */
+  async getUnreadCount(): Promise<{ count: number }> {
+    const count = await this.conversationRepository.countUnreadConversations(
+      this.getTenantId(),
+    );
+    return { count };
+  }
+
   /** Classifica a conversa em um bucket a partir do vínculo com o cliente. */
   private resolveCategory(
     conversation: Conversation,

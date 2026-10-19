@@ -36,6 +36,13 @@ export const whatsappService = {
     return response.data;
   },
 
+  getUnreadCount: async (): Promise<{ count: number }> => {
+    const response = await api.get<{ count: number }>(
+      "/whatsapp/unread-count",
+    );
+    return response.data;
+  },
+
   listMessages: async (conversationId: string): Promise<WhatsappMessage[]> => {
     const response = await api.get<WhatsappMessage[]>(
       `/whatsapp/conversations/${conversationId}/messages`,
