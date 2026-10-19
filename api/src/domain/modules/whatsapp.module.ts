@@ -16,6 +16,7 @@ import { WhatsappWebhookController } from '@application/controllers/whatsapp-web
 import { AuthModule } from './auth.module';
 import { ClientModule } from './client.module';
 import { ServiceModule } from './service.module';
+import { mediaStorageProvider } from '../services/media-storage/media-storage.provider';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ServiceModule } from './service.module';
     EvolutionClient,
     WhatsappGateway,
     WhatsappService,
+    mediaStorageProvider,
   ],
   exports: [WhatsappService, WhatsappInstanceRepository],
 })

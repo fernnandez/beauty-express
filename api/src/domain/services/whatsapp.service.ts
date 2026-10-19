@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -24,6 +25,10 @@ import { EvolutionClient } from './evolution.client';
 import { WhatsappGateway } from './whatsapp.gateway';
 import { EvolutionWebhookPayload } from './evolution-webhook.types';
 import { TenantContextService } from './tenant-context.service';
+import {
+  MEDIA_STORAGE,
+  MediaStorage,
+} from './media-storage/media-storage.interface';
 import { normalizePhone } from '@common/utils/phone.util';
 
 /** Bucket derivado do vínculo da conversa com cliente/agendamentos. */
@@ -47,6 +52,8 @@ export class WhatsappService {
     private readonly evolution: EvolutionClient,
     private readonly gateway: WhatsappGateway,
     private readonly tenantContext: TenantContextService,
+    @Inject(MEDIA_STORAGE)
+    private readonly mediaStorage: MediaStorage,
   ) {}
 
   private getTenantId(): string {
@@ -586,6 +593,7 @@ export class WhatsappService {
       mediaUrl = await this.fetchMediaDataUrl(
         instance.instanceName,
         waMessageId,
+        tenantId,
       );
     }
 
@@ -773,10 +781,15 @@ export class WhatsappService {
     });
     return await this.conversationRepository.save(conversation);
   }
-  /** Busca a mídia descriptografada e monta um data URL, ou null em falha. */
+  /**
+   * Busca a mídia descriptografada na Evolution e a persiste via MediaStorage,
+   * retornando o valor a gravar em `mediaUrl` (data URL em dev, URL S3 em prod)
+   * ou null em falha.
+   */
   private async fetchMediaDataUrl(
     instanceName: string,
     waMessageId: string,
+    tenantId: string,
   ): Promise<string | null> {
     try {
       const media = await this.evolution.getMediaBase64(
@@ -785,7 +798,12 @@ export class WhatsappService {
       );
       if (!media?.base64) return null;
       const mime = media.mimetype || 'image/webp';
-      return `data:${mime};base64,${media.base64}`;
+      return await this.mediaStorage.store({
+        base64: media.base64,
+        mime,
+        tenantId,
+        waMessageId,
+      });
     } catch (err) {
       this.logger.warn(`Falha ao baixar mídia ${waMessageId}: ${String(err)}`);
       return null;
