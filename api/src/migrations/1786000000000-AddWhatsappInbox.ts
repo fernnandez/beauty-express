@@ -28,7 +28,7 @@ export class AddWhatsappInbox1786000000000 implements MigrationInterface {
 
     // whatsapp_messages
     await queryRunner.query(
-      `CREATE TABLE "whatsapp_messages" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "tenantId" uuid NOT NULL, "conversationId" uuid NOT NULL, "waMessageId" character varying, "direction" character varying NOT NULL, "type" character varying NOT NULL DEFAULT 'text', "content" text, "mediaUrl" character varying, "status" character varying NOT NULL DEFAULT 'sent', "sentByUserId" uuid, "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_whatsapp_messages_id" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "whatsapp_messages" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "tenantId" uuid NOT NULL, "conversationId" uuid NOT NULL, "waMessageId" character varying, "direction" character varying NOT NULL, "type" character varying NOT NULL DEFAULT 'text', "content" text, "mediaUrl" character varying, "reaction" character varying, "status" character varying NOT NULL DEFAULT 'sent', "sentByUserId" uuid, "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_whatsapp_messages_id" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE UNIQUE INDEX "UQ_whatsapp_messages_tenant_wamsg" ON "whatsapp_messages" ("tenantId", "waMessageId")`,

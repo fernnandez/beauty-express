@@ -52,6 +52,10 @@ export class Message {
   @Column({ type: 'varchar', nullable: true })
   mediaUrl?: string | null;
 
+  /** Emoji de reação aplicado a esta mensagem (ex.: ❤️), ou nulo. */
+  @Column({ type: 'varchar', nullable: true })
+  reaction?: string | null;
+
   @Column({ type: 'varchar', default: MessageStatus.SENT })
   status: MessageStatus;
 

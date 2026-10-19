@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   HttpCode,
   HttpStatus,
+  Logger,
   Post,
   Query,
 } from '@nestjs/common';
@@ -20,6 +21,8 @@ import { EvolutionWebhookPayload } from '@domain/services/evolution-webhook.type
 @ApiExcludeController()
 @Controller('webhooks/whatsapp')
 export class WhatsappWebhookController {
+  private readonly logger = new Logger(WhatsappWebhookController.name);
+
   constructor(private readonly whatsappService: WhatsappService) {}
 
   @Public()
@@ -33,6 +36,10 @@ export class WhatsappWebhookController {
     if (expected && token !== expected) {
       throw new ForbiddenException('Token de webhook inválido');
     }
+
+    this.logger.debug(
+      `webhook recebido: event=${payload.event} status=${payload.data?.status ?? '-'} msgId=${payload.data?.keyId ?? payload.data?.key?.id ?? '-'}`,
+    );
 
     await this.whatsappService.processInboundWebhook(payload);
     return { received: true };

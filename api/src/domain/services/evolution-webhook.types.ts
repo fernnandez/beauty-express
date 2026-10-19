@@ -21,6 +21,10 @@ export interface EvolutionWebhookData {
   };
   /** Estado da conexão (evento connection.update): 'open' | 'close' | 'connecting'. */
   state?: string;
+  /** Status de entrega (evento messages.update): ex. DELIVERY_ACK, READ, SERVER_ACK. */
+  status?: string;
+  /** ID da mensagem no evento messages.update (payload achatado da Evolution). */
+  keyId?: string;
   /** Nome exibido do contato. */
   pushName?: string;
   /** Timestamp em segundos (epoch). */
@@ -33,5 +37,9 @@ export interface EvolutionWebhookData {
     audioMessage?: { url?: string };
     videoMessage?: { caption?: string; url?: string };
     documentMessage?: { fileName?: string; url?: string };
+    reactionMessage?: {
+      key?: { id?: string; fromMe?: boolean; remoteJid?: string };
+      text?: string;
+    };
   };
 }

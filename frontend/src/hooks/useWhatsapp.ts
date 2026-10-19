@@ -151,3 +151,18 @@ export const useConfirmAppointment = () => {
     },
   });
 };
+
+export const useReactToMessage = (conversationId: string | null) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ messageId, emoji }: { messageId: string; emoji: string }) =>
+      whatsappService.reactToMessage(messageId, emoji),
+    onSuccess: () => {
+      if (conversationId) {
+        queryClient.invalidateQueries({
+          queryKey: ["whatsapp", "messages", conversationId],
+        });
+      }
+    },
+  });
+};

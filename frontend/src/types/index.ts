@@ -319,6 +319,7 @@ export interface WhatsappMessage {
   type: MessageType;
   content?: string | null;
   mediaUrl?: string | null;
+  reaction?: string | null;
   status: MessageStatus;
   sentByUserId?: string | null;
   timestamp: string;

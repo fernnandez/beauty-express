@@ -109,7 +109,7 @@ export class EvolutionClient {
       webhook: {
         url: webhookUrl,
         byEvents: false,
-        events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
+        events: ['MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'CONNECTION_UPDATE'],
       },
     });
   }
@@ -132,8 +132,26 @@ export class EvolutionClient {
           enabled: true,
           url: webhookUrl,
           byEvents: false,
-          events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
+          events: ['MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'CONNECTION_UPDATE'],
         },
+      },
+    );
+  }
+
+  /** Envia uma reação (emoji) a uma mensagem. Emoji vazio remove a reação. */
+  async sendReaction(
+    instanceName: string,
+    remoteJid: string,
+    fromMe: boolean,
+    waMessageId: string,
+    emoji: string,
+  ): Promise<unknown> {
+    return await this.request(
+      'POST',
+      `/message/sendReaction/${encodeURIComponent(instanceName)}`,
+      {
+        key: { remoteJid, fromMe, id: waMessageId },
+        reaction: emoji,
       },
     );
   }

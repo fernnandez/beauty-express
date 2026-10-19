@@ -97,4 +97,15 @@ export const whatsappService = {
     }>(`/whatsapp/appointments/${appointmentId}/confirm`);
     return response.data;
   },
+
+  reactToMessage: async (
+    messageId: string,
+    emoji: string,
+  ): Promise<WhatsappMessage> => {
+    const response = await api.post<WhatsappMessage>(
+      `/whatsapp/messages/${messageId}/react`,
+      { emoji },
+    );
+    return response.data;
+  },
 };

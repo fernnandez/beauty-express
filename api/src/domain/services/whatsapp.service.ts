@@ -293,6 +293,46 @@ export class WhatsappService {
 
     return await this.sendMessage(conversationId, text);
   }
+  /** Reage (emoji) a uma mensagem pelo inbox: envia à Evolution e grava local. */
+  async reactToMessage(messageId: string, emoji: string): Promise<Message> {
+    const tenantId = this.getTenantId();
+    const message = await this.messageRepository.findById(messageId, tenantId);
+    if (!message) {
+      throw new NotFoundException('Mensagem não encontrada');
+    }
+    const conversation = await this.conversationRepository.findById(
+      message.conversationId,
+      tenantId,
+    );
+    if (!conversation) {
+      throw new NotFoundException('Conversa não encontrada');
+    }
+    const instance = await this.instanceRepository.findByTenant(tenantId);
+    if (!instance) {
+      throw new BadRequestException(
+        'Nenhuma instância de WhatsApp conectada para este estabelecimento',
+      );
+    }
+    if (!message.waMessageId) {
+      throw new BadRequestException('Mensagem sem identificador do WhatsApp');
+    }
+
+    try {
+      await this.evolution.sendReaction(
+        instance.instanceName,
+        conversation.waChatId,
+        message.direction === MessageDirection.OUTBOUND,
+        message.waMessageId,
+        emoji,
+      );
+    } catch (err) {
+      this.logger.error(`Falha ao reagir (msg ${messageId}): ${String(err)}`);
+      throw new BadRequestException('Não foi possível enviar a reação');
+    }
+
+    message.reaction = emoji ? emoji : null;
+    return await this.messageRepository.save(message);
+  }
 
   /** Marca as mensagens recebidas de uma conversa como lidas (zera unread). */
   async markConversationRead(conversationId: string): Promise<void> {
@@ -459,6 +499,11 @@ export class WhatsappService {
       return null;
     }
 
+    if (event === 'messages.update' || event === 'messages_update') {
+      await this.handleMessageStatusUpdate(payload);
+      return null;
+    }
+
     if (event && event !== 'messages.upsert' && event !== 'messages_upsert') {
       return null;
     }
@@ -482,8 +527,24 @@ export class WhatsappService {
       return null;
     }
 
-    // Ignora grupos e mensagens enviadas por nós (eco).
-    if (remoteJid.endsWith('@g.us') || data.key?.fromMe) {
+    // Ignora grupos.
+    if (remoteJid.endsWith('@g.us')) {
+      return null;
+    }
+
+    // Reação: não é uma mensagem nova — anexa/retira o emoji na mensagem-alvo.
+    const reaction = data.message?.reactionMessage;
+    if (reaction) {
+      await this.applyReaction(
+        tenantId,
+        reaction.key?.id ?? null,
+        reaction.text ?? '',
+      );
+      return null;
+    }
+
+    // Ignora o eco das nossas próprias mensagens (outbound).
+    if (data.key?.fromMe) {
       return null;
     }
 
@@ -568,6 +629,90 @@ export class WhatsappService {
       instance.status = WhatsappInstanceStatus.DISCONNECTED;
     }
     await this.instanceRepository.save(instance);
+  }
+
+  /**
+   * Atualiza o status de entrega de uma mensagem outbound a partir de
+   * messages.update (SERVER_ACK/DELIVERY_ACK/READ...). Não rebaixa o status.
+   */
+  private async handleMessageStatusUpdate(
+    payload: EvolutionWebhookPayload,
+  ): Promise<void> {
+    const instanceName = payload.instance;
+    const data = payload.data;
+    // No messages.update o payload é achatado: o id vem em data.keyId.
+    const waMessageId = data?.keyId ?? data?.key?.id;
+    const rawStatus = data?.status;
+    if (!instanceName || !waMessageId || !rawStatus) return;
+
+    const instance =
+      await this.instanceRepository.findByInstanceName(instanceName);
+    if (!instance) return;
+
+    const next = this.mapWhatsappStatus(rawStatus);
+    if (!next) return;
+
+    const message = await this.messageRepository.findByWaMessageId(
+      waMessageId,
+      instance.tenantId,
+    );
+    if (!message || message.direction !== MessageDirection.OUTBOUND) return;
+
+    // Só avança o status (sent < delivered < read); nunca rebaixa.
+    if (this.statusRank(next) <= this.statusRank(message.status)) return;
+
+    message.status = next;
+    await this.messageRepository.save(message);
+  }
+
+  /** Mapeia o status do WhatsApp/Evolution para o nosso enum. */
+  private mapWhatsappStatus(raw: string): MessageStatus | null {
+    switch (raw.toUpperCase()) {
+      case 'PENDING':
+        return MessageStatus.PENDING;
+      case 'SERVER_ACK':
+      case 'SENT':
+        return MessageStatus.SENT;
+      case 'DELIVERY_ACK':
+      case 'DELIVERED':
+        return MessageStatus.DELIVERED;
+      case 'READ':
+      case 'PLAYED':
+        return MessageStatus.READ;
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Aplica (ou remove) a reação de emoji numa mensagem-alvo (por waMessageId).
+   * Texto vazio = reação removida.
+   */
+  private async applyReaction(
+    tenantId: string,
+    targetWaMessageId: string | null,
+    emoji: string,
+  ): Promise<void> {
+    if (!targetWaMessageId) return;
+    const target = await this.messageRepository.findByWaMessageId(
+      targetWaMessageId,
+      tenantId,
+    );
+    if (!target) return;
+    target.reaction = emoji ? emoji : null;
+    await this.messageRepository.save(target);
+  }
+
+  /** Ordem de progressão dos status (para não rebaixar). */
+  private statusRank(status: MessageStatus): number {
+    const order: Record<string, number> = {
+      [MessageStatus.FAILED]: 0,
+      [MessageStatus.PENDING]: 1,
+      [MessageStatus.SENT]: 2,
+      [MessageStatus.DELIVERED]: 3,
+      [MessageStatus.READ]: 4,
+    };
+    return order[status] ?? 0;
   }
 
   private async getOrCreateConversation(

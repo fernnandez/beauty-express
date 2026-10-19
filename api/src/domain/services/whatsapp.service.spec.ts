@@ -34,6 +34,7 @@ describe('WhatsappService', () => {
   };
   const mockMessageRepository = {
     findByWaMessageId: jest.fn(),
+    findById: jest.fn(),
     listByConversation: jest.fn(),
     create: jest.fn((v) => v),
     save: jest.fn((v) => Promise.resolve({ id: 'msg-1', ...v })),
@@ -54,6 +55,7 @@ describe('WhatsappService', () => {
     connect: jest.fn(),
     createInstance: jest.fn(),
     setWebhook: jest.fn(),
+    sendReaction: jest.fn(),
   };
   const mockTenantContext = {
     requireTenantId: jest.fn().mockReturnValue(TENANT_ID_MOCK),
@@ -163,6 +165,45 @@ describe('WhatsappService', () => {
       );
       const saved = mockMessageRepository.create.mock.calls[0][0];
       expect(saved.status).toBe(MessageStatus.FAILED);
+    });
+  });
+
+  describe('reactToMessage', () => {
+    it('envia a reação e grava o emoji na mensagem', async () => {
+      mockMessageRepository.findById.mockResolvedValue({
+        id: 'm1',
+        conversationId: 'conv-1',
+        waMessageId: 'WA-1',
+        direction: 'inbound',
+      });
+      mockConversationRepository.findById.mockResolvedValue({
+        id: 'conv-1',
+        tenantId: TENANT_ID_MOCK,
+        waChatId: '5581988887777@s.whatsapp.net',
+      });
+      mockInstanceRepository.findByTenant.mockResolvedValue({
+        instanceName: 'salao-1',
+      });
+      mockEvolution.sendReaction.mockResolvedValue({});
+
+      await service.reactToMessage('m1', '👍');
+
+      expect(mockEvolution.sendReaction).toHaveBeenCalledWith(
+        'salao-1',
+        '5581988887777@s.whatsapp.net',
+        false,
+        'WA-1',
+        '👍',
+      );
+      const saved = mockMessageRepository.save.mock.calls.at(-1)[0];
+      expect(saved.reaction).toBe('👍');
+    });
+
+    it('rejeita mensagem inexistente', async () => {
+      mockMessageRepository.findById.mockResolvedValue(null);
+      await expect(service.reactToMessage('x', '👍')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -314,6 +355,83 @@ describe('WhatsappService', () => {
       expect(savedConv.id).toBe('conv-7');
     });
 
+    it('messages.update avança o status da mensagem outbound', async () => {
+      mockInstanceRepository.findByInstanceName.mockResolvedValue({
+        tenantId: TENANT_ID_MOCK,
+        instanceName: 'salao-1',
+      });
+      mockMessageRepository.findByWaMessageId.mockResolvedValue({
+        id: 'm1',
+        direction: 'outbound',
+        status: 'sent',
+      });
+      mockMessageRepository.save.mockClear();
+
+      const result = await service.processInboundWebhook({
+        instance: 'salao-1',
+        event: 'messages.update',
+        data: { keyId: 'WA-OUT-1', status: 'READ' },
+      });
+
+      expect(result).toBeNull();
+      const saved = mockMessageRepository.save.mock.calls.at(-1)[0];
+      expect(saved.status).toBe('read');
+    });
+
+    it('messages.update não rebaixa o status', async () => {
+      mockInstanceRepository.findByInstanceName.mockResolvedValue({
+        tenantId: TENANT_ID_MOCK,
+        instanceName: 'salao-1',
+      });
+      mockMessageRepository.findByWaMessageId.mockResolvedValue({
+        id: 'm1',
+        direction: 'outbound',
+        status: 'read',
+      });
+      mockMessageRepository.save.mockClear();
+
+      await service.processInboundWebhook({
+        instance: 'salao-1',
+        event: 'messages.update',
+        data: { keyId: 'WA-OUT-1', status: 'DELIVERY_ACK' },
+      });
+
+      expect(mockMessageRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('reactionMessage anexa emoji à mensagem-alvo e não cria mensagem', async () => {
+      mockInstanceRepository.findByInstanceName.mockResolvedValue({
+        tenantId: TENANT_ID_MOCK,
+        instanceName: 'salao-1',
+      });
+      mockMessageRepository.findByWaMessageId.mockResolvedValue({
+        id: 'target-1',
+        reaction: null,
+      });
+      mockMessageRepository.create.mockClear();
+      mockMessageRepository.save.mockClear();
+
+      const result = await service.processInboundWebhook({
+        instance: 'salao-1',
+        event: 'messages.upsert',
+        data: {
+          key: {
+            remoteJid: '5581988887777@s.whatsapp.net',
+            fromMe: true,
+            id: 'evt-1',
+          },
+          message: {
+            reactionMessage: { key: { id: 'WA-TARGET' }, text: '👍' },
+          },
+        },
+      });
+
+      expect(result).toBeNull();
+      expect(mockMessageRepository.create).not.toHaveBeenCalled();
+      const saved = mockMessageRepository.save.mock.calls.at(-1)[0];
+      expect(saved.reaction).toBe('👍');
+    });
+
     it('connection.update open marca a instância como conectada', async () => {
       const instance = {
         tenantId: TENANT_ID_MOCK,
@@ -425,45 +543,45 @@ describe('WhatsappService', () => {
       expect(saved.contactName).toBe('João');
     });
 
-  describe('confirmação de agendamento', () => {
-    it('prepara o texto e abre a conversa pelo telefone do agendamento', async () => {
-      mockAppointmentRepository.findById.mockResolvedValue({
-        id: 'ap-1',
-        tenantId: TENANT_ID_MOCK,
-        clientName: 'Carla Mendes',
-        clientPhone: '(11) 99999-1111',
-        clientId: null,
-        date: new Date('2026-10-20T12:00:00Z'),
-        startTime: '14:00',
-        scheduledServices: [{ service: { name: 'Manicure' } }],
+    describe('confirmação de agendamento', () => {
+      it('prepara o texto e abre a conversa pelo telefone do agendamento', async () => {
+        mockAppointmentRepository.findById.mockResolvedValue({
+          id: 'ap-1',
+          tenantId: TENANT_ID_MOCK,
+          clientName: 'Carla Mendes',
+          clientPhone: '(11) 99999-1111',
+          clientId: null,
+          date: new Date('2026-10-20T12:00:00Z'),
+          startTime: '14:00',
+          scheduledServices: [{ service: { name: 'Manicure' } }],
+        });
+        mockConversationRepository.findByWaChatId.mockResolvedValue(null);
+        mockClientRepository.findByPhoneNormalized.mockResolvedValue(null);
+
+        const result = await service.prepareAppointmentConfirmation('ap-1');
+
+        // Não deve enviar nada — apenas preparar.
+        expect(mockEvolution.sendText).not.toHaveBeenCalled();
+        expect(result.text).toContain('Carla');
+        expect(result.text).toContain('14:00');
+        expect(result.text).toContain('Manicure');
+        expect(result.conversation).toBeTruthy();
       });
-      mockConversationRepository.findByWaChatId.mockResolvedValue(null);
-      mockClientRepository.findByPhoneNormalized.mockResolvedValue(null);
 
-      const result = await service.prepareAppointmentConfirmation('ap-1');
-
-      // Não deve enviar nada — apenas preparar.
-      expect(mockEvolution.sendText).not.toHaveBeenCalled();
-      expect(result.text).toContain('Carla');
-      expect(result.text).toContain('14:00');
-      expect(result.text).toContain('Manicure');
-      expect(result.conversation).toBeTruthy();
-    });
-
-    it('rejeita agendamento sem telefone', async () => {
-      mockAppointmentRepository.findById.mockResolvedValue({
-        id: 'ap-2',
-        tenantId: TENANT_ID_MOCK,
-        clientName: 'Sem Fone',
-        clientPhone: '',
-        date: new Date(),
-        startTime: '10:00',
+      it('rejeita agendamento sem telefone', async () => {
+        mockAppointmentRepository.findById.mockResolvedValue({
+          id: 'ap-2',
+          tenantId: TENANT_ID_MOCK,
+          clientName: 'Sem Fone',
+          clientPhone: '',
+          date: new Date(),
+          startTime: '10:00',
+        });
+        await expect(
+          service.prepareAppointmentConfirmation('ap-2'),
+        ).rejects.toThrow(BadRequestException);
       });
-      await expect(
-        service.prepareAppointmentConfirmation('ap-2'),
-      ).rejects.toThrow(BadRequestException);
     });
-  });
   });
 
   describe('listConversations categorias', () => {

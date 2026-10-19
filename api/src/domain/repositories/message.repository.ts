@@ -19,6 +19,10 @@ export class MessageRepository extends Repository<Message> {
     return await this.findOne({ where: { waMessageId, tenantId } });
   }
 
+  async findById(id: string, tenantId: string): Promise<Message | null> {
+    return await this.findOne({ where: { id, tenantId } });
+  }
+
   async listByConversation(
     conversationId: string,
     tenantId: string,

@@ -17,6 +17,7 @@ import {
   LinkConversationDto,
   StartConversationDto,
 } from '../dtos/whatsapp/conversation-link.dto';
+import { ReactMessageDto } from '../dtos/whatsapp/react-message.dto';
 
 @ApiTags('WhatsApp')
 @Controller('whatsapp')
@@ -112,5 +113,15 @@ export class WhatsappController {
   })
   async confirmAppointment(@Param('id') id: string) {
     return await this.whatsappService.prepareAppointmentConfirmation(id);
+  }
+
+  @Post('messages/:id/react')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reagir (emoji) a uma mensagem' })
+  async reactToMessage(
+    @Param('id') id: string,
+    @Body() dto: ReactMessageDto,
+  ) {
+    return await this.whatsappService.reactToMessage(id, dto.emoji);
   }
 }

@@ -10,6 +10,7 @@ import {
   Group,
   Image,
   Loader,
+  Menu,
   Modal,
   Paper,
   ScrollArea,
@@ -24,10 +25,15 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconArrowLeft,
+  IconAlertCircle,
   IconBrandWhatsapp,
   IconCalendarCheck,
+  IconCheck,
+  IconChecks,
+  IconClock,
   IconLink,
   IconMessagePlus,
+  IconMoodSmile,
   IconPlugConnectedX,
   IconReportMoney,
   IconSend,
@@ -41,6 +47,7 @@ import {
   useLinkConversation,
   useMarkConversationRead,
   useMessages,
+  useReactToMessage,
   useSendMessage,
   useSendPriceList,
   useStartConversation,
@@ -51,6 +58,7 @@ import type {
   Client,
   Conversation,
   ConversationCategory,
+  MessageStatus,
   MessageType,
   WhatsappQr,
 } from "../types";
@@ -59,6 +67,8 @@ import { TodayAppointmentsModal } from "../components/whatsapp/TodayAppointments
 import { formatBrazilianPhone } from "../utils/phone.util";
 
 const WA_GREEN = "#25D366";
+
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 const MEDIA_LABELS: Partial<Record<MessageType, string>> = {
   image: "[imagem]",
@@ -72,6 +82,34 @@ const MEDIA_LABELS: Partial<Record<MessageType, string>> = {
 
 function mediaLabel(type: MessageType): string {
   return MEDIA_LABELS[type] ?? "[mensagem]";
+}
+
+/** Hora no formato HH:MM a partir do timestamp ISO da mensagem. */
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** Tiquinhos de status de entrega para mensagens enviadas (outbound). */
+function MessageStatusIcon({ status }: { status: MessageStatus }) {
+  if (status === "failed") {
+    return <IconAlertCircle size={13} color="var(--mantine-color-red-6)" />;
+  }
+  if (status === "pending") {
+    return <IconClock size={12} color="var(--mantine-color-gray-5)" />;
+  }
+  if (status === "read") {
+    return <IconChecks size={14} color="var(--mantine-color-blue-5)" />;
+  }
+  if (status === "delivered") {
+    return <IconChecks size={14} color="var(--mantine-color-gray-5)" />;
+  }
+  // sent
+  return <IconCheck size={13} color="var(--mantine-color-gray-5)" />;
 }
 
 const CATEGORY_META: Record<
@@ -578,6 +616,7 @@ function ChatView({
   const sendMessage = useSendMessage();
   const sendPriceList = useSendPriceList();
   const linkConversation = useLinkConversation();
+  const reactToMessage = useReactToMessage(conversation.id);
   const [linkOpened, { open: openLink, close: closeLink }] =
     useDisclosure(false);
   const [text, setText] = useState(initialDraft ?? "");
@@ -716,13 +755,25 @@ function ChatView({
             const isMedia =
               m.mediaUrl && (m.type === "image" || m.type === "sticker");
             return (
-              <Box
+              <Group
                 key={m.id}
+                gap={4}
+                wrap="nowrap"
+                align="center"
                 style={{
                   alignSelf: outbound ? "flex-end" : "flex-start",
-                  maxWidth: "78%",
+                  maxWidth: "85%",
+                  flexDirection: outbound ? "row-reverse" : "row",
                 }}
+                className="wa-msg-row"
               >
+                <Box
+                  style={{
+                    position: "relative",
+                    marginBottom: m.reaction ? 10 : 0,
+                    minWidth: 0,
+                  }}
+                >
                 <Paper
                   p={isMedia ? 4 : "xs"}
                   px={isMedia ? 4 : "sm"}
@@ -743,8 +794,67 @@ function ChatView({
                       {m.content || mediaLabel(m.type)}
                     </Text>
                   )}
+                  <Group gap={4} justify="flex-end" align="center" mt={2}>
+                    <Text span fz={10} c="dimmed">
+                      {formatTime(m.timestamp)}
+                    </Text>
+                    {outbound && <MessageStatusIcon status={m.status} />}
+                  </Group>
                 </Paper>
-              </Box>
+                {m.reaction && (
+                  <Box
+                    style={{
+                      position: "absolute",
+                      bottom: -12,
+                      [outbound ? "right" : "left"]: 8,
+                      backgroundColor: "white",
+                      border: "1px solid var(--mantine-color-gray-2)",
+                      borderRadius: 999,
+                      padding: "0 4px",
+                      fontSize: 13,
+                      lineHeight: "18px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+                    }}
+                  >
+                    {m.reaction}
+                  </Box>
+                )}
+                </Box>
+
+                <Menu shadow="md" position="top" withArrow>
+                  <Menu.Target>
+                    <ActionIcon
+                      size="sm"
+                      variant="subtle"
+                      color="gray"
+                      className="wa-react-btn"
+                      aria-label="Reagir"
+                    >
+                      <IconMoodSmile size={16} />
+                    </ActionIcon>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Group gap={2} wrap="nowrap" px={4}>
+                      {QUICK_REACTIONS.map((emoji) => (
+                        <ActionIcon
+                          key={emoji}
+                          variant="subtle"
+                          size="lg"
+                          onClick={() =>
+                            reactToMessage.mutate({
+                              messageId: m.id,
+                              emoji: m.reaction === emoji ? "" : emoji,
+                            })
+                          }
+                          aria-label={`Reagir ${emoji}`}
+                        >
+                          <span style={{ fontSize: 18 }}>{emoji}</span>
+                        </ActionIcon>
+                      ))}
+                    </Group>
+                  </Menu.Dropdown>
+                </Menu>
+              </Group>
             );
           })}
         </Stack>
