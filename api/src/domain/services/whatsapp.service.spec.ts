@@ -5,6 +5,8 @@ import { WhatsappInstanceRepository } from '../repositories/whatsapp-instance.re
 import { ConversationRepository } from '../repositories/conversation.repository';
 import { MessageRepository } from '../repositories/message.repository';
 import { ClientRepository } from '../repositories/client.repository';
+import { ServiceRepository } from '../repositories/service.repository';
+import { AppointmentRepository } from '../repositories/appointment.repository';
 import { EvolutionClient } from './evolution.client';
 import { TenantContextService } from './tenant-context.service';
 import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
@@ -38,6 +40,14 @@ describe('WhatsappService', () => {
   };
   const mockClientRepository = {
     findByPhoneNormalized: jest.fn(),
+    findById: jest.fn(),
+  };
+  const mockServiceRepository = {
+    find: jest.fn(),
+  };
+  const mockAppointmentRepository = {
+    findClientIdsWithUpcoming: jest.fn().mockResolvedValue([]),
+    findById: jest.fn(),
   };
   const mockEvolution = {
     sendText: jest.fn(),
@@ -64,6 +74,11 @@ describe('WhatsappService', () => {
         },
         { provide: MessageRepository, useValue: mockMessageRepository },
         { provide: ClientRepository, useValue: mockClientRepository },
+        { provide: ServiceRepository, useValue: mockServiceRepository },
+        {
+          provide: AppointmentRepository,
+          useValue: mockAppointmentRepository,
+        },
         { provide: EvolutionClient, useValue: mockEvolution },
         { provide: TenantContextService, useValue: mockTenantContext },
       ],
@@ -148,6 +163,37 @@ describe('WhatsappService', () => {
       );
       const saved = mockMessageRepository.create.mock.calls[0][0];
       expect(saved.status).toBe(MessageStatus.FAILED);
+    });
+  });
+
+  describe('sendPriceList', () => {
+    it('rejeita quando não há serviços', async () => {
+      mockServiceRepository.find.mockResolvedValue([]);
+      await expect(service.sendPriceList('conv-1')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+    it('monta a tabela de preços e envia', async () => {
+      mockServiceRepository.find.mockResolvedValue([
+        { name: 'Corte', defaultPrice: 50 },
+        { name: 'Escova', defaultPrice: 40 },
+      ]);
+      mockConversationRepository.findById.mockResolvedValue({
+        id: 'conv-1',
+        tenantId: TENANT_ID_MOCK,
+        phoneNormalized: '5581999999999',
+      });
+      mockInstanceRepository.findByTenant.mockResolvedValue({
+        instanceName: 'salao-1',
+      });
+      mockEvolution.sendText.mockResolvedValue({ key: { id: 'WA-PL' } });
+
+      await service.sendPriceList('conv-1');
+
+      const sentText = mockEvolution.sendText.mock.calls[0][2];
+      expect(sentText).toContain('Tabela de serviços e preços');
+      expect(sentText).toContain('Corte');
+      expect(sentText).toContain('R$');
     });
   });
 
@@ -341,6 +387,101 @@ describe('WhatsappService', () => {
       const result = await service.getConnectionQr();
       expect(result.base64).toContain('base64');
       expect(result.code).toBe('12345678');
+    });
+  });
+
+  describe('iniciar/vincular conversa', () => {
+    it('startConversationWithClient cria conversa vinculada pelo telefone', async () => {
+      mockClientRepository.findById.mockResolvedValue({
+        id: 'client-1',
+        name: 'Maria',
+        phoneNormalized: '5581988887777',
+      });
+      mockConversationRepository.findByWaChatId.mockResolvedValue(null);
+
+      await service.startConversationWithClient('client-1');
+
+      const created = mockConversationRepository.create.mock.calls[0][0];
+      expect(created.waChatId).toBe('5581988887777@s.whatsapp.net');
+      expect(created.clientId).toBe('client-1');
+      expect(created.contactName).toBe('Maria');
+    });
+
+    it('linkConversationToClient vincula a conversa ao cliente', async () => {
+      mockConversationRepository.findById.mockResolvedValue({
+        id: 'conv-1',
+        tenantId: TENANT_ID_MOCK,
+        clientId: null,
+      });
+      mockClientRepository.findById.mockResolvedValue({
+        id: 'client-7',
+        name: 'João',
+      });
+
+      await service.linkConversationToClient('conv-1', 'client-7');
+
+      const saved = mockConversationRepository.save.mock.calls[0][0];
+      expect(saved.clientId).toBe('client-7');
+      expect(saved.contactName).toBe('João');
+    });
+
+  describe('confirmação de agendamento', () => {
+    it('prepara o texto e abre a conversa pelo telefone do agendamento', async () => {
+      mockAppointmentRepository.findById.mockResolvedValue({
+        id: 'ap-1',
+        tenantId: TENANT_ID_MOCK,
+        clientName: 'Carla Mendes',
+        clientPhone: '(11) 99999-1111',
+        clientId: null,
+        date: new Date('2026-10-20T12:00:00Z'),
+        startTime: '14:00',
+        scheduledServices: [{ service: { name: 'Manicure' } }],
+      });
+      mockConversationRepository.findByWaChatId.mockResolvedValue(null);
+      mockClientRepository.findByPhoneNormalized.mockResolvedValue(null);
+
+      const result = await service.prepareAppointmentConfirmation('ap-1');
+
+      // Não deve enviar nada — apenas preparar.
+      expect(mockEvolution.sendText).not.toHaveBeenCalled();
+      expect(result.text).toContain('Carla');
+      expect(result.text).toContain('14:00');
+      expect(result.text).toContain('Manicure');
+      expect(result.conversation).toBeTruthy();
+    });
+
+    it('rejeita agendamento sem telefone', async () => {
+      mockAppointmentRepository.findById.mockResolvedValue({
+        id: 'ap-2',
+        tenantId: TENANT_ID_MOCK,
+        clientName: 'Sem Fone',
+        clientPhone: '',
+        date: new Date(),
+        startTime: '10:00',
+      });
+      await expect(
+        service.prepareAppointmentConfirmation('ap-2'),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+  });
+
+  describe('listConversations categorias', () => {
+    it('classifica lead, scheduled e client', async () => {
+      mockConversationRepository.listByTenant.mockResolvedValue([
+        { id: 'c1', clientId: null }, // lead
+        { id: 'c2', clientId: 'client-A' }, // scheduled (tem futuro)
+        { id: 'c3', clientId: 'client-B' }, // client (sem futuro)
+      ]);
+      mockAppointmentRepository.findClientIdsWithUpcoming.mockResolvedValue([
+        'client-A',
+      ]);
+
+      const result = await service.listConversations();
+
+      expect(result.find((c) => c.id === 'c1')?.category).toBe('lead');
+      expect(result.find((c) => c.id === 'c2')?.category).toBe('scheduled');
+      expect(result.find((c) => c.id === 'c3')?.category).toBe('client');
     });
   });
 });

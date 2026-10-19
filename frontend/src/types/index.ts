@@ -294,6 +294,8 @@ export type MessageStatus =
 
 export type ConversationStatus = "open" | "closed";
 
+export type ConversationCategory = "scheduled" | "client" | "lead";
+
 export interface Conversation {
   id: string;
   waChatId: string;
@@ -301,6 +303,7 @@ export interface Conversation {
   contactName?: string | null;
   clientId?: string | null;
   status: ConversationStatus;
+  category?: ConversationCategory;
   lastMessagePreview?: string | null;
   lastMessageAt?: string | null;
   unreadCount: number;

@@ -57,4 +57,44 @@ export const whatsappService = {
   markRead: async (conversationId: string): Promise<void> => {
     await api.post(`/whatsapp/conversations/${conversationId}/read`);
   },
+
+  sendPriceList: async (
+    conversationId: string,
+  ): Promise<WhatsappMessage> => {
+    const response = await api.post<WhatsappMessage>(
+      `/whatsapp/conversations/${conversationId}/price-list`,
+    );
+    return response.data;
+  },
+
+  startConversationWithClient: async (
+    clientId: string,
+  ): Promise<Conversation> => {
+    const response = await api.post<Conversation>(
+      "/whatsapp/conversations/from-client",
+      { clientId },
+    );
+    return response.data;
+  },
+
+  linkConversationToClient: async (
+    conversationId: string,
+    clientId: string,
+  ): Promise<Conversation> => {
+    const response = await api.post<Conversation>(
+      `/whatsapp/conversations/${conversationId}/link`,
+      { clientId },
+    );
+    return response.data;
+  },
+
+  confirmAppointment: async (
+    appointmentId: string,
+  ): Promise<{ conversation: Conversation; text: string }> => {
+    const response = await api.post<{
+      conversation: Conversation;
+      text: string;
+    }>(`/whatsapp/appointments/${appointmentId}/confirm`);
+    return response.data;
+  },
 };

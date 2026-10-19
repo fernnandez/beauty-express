@@ -13,6 +13,10 @@ import { Roles } from '@common/decorators/roles.decorator';
 import { UserRole } from '@domain/entities/user-role.enum';
 import { WhatsappService } from '@domain/services/whatsapp.service';
 import { SendMessageDto } from '../dtos/whatsapp/send-message.dto';
+import {
+  LinkConversationDto,
+  StartConversationDto,
+} from '../dtos/whatsapp/conversation-link.dto';
 
 @ApiTags('WhatsApp')
 @Controller('whatsapp')
@@ -53,6 +57,26 @@ export class WhatsappController {
     return await this.whatsappService.listConversations(parsed);
   }
 
+  @Post('conversations/from-client')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Iniciar conversa com um cliente cadastrado' })
+  async startWithClient(@Body() dto: StartConversationDto) {
+    return await this.whatsappService.startConversationWithClient(dto.clientId);
+  }
+
+  @Post('conversations/:id/link')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Vincular a conversa a um cliente cadastrado' })
+  async linkToClient(
+    @Param('id') id: string,
+    @Body() dto: LinkConversationDto,
+  ) {
+    return await this.whatsappService.linkConversationToClient(
+      id,
+      dto.clientId,
+    );
+  }
+
   @Get('conversations/:id/messages')
   @ApiOperation({ summary: 'Listar mensagens de uma conversa' })
   async listMessages(@Param('id') id: string, @Query('limit') limit?: string) {
@@ -72,5 +96,21 @@ export class WhatsappController {
   @ApiOperation({ summary: 'Marcar conversa como lida' })
   async markRead(@Param('id') id: string) {
     await this.whatsappService.markConversationRead(id);
+  }
+
+  @Post('conversations/:id/price-list')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Enviar a tabela de preços dos serviços' })
+  async sendPriceList(@Param('id') id: string) {
+    return await this.whatsappService.sendPriceList(id);
+  }
+
+  @Post('appointments/:id/confirm')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Preparar confirmação de um agendamento (abre o chat com o texto)',
+  })
+  async confirmAppointment(@Param('id') id: string) {
+    return await this.whatsappService.prepareAppointmentConfirmation(id);
   }
 }

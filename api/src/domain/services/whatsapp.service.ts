@@ -18,10 +18,19 @@ import { ConversationRepository } from '../repositories/conversation.repository'
 import { MessageRepository } from '../repositories/message.repository';
 import { WhatsappInstanceRepository } from '../repositories/whatsapp-instance.repository';
 import { ClientRepository } from '../repositories/client.repository';
+import { ServiceRepository } from '../repositories/service.repository';
+import { AppointmentRepository } from '../repositories/appointment.repository';
 import { EvolutionClient } from './evolution.client';
 import { EvolutionWebhookPayload } from './evolution-webhook.types';
 import { TenantContextService } from './tenant-context.service';
 import { normalizePhone } from '@common/utils/phone.util';
+
+/** Bucket derivado do vínculo da conversa com cliente/agendamentos. */
+export type ConversationCategory = 'scheduled' | 'client' | 'lead';
+
+export type ConversationWithCategory = Conversation & {
+  category: ConversationCategory;
+};
 
 @Injectable({ scope: Scope.REQUEST })
 export class WhatsappService {
@@ -32,6 +41,8 @@ export class WhatsappService {
     private readonly conversationRepository: ConversationRepository,
     private readonly messageRepository: MessageRepository,
     private readonly clientRepository: ClientRepository,
+    private readonly serviceRepository: ServiceRepository,
+    private readonly appointmentRepository: AppointmentRepository,
     private readonly evolution: EvolutionClient,
     private readonly tenantContext: TenantContextService,
   ) {}
@@ -141,11 +152,35 @@ export class WhatsappService {
   // Inbox (autenticado, request-scoped)
   // ---------------------------------------------------------------------------
 
-  async listConversations(limit = 50): Promise<Conversation[]> {
-    return await this.conversationRepository.listByTenant(
-      this.getTenantId(),
+  async listConversations(limit = 50): Promise<ConversationWithCategory[]> {
+    const tenantId = this.getTenantId();
+    const conversations = await this.conversationRepository.listByTenant(
+      tenantId,
       limit,
     );
+
+    const upcomingClientIds = new Set(
+      await this.appointmentRepository.findClientIdsWithUpcoming(tenantId),
+    );
+
+    return conversations.map((c) => ({
+      ...c,
+      category: this.resolveCategory(c, upcomingClientIds),
+    }));
+  }
+
+  /** Classifica a conversa em um bucket a partir do vínculo com o cliente. */
+  private resolveCategory(
+    conversation: Conversation,
+    upcomingClientIds: Set<string>,
+  ): ConversationCategory {
+    if (!conversation.clientId) {
+      return 'lead';
+    }
+    if (upcomingClientIds.has(conversation.clientId)) {
+      return 'scheduled';
+    }
+    return 'client';
   }
 
   async listMessages(conversationId: string, limit = 100): Promise<Message[]> {
@@ -226,6 +261,39 @@ export class WhatsappService {
     return saved;
   }
 
+  /** Monta a tabela de preços a partir dos serviços e envia na conversa. */
+  async sendPriceList(conversationId: string): Promise<Message> {
+    const tenantId = this.getTenantId();
+    const services = await this.serviceRepository.find({
+      where: { tenantId },
+      order: { name: 'ASC' },
+    });
+
+    if (services.length === 0) {
+      throw new BadRequestException(
+        'Nenhum serviço cadastrado para montar a tabela de preços',
+      );
+    }
+
+    const lines = services.map((s) => {
+      const price = Number(s.defaultPrice).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      });
+      return `• ${s.name} — ${price}`;
+    });
+
+    const text = [
+      '*Tabela de serviços e preços*',
+      '',
+      ...lines,
+      '',
+      'Qualquer dúvida ou para agendar, é só chamar! 😊',
+    ].join('\n');
+
+    return await this.sendMessage(conversationId, text);
+  }
+
   /** Marca as mensagens recebidas de uma conversa como lidas (zera unread). */
   async markConversationRead(conversationId: string): Promise<void> {
     const tenantId = this.getTenantId();
@@ -238,6 +306,138 @@ export class WhatsappService {
     }
     conversation.unreadCount = 0;
     await this.conversationRepository.save(conversation);
+  }
+
+  /**
+   * Inicia (ou reabre) uma conversa com um cliente cadastrado, pelo telefone.
+   * Usado para começar o contato quando ainda não há conversa — base de disparos.
+   */
+  async startConversationWithClient(clientId: string): Promise<Conversation> {
+    const tenantId = this.getTenantId();
+    const client = await this.clientRepository.findById(clientId, tenantId);
+    if (!client) {
+      throw new NotFoundException('Cliente não encontrado');
+    }
+    const phoneNormalized = normalizePhone(client.phoneNormalized);
+    if (!phoneNormalized) {
+      throw new BadRequestException('Cliente sem telefone válido');
+    }
+
+    const waChatId = `${phoneNormalized}@s.whatsapp.net`;
+    const existing = await this.conversationRepository.findByWaChatId(
+      waChatId,
+      tenantId,
+    );
+    if (existing) {
+      // Garante o vínculo caso a conversa tenha sido criada como lead antes.
+      if (!existing.clientId) {
+        existing.clientId = client.id;
+        existing.contactName = client.name;
+        await this.conversationRepository.save(existing);
+      }
+      return existing;
+    }
+
+    const conversation = this.conversationRepository.create({
+      tenantId,
+      waChatId,
+      phoneNormalized,
+      contactName: client.name,
+      clientId: client.id,
+      unreadCount: 0,
+    });
+    return await this.conversationRepository.save(conversation);
+  }
+
+  /** Vincula uma conversa (ex.: um contato novo) a um cliente cadastrado. */
+  async linkConversationToClient(
+    conversationId: string,
+    clientId: string,
+  ): Promise<Conversation> {
+    const tenantId = this.getTenantId();
+    const conversation = await this.conversationRepository.findById(
+      conversationId,
+      tenantId,
+    );
+    if (!conversation) {
+      throw new NotFoundException('Conversa não encontrada');
+    }
+    const client = await this.clientRepository.findById(clientId, tenantId);
+    if (!client) {
+      throw new NotFoundException('Cliente não encontrado');
+    }
+    conversation.clientId = client.id;
+    conversation.contactName = client.name;
+    return await this.conversationRepository.save(conversation);
+  }
+
+  /**
+   * Prepara a confirmação de um agendamento: cria/abre a conversa pelo
+   * telefone e devolve o texto sugerido (sem enviar — o atendente revisa e manda).
+   */
+  async prepareAppointmentConfirmation(
+    appointmentId: string,
+  ): Promise<{ conversation: Conversation; text: string }> {
+    const tenantId = this.getTenantId();
+    const appointment = await this.appointmentRepository.findById(
+      appointmentId,
+      tenantId,
+    );
+    if (!appointment) {
+      throw new NotFoundException('Agendamento não encontrado');
+    }
+
+    const phoneNormalized = normalizePhone(appointment.clientPhone ?? '');
+    if (!phoneNormalized) {
+      throw new BadRequestException('Agendamento sem telefone válido');
+    }
+
+    const waChatId = `${phoneNormalized}@s.whatsapp.net`;
+    const conversation = await this.getOrCreateConversation(
+      tenantId,
+      waChatId,
+      phoneNormalized,
+      appointment.clientName ?? null,
+    );
+    if (appointment.clientId && !conversation.clientId) {
+      conversation.clientId = appointment.clientId;
+      await this.conversationRepository.save(conversation);
+    }
+
+    const text = this.buildConfirmationMessage(appointment);
+    return { conversation, text };
+  }
+
+  /** Texto de confirmação a partir dos dados do agendamento. */
+  private buildConfirmationMessage(appointment: {
+    clientName?: string;
+    date: Date;
+    startTime: string;
+    scheduledServices?: Array<{ service?: { name?: string } }>;
+  }): string {
+    const firstName = (appointment.clientName ?? '').split(' ')[0] || 'Olá';
+    const date = new Date(appointment.date).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      timeZone: 'America/Sao_Paulo',
+    });
+    const services = (appointment.scheduledServices ?? [])
+      .map((s) => s.service?.name)
+      .filter((n): n is string => !!n);
+
+    const lines = [
+      `Oi, ${firstName}! Tudo bem? 😊`,
+      '',
+      `Passando para confirmar o seu horário no dia *${date}* às *${appointment.startTime}*.`,
+    ];
+    if (services.length > 0) {
+      lines.push(`Serviço(s): ${services.join(', ')}.`);
+    }
+    lines.push(
+      '',
+      'Podemos confirmar? Qualquer coisa, é só responder por aqui!',
+    );
+    return lines.join('\n');
   }
 
   // ---------------------------------------------------------------------------

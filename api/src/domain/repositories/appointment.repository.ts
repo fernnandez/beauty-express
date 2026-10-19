@@ -58,4 +58,19 @@ export class AppointmentRepository extends Repository<Appointment> {
       ],
     });
   }
+
+  /**
+   * Retorna os clientIds (do tenant) que têm pelo menos um agendamento
+   * futuro ainda ativo (status 'agendado', data >= agora).
+   */
+  async findClientIdsWithUpcoming(tenantId: string): Promise<string[]> {
+    const rows = await this.createQueryBuilder('a')
+      .select('DISTINCT a.clientId', 'clientId')
+      .where('a.tenantId = :tenantId', { tenantId })
+      .andWhere('a.clientId IS NOT NULL')
+      .andWhere('a.status = :status', { status: 'agendado' })
+      .andWhere('a.date >= :now', { now: new Date() })
+      .getRawMany<{ clientId: string }>();
+    return rows.map((r) => r.clientId);
+  }
 }

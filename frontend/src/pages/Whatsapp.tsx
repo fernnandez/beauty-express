@@ -13,6 +13,7 @@ import {
   Modal,
   Paper,
   ScrollArea,
+  SegmentedControl,
   Stack,
   Text,
   TextInput,
@@ -24,21 +25,37 @@ import { useDisclosure } from "@mantine/hooks";
 import {
   IconArrowLeft,
   IconBrandWhatsapp,
+  IconCalendarCheck,
+  IconLink,
+  IconMessagePlus,
   IconPlugConnectedX,
+  IconReportMoney,
   IconSend,
   IconSettings,
+  IconUserPlus,
 } from "@tabler/icons-react";
 import {
   useConversations,
   useCreateWhatsappInstance,
   useDisconnectWhatsapp,
+  useLinkConversation,
   useMarkConversationRead,
   useMessages,
   useSendMessage,
+  useSendPriceList,
+  useStartConversation,
   useWhatsappInstance,
   useWhatsappQr,
 } from "../hooks/useWhatsapp";
-import type { Conversation, MessageType } from "../types";
+import type {
+  Client,
+  Conversation,
+  ConversationCategory,
+  MessageType,
+  WhatsappQr,
+} from "../types";
+import { ClientPickerModal } from "../components/client/ClientPickerModal";
+import { TodayAppointmentsModal } from "../components/whatsapp/TodayAppointmentsModal";
 import { formatBrazilianPhone } from "../utils/phone.util";
 
 const WA_GREEN = "#25D366";
@@ -56,6 +73,17 @@ const MEDIA_LABELS: Partial<Record<MessageType, string>> = {
 function mediaLabel(type: MessageType): string {
   return MEDIA_LABELS[type] ?? "[mensagem]";
 }
+
+const CATEGORY_META: Record<
+  ConversationCategory,
+  { label: string; color: string }
+> = {
+  scheduled: { label: "Agendado", color: "teal" },
+  client: { label: "Cliente", color: "blue" },
+  lead: { label: "Novo contato", color: "gray" },
+};
+
+type BucketFilter = "all" | ConversationCategory;
 
 /** Iniciais para o avatar do contato. */
 function initials(name: string): string {
@@ -89,7 +117,9 @@ export function Whatsapp() {
 function ConnectPanel({ status }: { status?: string }) {
   const createInstance = useCreateWhatsappInstance();
   const started = status === "connecting" || createInstance.isSuccess;
-  const { data: qr, isLoading: qrLoading } = useWhatsappQr(started);
+  const qrQuery = useWhatsappQr(started);
+  const qr: WhatsappQr | undefined = qrQuery.data;
+  const qrLoading = qrQuery.isLoading;
 
   return (
     <Center h="100%" p="md">
@@ -254,16 +284,44 @@ function SettingsModal({
 function Inbox({ phoneNormalized }: { phoneNormalized?: string | null }) {
   const { data: conversations = [], isLoading } = useConversations();
   const [selected, setSelected] = useState<Conversation | null>(null);
+  const [bucket, setBucket] = useState<BucketFilter>("all");
   const [settingsOpened, { open: openSettings, close: closeSettings }] =
     useDisclosure(false);
+  const [newOpened, { open: openNew, close: closeNew }] = useDisclosure(false);
+  const [todayOpened, { open: openToday, close: closeToday }] =
+    useDisclosure(false);
+  const [draft, setDraft] = useState<string>("");
   const markRead = useMarkConversationRead();
+  const startConversation = useStartConversation();
 
   const openConversation = (c: Conversation) => {
     setSelected(c);
+    setDraft("");
     if (c.unreadCount > 0) {
       markRead.mutate(c.id);
     }
   };
+
+  const handleStart = (client: Client) => {
+    startConversation.mutate(client.id, {
+      onSuccess: (conv) => {
+        closeNew();
+        setSelected(conv);
+        setDraft("");
+      },
+    });
+  };
+
+  const handlePrepared = (conv: Conversation, text: string) => {
+    closeToday();
+    setSelected(conv);
+    setDraft(text);
+  };
+
+  const filtered =
+    bucket === "all"
+      ? conversations
+      : conversations.filter((c) => c.category === bucket);
 
   return (
     <Box
@@ -310,17 +368,58 @@ function Inbox({ phoneNormalized }: { phoneNormalized?: string | null }) {
                 </ThemeIcon>
                 <Title order={5}>Atendimento</Title>
               </Group>
-              <Tooltip label="Configurações" withArrow>
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  onClick={openSettings}
-                  aria-label="Configurações do atendimento"
-                >
-                  <IconSettings size={20} />
-                </ActionIcon>
-              </Tooltip>
+              <Group gap={4} wrap="nowrap">
+                <Tooltip label="Agendamentos de hoje" withArrow>
+                  <ActionIcon
+                    variant="subtle"
+                    color="teal"
+                    onClick={openToday}
+                    aria-label="Agendamentos de hoje"
+                  >
+                    <IconCalendarCheck size={20} />
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip label="Nova conversa" withArrow>
+                  <ActionIcon
+                    variant="subtle"
+                    color="teal"
+                    onClick={openNew}
+                    aria-label="Nova conversa"
+                  >
+                    <IconMessagePlus size={20} />
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip label="Configurações" withArrow>
+                  <ActionIcon
+                    variant="subtle"
+                    color="gray"
+                    onClick={openSettings}
+                    aria-label="Configurações do atendimento"
+                  >
+                    <IconSettings size={20} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
             </Group>
+
+            <Box
+              px="sm"
+              py="xs"
+              style={{ borderBottom: "1px solid var(--mantine-color-gray-1)" }}
+            >
+              <SegmentedControl
+                fullWidth
+                size="xs"
+                radius="md"
+                value={bucket}
+                onChange={(v) => setBucket(v as BucketFilter)}
+                data={[
+                  { label: "Todas", value: "all" },
+                  { label: "Agendados", value: "scheduled" },
+                  { label: "Leads", value: "lead" },
+                ]}
+              />
+            </Box>
 
             <ScrollArea style={{ flex: 1 }}>
               {isLoading && (
@@ -328,14 +427,15 @@ function Inbox({ phoneNormalized }: { phoneNormalized?: string | null }) {
                   <Loader size="sm" />
                 </Center>
               )}
-              {!isLoading && conversations.length === 0 && (
+              {!isLoading && filtered.length === 0 && (
                 <Text c="dimmed" size="sm" ta="center" p="xl">
-                  Nenhuma conversa ainda. Quando um cliente mandar mensagem, ela
-                  aparece aqui.
+                  {conversations.length === 0
+                    ? "Nenhuma conversa ainda. Quando um cliente mandar mensagem, ela aparece aqui."
+                    : "Nenhuma conversa nesta categoria."}
                 </Text>
               )}
               <Stack gap={0}>
-                {conversations.map((c) => (
+                {filtered.map((c) => (
                   <ConversationItem
                     key={c.id}
                     conversation={c}
@@ -354,7 +454,9 @@ function Inbox({ phoneNormalized }: { phoneNormalized?: string | null }) {
           >
             {selected ? (
               <ChatView
+                key={`${selected.id}:${draft}`}
                 conversation={selected}
+                initialDraft={draft}
                 onBack={() => setSelected(null)}
               />
             ) : (
@@ -381,6 +483,21 @@ function Inbox({ phoneNormalized }: { phoneNormalized?: string | null }) {
         opened={settingsOpened}
         onClose={closeSettings}
         phoneNormalized={phoneNormalized}
+      />
+
+      <ClientPickerModal
+        opened={newOpened}
+        onClose={closeNew}
+        title="Nova conversa"
+        confirmLabel="Iniciar conversa"
+        loading={startConversation.isPending}
+        onSelect={handleStart}
+      />
+
+      <TodayAppointmentsModal
+        opened={todayOpened}
+        onClose={closeToday}
+        onPrepared={handlePrepared}
       />
     </Box>
   );
@@ -433,6 +550,16 @@ function ConversationItem({
             {conversation.lastMessagePreview}
           </Text>
         )}
+        {conversation.category && (
+          <Badge
+            mt={4}
+            size="xs"
+            variant="light"
+            color={CATEGORY_META[conversation.category].color}
+          >
+            {CATEGORY_META[conversation.category].label}
+          </Badge>
+        )}
       </Box>
     </Group>
   );
@@ -440,15 +567,23 @@ function ConversationItem({
 
 function ChatView({
   conversation,
+  initialDraft,
   onBack,
 }: {
   conversation: Conversation;
+  initialDraft?: string;
   onBack: () => void;
 }) {
   const { data: messages = [], isLoading } = useMessages(conversation.id);
   const sendMessage = useSendMessage();
-  const [text, setText] = useState("");
+  const sendPriceList = useSendPriceList();
+  const linkConversation = useLinkConversation();
+  const [linkOpened, { open: openLink, close: closeLink }] =
+    useDisclosure(false);
+  const [text, setText] = useState(initialDraft ?? "");
   const viewport = useRef<HTMLDivElement>(null);
+
+  const isClient = !!conversation.clientId;
 
   useEffect(() => {
     viewport.current?.scrollTo({ top: viewport.current.scrollHeight });
@@ -460,6 +595,13 @@ function ChatView({
     sendMessage.mutate(
       { conversationId: conversation.id, text: trimmed },
       { onSuccess: () => setText("") },
+    );
+  };
+
+  const handleLink = (client: Client) => {
+    linkConversation.mutate(
+      { conversationId: conversation.id, clientId: client.id },
+      { onSuccess: closeLink },
     );
   };
 
@@ -493,12 +635,68 @@ function ChatView({
           {initials(title)}
         </Avatar>
         <div>
-          <Text fw={600}>{title}</Text>
+          <Group gap={6} wrap="nowrap">
+            <Text fw={600}>{title}</Text>
+            <Badge
+              size="xs"
+              variant="light"
+              color={isClient ? "teal" : "gray"}
+            >
+              {isClient ? "Cliente" : "Novo contato"}
+            </Badge>
+          </Group>
           <Text size="xs" c="dimmed">
             {formatBrazilianPhone(conversation.phoneNormalized)}
           </Text>
         </div>
+        <Box style={{ flex: 1 }} />
+        {!isClient && (
+          <Tooltip label="Vincular a um cliente" withArrow>
+            <ActionIcon
+              variant="light"
+              color="blue"
+              onClick={openLink}
+              aria-label="Vincular a um cliente"
+            >
+              <IconUserPlus size={20} />
+            </ActionIcon>
+          </Tooltip>
+        )}
+        <Tooltip label="Enviar tabela de preços" withArrow>
+          <ActionIcon
+            variant="light"
+            color="teal"
+            onClick={() => sendPriceList.mutate(conversation.id)}
+            loading={sendPriceList.isPending}
+            aria-label="Enviar tabela de preços"
+          >
+            <IconReportMoney size={20} />
+          </ActionIcon>
+        </Tooltip>
       </Group>
+
+      {!isClient && (
+        <Group
+          gap="xs"
+          px="md"
+          py="xs"
+          wrap="nowrap"
+          style={{ backgroundColor: "var(--mantine-color-blue-0)" }}
+        >
+          <IconLink size={16} color="var(--mantine-color-blue-6)" />
+          <Text size="xs" c="blue.7" style={{ flex: 1 }}>
+            Este contato ainda não é um cliente cadastrado.
+          </Text>
+          <Button
+            size="compact-xs"
+            variant="light"
+            color="blue"
+            onClick={openLink}
+          >
+            Vincular
+          </Button>
+        </Group>
+      )}
 
       {/* Mensagens */}
       <ScrollArea
@@ -583,6 +781,18 @@ function ChatView({
           <IconSend size={18} />
         </ActionIcon>
       </Group>
+
+      <ClientPickerModal
+        opened={linkOpened}
+        onClose={closeLink}
+        title="Vincular a um cliente"
+        confirmLabel="Vincular"
+        allowCreate
+        defaultPhone={conversation.phoneNormalized}
+        defaultName={conversation.contactName ?? undefined}
+        loading={linkConversation.isPending}
+        onSelect={handleLink}
+      />
     </Stack>
   );
 }
