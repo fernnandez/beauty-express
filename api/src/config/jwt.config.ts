@@ -1,8 +1,28 @@
+/**
+ * Resolve um secret obrigatório. Em produção, falha no boot se a env não
+ * estiver definida (evita subir com um secret fraco e conhecido). Fora de
+ * produção, usa um fallback de conveniência para desenvolvimento/testes.
+ */
+export function resolveSecret(envVar: string, devFallback: string): string {
+  const value = process.env[envVar];
+  if (value) return value;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      `${envVar} é obrigatória em produção (NODE_ENV=production) e não foi definida`,
+    );
+  }
+  return devFallback;
+}
+
 export const jwtConfig = {
-  accessSecret:
-    process.env.JWT_ACCESS_SECRET || 'dev-access-secret-change-me',
-  refreshSecret:
-    process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-change-me',
+  accessSecret: resolveSecret(
+    'JWT_ACCESS_SECRET',
+    'dev-access-secret-change-me',
+  ),
+  refreshSecret: resolveSecret(
+    'JWT_REFRESH_SECRET',
+    'dev-refresh-secret-change-me',
+  ),
   accessExpiresIn: (process.env.JWT_ACCESS_EXPIRES_IN || '15m') as
     | `${number}s`
     | `${number}m`
