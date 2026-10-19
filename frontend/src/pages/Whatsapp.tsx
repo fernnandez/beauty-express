@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   Center,
+  Divider,
   Group,
   Image,
   Loader,
@@ -17,6 +18,7 @@ import {
   SegmentedControl,
   Stack,
   Text,
+  Textarea,
   TextInput,
   ThemeIcon,
   Title,
@@ -33,9 +35,11 @@ import {
   IconClock,
   IconLink,
   IconMessagePlus,
+  IconMessage2,
   IconMoodSmile,
   IconPlugConnectedX,
   IconReportMoney,
+  IconSearch,
   IconSend,
   IconSettings,
   IconUserPlus,
@@ -49,10 +53,10 @@ import {
   useMessages,
   useReactToMessage,
   useSendMessage,
-  useSendPriceList,
   useStartConversation,
   useWhatsappInstance,
   useWhatsappQr,
+  useWhatsappSocket,
 } from "../hooks/useWhatsapp";
 import type {
   Client,
@@ -64,6 +68,8 @@ import type {
 } from "../types";
 import { ClientPickerModal } from "../components/client/ClientPickerModal";
 import { TodayAppointmentsModal } from "../components/whatsapp/TodayAppointmentsModal";
+import { WhatsappConfigPanel } from "../components/whatsapp/WhatsappConfigPanel";
+import { useSettings } from "../hooks/useSettings";
 import { formatBrazilianPhone } from "../utils/phone.util";
 
 const WA_GREEN = "#25D366";
@@ -310,6 +316,10 @@ function SettingsModal({
             Desconectar WhatsApp
           </Button>
         </div>
+
+        <Divider />
+
+        <WhatsappConfigPanel />
       </Stack>
     </Modal>
   );
@@ -329,6 +339,8 @@ function Inbox({ phoneNormalized }: { phoneNormalized?: string | null }) {
   const [todayOpened, { open: openToday, close: closeToday }] =
     useDisclosure(false);
   const [draft, setDraft] = useState<string>("");
+  const [search, setSearch] = useState("");
+  useWhatsappSocket(true);
   const markRead = useMarkConversationRead();
   const startConversation = useStartConversation();
 
@@ -356,10 +368,17 @@ function Inbox({ phoneNormalized }: { phoneNormalized?: string | null }) {
     setDraft(text);
   };
 
-  const filtered =
-    bucket === "all"
-      ? conversations
-      : conversations.filter((c) => c.category === bucket);
+  const term = search.trim().toLowerCase();
+  const termDigits = term.replace(/\D/g, "");
+  const filtered = conversations.filter((c) => {
+    if (bucket !== "all" && c.category !== bucket) return false;
+    if (!term) return true;
+    const name = (c.contactName ?? "").toLowerCase();
+    const preview = (c.lastMessagePreview ?? "").toLowerCase();
+    const phoneMatch =
+      termDigits.length >= 3 && c.phoneNormalized.includes(termDigits);
+    return name.includes(term) || preview.includes(term) || phoneMatch;
+  });
 
   return (
     <Box
@@ -445,6 +464,15 @@ function Inbox({ phoneNormalized }: { phoneNormalized?: string | null }) {
               py="xs"
               style={{ borderBottom: "1px solid var(--mantine-color-gray-1)" }}
             >
+              <TextInput
+                size="xs"
+                radius="xl"
+                mb="xs"
+                placeholder="Buscar conversa…"
+                leftSection={<IconSearch size={14} />}
+                value={search}
+                onChange={(e) => setSearch(e.currentTarget.value)}
+              />
               <SegmentedControl
                 fullWidth
                 size="xs"
@@ -614,9 +642,11 @@ function ChatView({
 }) {
   const { data: messages = [], isLoading } = useMessages(conversation.id);
   const sendMessage = useSendMessage();
-  const sendPriceList = useSendPriceList();
   const linkConversation = useLinkConversation();
   const reactToMessage = useReactToMessage(conversation.id);
+  const { data: settings } = useSettings();
+  const quickReplies = settings?.features?.quickReplies ?? [];
+  const priceList = settings?.features?.priceList;
   const [linkOpened, { open: openLink, close: closeLink }] =
     useDisclosure(false);
   const [text, setText] = useState(initialDraft ?? "");
@@ -701,17 +731,44 @@ function ChatView({
             </ActionIcon>
           </Tooltip>
         )}
-        <Tooltip label="Enviar tabela de preços" withArrow>
-          <ActionIcon
-            variant="light"
-            color="teal"
-            onClick={() => sendPriceList.mutate(conversation.id)}
-            loading={sendPriceList.isPending}
-            aria-label="Enviar tabela de preços"
-          >
-            <IconReportMoney size={20} />
-          </ActionIcon>
-        </Tooltip>
+        {quickReplies.length > 0 && (
+          <Menu shadow="md" position="bottom-end" withArrow>
+            <Menu.Target>
+              <Tooltip label="Respostas rápidas" withArrow>
+                <ActionIcon
+                  variant="light"
+                  color="gray"
+                  aria-label="Respostas rápidas"
+                >
+                  <IconMessage2 size={20} />
+                </ActionIcon>
+              </Tooltip>
+            </Menu.Target>
+            <Menu.Dropdown style={{ maxWidth: 280 }}>
+              <Menu.Label>Respostas rápidas</Menu.Label>
+              {quickReplies.map((qr, i) => (
+                <Menu.Item
+                  key={qr.id ?? i}
+                  onClick={() => setText(qr.message)}
+                >
+                  {qr.title}
+                </Menu.Item>
+              ))}
+            </Menu.Dropdown>
+          </Menu>
+        )}
+        {priceList?.enabled && priceList.message && (
+          <Tooltip label="Catálogo de preços" withArrow>
+            <ActionIcon
+              variant="light"
+              color="teal"
+              onClick={() => setText(priceList.message)}
+              aria-label="Catálogo de preços"
+            >
+              <IconReportMoney size={20} />
+            </ActionIcon>
+          </Tooltip>
+        )}
       </Group>
 
       {!isClient && (
@@ -865,11 +922,15 @@ function ChatView({
         p="sm"
         gap="xs"
         wrap="nowrap"
+        align="flex-end"
         style={{ borderTop: "1px solid var(--mantine-color-gray-2)" }}
       >
-        <TextInput
+        <Textarea
           style={{ flex: 1 }}
-          radius="xl"
+          radius="lg"
+          autosize
+          minRows={1}
+          maxRows={5}
           placeholder="Escreva uma mensagem…"
           value={text}
           onChange={(e) => setText(e.currentTarget.value)}

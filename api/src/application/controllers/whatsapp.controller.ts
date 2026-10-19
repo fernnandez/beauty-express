@@ -99,11 +99,10 @@ export class WhatsappController {
     await this.whatsappService.markConversationRead(id);
   }
 
-  @Post('conversations/:id/price-list')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Enviar a tabela de preços dos serviços' })
-  async sendPriceList(@Param('id') id: string) {
-    return await this.whatsappService.sendPriceList(id);
+  @Get('price-list/preview')
+  @ApiOperation({ summary: 'Gerar o texto do catálogo a partir dos serviços' })
+  async priceListPreview() {
+    return { message: await this.whatsappService.buildPriceListText() };
   }
 
   @Post('appointments/:id/confirm')
@@ -118,10 +117,7 @@ export class WhatsappController {
   @Post('messages/:id/react')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reagir (emoji) a uma mensagem' })
-  async reactToMessage(
-    @Param('id') id: string,
-    @Body() dto: ReactMessageDto,
-  ) {
+  async reactToMessage(@Param('id') id: string, @Body() dto: ReactMessageDto) {
     return await this.whatsappService.reactToMessage(id, dto.emoji);
   }
 }

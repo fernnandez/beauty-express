@@ -9,6 +9,7 @@ import { ConversationRepository } from '../repositories/conversation.repository'
 import { MessageRepository } from '../repositories/message.repository';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { WhatsappService } from '../services/whatsapp.service';
+import { WhatsappGateway } from '../services/whatsapp.gateway';
 import { EvolutionClient } from '../services/evolution.client';
 import { WhatsappController } from '@application/controllers/whatsapp.controller';
 import { WhatsappWebhookController } from '@application/controllers/whatsapp-webhook.controller';
@@ -35,6 +36,7 @@ import { ServiceModule } from './service.module';
     MessageRepository,
     AppointmentRepository,
     EvolutionClient,
+    WhatsappGateway,
     WhatsappService,
   ],
   exports: [WhatsappService, WhatsappInstanceRepository],

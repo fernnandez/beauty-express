@@ -8,6 +8,7 @@ import { ClientRepository } from '../repositories/client.repository';
 import { ServiceRepository } from '../repositories/service.repository';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { EvolutionClient } from './evolution.client';
+import { WhatsappGateway } from './whatsapp.gateway';
 import { TenantContextService } from './tenant-context.service';
 import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
 import {
@@ -57,6 +58,9 @@ describe('WhatsappService', () => {
     setWebhook: jest.fn(),
     sendReaction: jest.fn(),
   };
+  const mockGateway = {
+    emitInboxUpdate: jest.fn(),
+  };
   const mockTenantContext = {
     requireTenantId: jest.fn().mockReturnValue(TENANT_ID_MOCK),
     getUserId: jest.fn().mockReturnValue('user-1'),
@@ -82,6 +86,7 @@ describe('WhatsappService', () => {
           useValue: mockAppointmentRepository,
         },
         { provide: EvolutionClient, useValue: mockEvolution },
+        { provide: WhatsappGateway, useValue: mockGateway },
         { provide: TenantContextService, useValue: mockTenantContext },
       ],
     }).compile();
@@ -207,34 +212,24 @@ describe('WhatsappService', () => {
     });
   });
 
-  describe('sendPriceList', () => {
+  describe('buildPriceListText', () => {
     it('rejeita quando não há serviços', async () => {
       mockServiceRepository.find.mockResolvedValue([]);
-      await expect(service.sendPriceList('conv-1')).rejects.toThrow(
+      await expect(service.buildPriceListText()).rejects.toThrow(
         BadRequestException,
       );
     });
-    it('monta a tabela de preços e envia', async () => {
+    it('monta a tabela de preços como texto', async () => {
       mockServiceRepository.find.mockResolvedValue([
         { name: 'Corte', defaultPrice: 50 },
         { name: 'Escova', defaultPrice: 40 },
       ]);
-      mockConversationRepository.findById.mockResolvedValue({
-        id: 'conv-1',
-        tenantId: TENANT_ID_MOCK,
-        phoneNormalized: '5581999999999',
-      });
-      mockInstanceRepository.findByTenant.mockResolvedValue({
-        instanceName: 'salao-1',
-      });
-      mockEvolution.sendText.mockResolvedValue({ key: { id: 'WA-PL' } });
 
-      await service.sendPriceList('conv-1');
+      const text = await service.buildPriceListText();
 
-      const sentText = mockEvolution.sendText.mock.calls[0][2];
-      expect(sentText).toContain('Tabela de serviços e preços');
-      expect(sentText).toContain('Corte');
-      expect(sentText).toContain('R$');
+      expect(text).toContain('Tabela de serviços e preços');
+      expect(text).toContain('Corte');
+      expect(text).toContain('R$');
     });
   });
 

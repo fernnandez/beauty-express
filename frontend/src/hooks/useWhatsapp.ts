@@ -1,5 +1,9 @@
+import { useEffect } from "react";
+import { io, type Socket } from "socket.io-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { whatsappService } from "../services/whatsapp.service";
+import { authStorage } from "../services/auth-storage";
+import { resolveApiBaseUrl } from "../utils/api-url.util";
 import type {
   Conversation,
   WhatsappInstanceState,
@@ -50,13 +54,13 @@ export const useDisconnectWhatsapp = () => {
   });
 };
 
-/** Lista de conversas; polling leve para refletir mensagens novas. */
+/** Lista de conversas; o tempo real vem do socket, polling é só fallback. */
 export const useConversations = (enabled = true) => {
   return useQuery<Conversation[]>({
     queryKey: CONVERSATIONS_KEY,
     queryFn: () => whatsappService.listConversations(),
     enabled,
-    refetchInterval: enabled ? 5000 : false,
+    refetchInterval: enabled ? 20000 : false,
   });
 };
 
@@ -66,7 +70,7 @@ export const useMessages = (conversationId: string | null) => {
     queryKey: ["whatsapp", "messages", conversationId],
     queryFn: () => whatsappService.listMessages(conversationId as string),
     enabled: !!conversationId,
-    refetchInterval: conversationId ? 4000 : false,
+    refetchInterval: conversationId ? 15000 : false,
   });
 };
 
@@ -100,17 +104,9 @@ export const useMarkConversationRead = () => {
   });
 };
 
-export const useSendPriceList = () => {
-  const queryClient = useQueryClient();
+export const useImportPriceList = () => {
   return useMutation({
-    mutationFn: (conversationId: string) =>
-      whatsappService.sendPriceList(conversationId),
-    onSuccess: (_data, conversationId) => {
-      queryClient.invalidateQueries({
-        queryKey: ["whatsapp", "messages", conversationId],
-      });
-      queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY });
-    },
+    mutationFn: () => whatsappService.getPriceListPreview(),
   });
 };
 
@@ -165,4 +161,40 @@ export const useReactToMessage = (conversationId: string | null) => {
       }
     },
   });
+};
+
+/**
+ * Conecta ao gateway de tempo real do WhatsApp e invalida as queries do inbox
+ * quando chega um evento (mensagem nova, status, reação). Retorna se está vivo.
+ */
+export const useWhatsappSocket = (enabled: boolean) => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!enabled) return;
+    const token = authStorage.getAccessToken();
+    if (!token) return;
+
+    const base = resolveApiBaseUrl();
+    const socket: Socket = io(`${base}/whatsapp`, {
+      transports: ["websocket"],
+      auth: { token },
+    });
+
+    const onUpdate = (payload: { conversationId?: string }) => {
+      queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY });
+      if (payload?.conversationId) {
+        queryClient.invalidateQueries({
+          queryKey: ["whatsapp", "messages", payload.conversationId],
+        });
+      }
+    };
+
+    socket.on("whatsapp:update", onUpdate);
+
+    return () => {
+      socket.off("whatsapp:update", onUpdate);
+      socket.disconnect();
+    };
+  }, [enabled, queryClient]);
 };

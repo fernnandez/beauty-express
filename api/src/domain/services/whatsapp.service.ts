@@ -21,6 +21,7 @@ import { ClientRepository } from '../repositories/client.repository';
 import { ServiceRepository } from '../repositories/service.repository';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { EvolutionClient } from './evolution.client';
+import { WhatsappGateway } from './whatsapp.gateway';
 import { EvolutionWebhookPayload } from './evolution-webhook.types';
 import { TenantContextService } from './tenant-context.service';
 import { normalizePhone } from '@common/utils/phone.util';
@@ -44,6 +45,7 @@ export class WhatsappService {
     private readonly serviceRepository: ServiceRepository,
     private readonly appointmentRepository: AppointmentRepository,
     private readonly evolution: EvolutionClient,
+    private readonly gateway: WhatsappGateway,
     private readonly tenantContext: TenantContextService,
   ) {}
 
@@ -255,14 +257,19 @@ export class WhatsappService {
     conversation.lastMessageAt = saved.timestamp;
     await this.conversationRepository.save(conversation);
 
+    this.gateway.emitInboxUpdate(tenantId, {
+      conversationId,
+      kind: 'outbound',
+    });
+
     if (status === MessageStatus.FAILED) {
       throw new BadRequestException('Não foi possível enviar a mensagem');
     }
     return saved;
   }
 
-  /** Monta a tabela de preços a partir dos serviços e envia na conversa. */
-  async sendPriceList(conversationId: string): Promise<Message> {
+  /** Gera o texto do catálogo a partir dos serviços (para importar/preencher). */
+  async buildPriceListText(): Promise<string> {
     const tenantId = this.getTenantId();
     const services = await this.serviceRepository.find({
       where: { tenantId },
@@ -283,15 +290,13 @@ export class WhatsappService {
       return `• ${s.name} — ${price}`;
     });
 
-    const text = [
+    return [
       '*Tabela de serviços e preços*',
       '',
       ...lines,
       '',
       'Qualquer dúvida ou para agendar, é só chamar! 😊',
     ].join('\n');
-
-    return await this.sendMessage(conversationId, text);
   }
   /** Reage (emoji) a uma mensagem pelo inbox: envia à Evolution e grava local. */
   async reactToMessage(messageId: string, emoji: string): Promise<Message> {
@@ -607,6 +612,11 @@ export class WhatsappService {
     }
     await this.conversationRepository.save(conversation);
 
+    this.gateway.emitInboxUpdate(tenantId, {
+      conversationId: conversation.id,
+      kind: 'inbound',
+    });
+
     return saved;
   }
 
@@ -663,6 +673,10 @@ export class WhatsappService {
 
     message.status = next;
     await this.messageRepository.save(message);
+    this.gateway.emitInboxUpdate(instance.tenantId, {
+      conversationId: message.conversationId,
+      kind: 'status',
+    });
   }
 
   /** Mapeia o status do WhatsApp/Evolution para o nosso enum. */
@@ -701,6 +715,10 @@ export class WhatsappService {
     if (!target) return;
     target.reaction = emoji ? emoji : null;
     await this.messageRepository.save(target);
+    this.gateway.emitInboxUpdate(tenantId, {
+      conversationId: target.conversationId,
+      kind: 'reaction',
+    });
   }
 
   /** Ordem de progressão dos status (para não rebaixar). */

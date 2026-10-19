@@ -3,6 +3,8 @@ import type { TenantBranding } from "../types/branding.types";
 import type {
   TenantSettings,
   PeriodMode,
+  QuickReply,
+  PriceListSettings,
 } from "../types/tenant-settings.types";
 
 export interface UpdateSettingsDto {
@@ -10,6 +12,8 @@ export interface UpdateSettingsDto {
   features?: {
     periodMode?: PeriodMode;
     commissionPayoutDays?: number[];
+    quickReplies?: QuickReply[];
+    priceList?: PriceListSettings;
   };
 }
 
