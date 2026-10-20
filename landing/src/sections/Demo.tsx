@@ -29,17 +29,17 @@ const demos: Demo[] = [
   },
   {
     tag: 'Comissões',
-    title: 'Comissões calculadas automaticamente',
+    title: 'Comissões no perfil de cada profissional',
     description:
-      'Cada serviço concluído gera a comissão pelo percentual do profissional. Filtre por período, colaborador e status, e marque pagamentos em lote.',
+      'Cada profissional tem o resumo das próprias comissões — recebido, pendente e o detalhe por atendimento. Calculada automaticamente ao concluir o serviço.',
     bullets: [
-      'Cálculo automático por percentual',
-      'Totais de pago e pendente sempre à vista',
+      'Resumo por profissional (recebido e pendente)',
+      'Filtro por mês ou quinzena',
       'Pagamento em lote',
     ],
     img: '/demo/comissoes.png',
-    alt: 'Lista de comissões por colaborador',
-    url: 'app.ageendoo.com/commissions',
+    alt: 'Comissões no perfil do profissional',
+    url: 'app.ageendoo.com/collaborators',
   },
   {
     tag: 'Financeiro',

@@ -232,16 +232,16 @@ const slides: { id: string; dark?: boolean; content: ReactNode }[] = [
       <FeatureSlide
         n="04"
         tag="Comissões"
-        title="Comissão calculada automaticamente"
-        description="Ao concluir o serviço, a comissão é calculada pelo percentual do profissional. Pagamento em lote e acompanhamento de atrasos."
+        title="Comissão no perfil de cada profissional"
+        description="Cada profissional tem seu resumo de comissões: o que recebeu, o que está pendente e o detalhe por atendimento. Calculada automaticamente ao concluir o serviço."
         bullets={[
-          'Cálculo automático por serviço',
-          'Filtro por período, profissional e status',
+          'Resumo por profissional (recebido e pendente)',
+          'Filtro por mês ou quinzena',
           'Pagamento em lote e alerta de atraso',
         ]}
         img="/demo/comissoes.png"
-        alt="Comissões por colaborador"
-        url="app.ageendoo.com/commissions"
+        alt="Comissões no perfil do profissional"
+        url="app.ageendoo.com/collaborators"
         flip
       />
     ),

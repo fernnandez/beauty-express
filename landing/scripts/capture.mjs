@@ -49,7 +49,11 @@ async function preparePage(page) {
 const SHOTS = [
   { path: '/', file: 'dashboard.png', waitText: null },
   { path: '/appointments', file: 'agenda.png', waitText: 'Agendamentos' },
-  { path: '/commissions', file: 'comissoes.png', waitText: 'Comiss' },
+  {
+    path: '/collaborators/a0000001-0001-4000-8000-000000000002',
+    file: 'comissoes.png',
+    waitText: 'Comiss',
+  },
   { path: '/collaborators', file: 'colaboradores.png', waitText: 'Colaborador' },
   { path: '/services', file: 'servicos.png', waitText: 'Servi' },
   { path: '/financial-reports', file: 'relatorios.png', waitText: 'Relat' },
