@@ -22,7 +22,17 @@ import { sumMoney } from "../utils/money.util";
 
 export function Appointments() {
   const { showSuccess, showError } = useNotifications();
-  const [activeTab, setActiveTab] = useState<string>("schedule");
+  // No mobile, a visão de Lista lê melhor que a Agenda (eventos simultâneos
+  // ficam espremidos). Começa em Lista no celular; Agenda no desktop.
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 48em)").matches
+    ) {
+      return "table";
+    }
+    return "schedule";
+  });
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
