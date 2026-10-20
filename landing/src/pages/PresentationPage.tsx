@@ -21,8 +21,8 @@ import {
   IconCheck,
 } from '@tabler/icons-react'
 import { BrowserFrame } from '../components/BrowserFrame'
-import { VideoSlot } from '../components/VideoSlot'
-import { brand, whatsappLink } from '../branding'
+import { Logo } from '../components/Logo'
+import { whatsappLink } from '../branding'
 
 const BRAND_GRADIENT =
   'linear-gradient(135deg, var(--mantine-color-brand-6), var(--mantine-color-brand-8))'
@@ -87,11 +87,11 @@ function FeatureSlide({
   const image = <BrowserFrame src={img} alt={alt} url={url} />
 
   return (
-    <Grid gutter={48} align="center" w="100%">
-      <Grid.Col span={{ base: 12, md: 6 }} order={{ base: 2, md: flip ? 2 : 1 }}>
+    <Grid gutter={40} align="center" w="100%">
+      <Grid.Col span={{ base: 12, md: 5 }} order={{ base: 2, md: flip ? 2 : 1 }}>
         {flip ? image : text}
       </Grid.Col>
-      <Grid.Col span={{ base: 12, md: 6 }} order={{ base: 1, md: flip ? 1 : 2 }}>
+      <Grid.Col span={{ base: 12, md: 7 }} order={{ base: 1, md: flip ? 1 : 2 }}>
         {flip ? text : image}
       </Grid.Col>
     </Grid>
@@ -106,20 +106,14 @@ const slides: { id: string; dark?: boolean; content: ReactNode }[] = [
   // 0 — Capa
   {
     id: 'capa',
-    dark: true,
     content: (
-      <Stack align="center" ta="center" gap="lg" maw={820}>
-        <Text fw={800} fz={30} style={{ letterSpacing: 0.5 }}>
-          {brand.productName}
-        </Text>
-        <Badge size="lg" variant="white" c="brand.8" radius="sm">
-          Apresentação comercial
-        </Badge>
-        <Title order={1} fz={{ base: 32, sm: 56 }} lh={1.08}>
-          A gestão completa do salão, do primeiro "oi" no WhatsApp ao lucro do mês
+      <Stack align="center" ta="center" gap="xl" maw={860}>
+        <Logo height={52} />
+        <Title order={1} fz={{ base: 30, sm: 50 }} lh={1.1}>
+          A gestão completa do seu negócio, do agendamento ao financeiro
         </Title>
-        <Text fz={{ base: 'md', sm: 'xl' }} opacity={0.92} maw={620}>
-          Agenda, atendimento, comissões e financeiro em um só lugar.
+        <Text fz={{ base: 'md', sm: 'xl' }} c="dimmed" maw={640}>
+          Agenda, atendimento por WhatsApp, comissões e relatórios — em uma plataforma só.
         </Text>
       </Stack>
     ),
@@ -175,10 +169,10 @@ const slides: { id: string; dark?: boolean; content: ReactNode }[] = [
     id: 'whatsapp',
     content: (
       <FeatureSlide
-        n="★"
-        tag="WhatsApp"
+        n="01"
+        tag="Atendimento"
         title="Atendimento por WhatsApp dentro do sistema"
-        description="O número do salão conectado ao Ageendoo: todas as conversas num inbox, sem misturar com o WhatsApp pessoal."
+        description="O número do seu negócio conectado ao Ageendoo: todas as conversas num inbox, sem misturar com o WhatsApp pessoal."
         bullets={[
           'Inbox com todas as conversas e não lidas',
           'Buckets: agendados, clientes e novos contatos',
@@ -195,10 +189,10 @@ const slides: { id: string; dark?: boolean; content: ReactNode }[] = [
     id: 'whatsapp-chat',
     content: (
       <FeatureSlide
-        n="★"
-        tag="WhatsApp"
+        n="02"
+        tag="Atendimento"
         title="Conversa completa, com catálogo e respostas rápidas"
-        description="Responda o cliente com a conversa inteira à vista, status de entrega e atalhos que agilizam o atendimento."
+        description="A conversa inteira à vista, com status de entrega e atalhos que agilizam o atendimento do dia a dia."
         bullets={[
           'Status de entrega e leitura (tiquinhos)',
           'Catálogo de preços pronto para enviar',
@@ -216,10 +210,10 @@ const slides: { id: string; dark?: boolean; content: ReactNode }[] = [
     id: 'agenda',
     content: (
       <FeatureSlide
-        n="01"
+        n="03"
         tag="Agenda"
         title="A agenda do dia inteira numa tela"
-        description="Todos os atendimentos por horário — cliente, serviço, profissional e status — e marca em segundos."
+        description="Todos os atendimentos por horário — cliente, serviço, profissional e status — marcados em segundos."
         bullets={[
           'Visão de agenda ou lista',
           'Múltiplos serviços por horário',
@@ -236,10 +230,10 @@ const slides: { id: string; dark?: boolean; content: ReactNode }[] = [
     id: 'comissoes',
     content: (
       <FeatureSlide
-        n="02"
+        n="04"
         tag="Comissões"
-        title="Comissão no automático, sem planilha"
-        description="Ao concluir o serviço, a comissão é calculada pelo percentual do profissional. Pague em lote e acompanhe atrasos."
+        title="Comissão calculada automaticamente"
+        description="Ao concluir o serviço, a comissão é calculada pelo percentual do profissional. Pagamento em lote e acompanhamento de atrasos."
         bullets={[
           'Cálculo automático por serviço',
           'Filtro por período, profissional e status',
@@ -257,10 +251,10 @@ const slides: { id: string; dark?: boolean; content: ReactNode }[] = [
     id: 'financeiro',
     content: (
       <FeatureSlide
-        n="03"
+        n="05"
         tag="Financeiro"
         title="O lucro real do mês, não só o faturamento"
-        description="Receita, comissões e despesas num painel só. O Ageendoo mostra o lucro líquido — o que de fato sobra."
+        description="Receita, comissões e despesas num painel só, com o lucro líquido do período."
         bullets={[
           'Receita − comissões − despesas = lucro',
           'Gráficos de evolução no tempo',
@@ -272,48 +266,27 @@ const slides: { id: string; dark?: boolean; content: ReactNode }[] = [
       />
     ),
   },
-  // 7 — Vídeo
-  {
-    id: 'video',
-    content: (
-      <Stack w="100%" maw={900} gap="lg" align="center">
-        <Stack gap={4} align="center" ta="center">
-          <Badge color="brand" variant="light" radius="sm" size="lg">
-            Demonstração
-          </Badge>
-          <Title order={2} fz={{ base: 24, sm: 36 }}>
-            Veja o Ageendoo em ação
-          </Title>
-        </Stack>
-        <Box w="100%">
-          <VideoSlot label="Espaço para o vídeo de demonstração do produto (grave a navegação real do app aqui)." />
-        </Box>
-      </Stack>
-    ),
-  },
-  // 8 — Fechamento / CTA
+  // 7 — Fechamento / CTA
   {
     id: 'cta',
-    dark: true,
     content: (
       <Stack align="center" ta="center" gap="lg" maw={720}>
-        <Title order={2} fz={{ base: 30, sm: 46 }}>
-          Pronto para tirar o salão do caderno?
+        <Logo height={40} />
+        <Title order={2} fz={{ base: 28, sm: 42 }}>
+          Tudo o que o seu negócio precisa, em um só lugar
         </Title>
-        <Text fz={{ base: 'md', sm: 'xl' }} opacity={0.92} maw={560}>
-          Vamos conversar e montar o Ageendoo para a realidade do seu negócio.
+        <Text fz={{ base: 'md', sm: 'lg' }} c="dimmed" maw={560}>
+          Agenda, atendimento, comissões e financeiro, sem planilha e sem complicação.
         </Text>
         <Button
-          size="xl"
-          color="white"
-          c="brand.8"
-          variant="white"
+          size="lg"
+          color="brand"
           component="a"
           href={whatsappLink}
           target="_blank"
           rel="noopener noreferrer"
-          leftSection={<IconBrandWhatsapp size={22} />}
-          rightSection={<IconArrowRight size={20} />}
+          leftSection={<IconBrandWhatsapp size={20} />}
+          rightSection={<IconArrowRight size={18} />}
         >
           Falar com a gente
         </Button>
@@ -374,7 +347,7 @@ export function PresentationPage() {
           overflowY: 'auto',
         }}
       >
-        <Container size="lg" w="100%" style={{ display: 'flex', justifyContent: 'center' }}>
+        <Container size="xl" w="100%" style={{ display: 'flex', justifyContent: 'center' }}>
           {slide.content}
         </Container>
       </Box>
