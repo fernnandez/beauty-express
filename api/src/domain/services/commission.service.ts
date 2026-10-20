@@ -26,6 +26,7 @@ import {
   isCommissionOverdue,
   resolvePayoutDays,
 } from './commission-payout.util';
+import { calcCommissionAmount } from './commission-calc.util';
 
 @Injectable({ scope: Scope.REQUEST })
 export class CommissionService {
@@ -69,8 +70,13 @@ export class CommissionService {
       );
     }
 
-    const percentage = Number(scheduledService.service?.commissionPercentage ?? 0);
-    const amount = (Number(scheduledService.price) * percentage) / 100;
+    const percentage = Number(
+      scheduledService.service?.commissionPercentage ?? 0,
+    );
+    const amount = calcCommissionAmount(
+      scheduledService.price,
+      scheduledService.service?.commissionPercentage,
+    );
 
     const existingCommission =
       await this.commissionRepository.findByScheduledServiceId(
@@ -321,10 +327,11 @@ export class CommissionService {
         continue;
       }
 
-      const commission = await this.commissionRepository.findByScheduledServiceId(
-        scheduledService.id,
-        tenantId,
-      );
+      const commission =
+        await this.commissionRepository.findByScheduledServiceId(
+          scheduledService.id,
+          tenantId,
+        );
       const commissionPaid = commission?.paid ?? false;
 
       if (commissionPaid) {
@@ -343,8 +350,7 @@ export class CommissionService {
 
     const canEditAppointment =
       appointmentStatus === AppointmentStatus.SCHEDULED ||
-      (appointmentStatus === AppointmentStatus.COMPLETED &&
-        !hasPaidCommission);
+      (appointmentStatus === AppointmentStatus.COMPLETED && !hasPaidCommission);
 
     const canReopenAppointment =
       appointmentStatus === AppointmentStatus.COMPLETED && !hasPaidCommission;

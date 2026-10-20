@@ -19,6 +19,7 @@ import { ScheduledServiceRepository } from '../repositories/scheduled-service.re
 import { ServiceRepository } from '../repositories/service.repository';
 import { TenantContextService } from './tenant-context.service';
 import { TenantSettingsService } from './tenant-settings.service';
+import { calcCommissionAmount } from './commission-calc.util';
 
 @Injectable({ scope: Scope.REQUEST })
 export class ScheduledServiceService {
@@ -113,7 +114,10 @@ export class ScheduledServiceService {
     }
 
     const percentage = Number(service.commissionPercentage ?? 0);
-    const amount = (Number(scheduledService.price) * percentage) / 100;
+    const amount = calcCommissionAmount(
+      scheduledService.price,
+      service.commissionPercentage,
+    );
     const existingCommission =
       await this.commissionRepository.findByScheduledServiceId(
         scheduledService.id,

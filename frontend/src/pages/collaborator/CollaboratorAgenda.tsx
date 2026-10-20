@@ -27,7 +27,7 @@ import {
 import { useNotifications } from "../../hooks/useNotifications";
 import { useAuth } from "../../contexts/AuthContext";
 import { AppointmentStatus, type Appointment } from "../../types";
-import { formatPrice, toMoney } from "../../utils/money.util";
+import { calcCommission, formatPrice, toMoney } from "../../utils/money.util";
 
 const ZONE = "America/Sao_Paulo";
 
@@ -51,8 +51,7 @@ function appointmentCommission(
   return (appointment.scheduledServices ?? [])
     .filter((ss) => !collaboratorId || ss.collaboratorId === collaboratorId)
     .reduce((acc, ss) => {
-      const pct = Number(ss.service?.commissionPercentage ?? 0);
-      return acc + (toMoney(ss.price) * pct) / 100;
+      return acc + calcCommission(ss.price, ss.service?.commissionPercentage);
     }, 0);
 }
 

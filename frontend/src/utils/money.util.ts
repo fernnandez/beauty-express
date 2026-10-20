@@ -34,3 +34,15 @@ export function sumMoney(values: Iterable<unknown>): number {
   }
   return total;
 }
+
+/**
+ * Comissão de um serviço: percentual aplicado sobre o preço cobrado.
+ * Espelha a regra do backend (commission-calc.util) para manter consistência.
+ */
+export function calcCommission(
+  price: unknown,
+  commissionPercentage: unknown,
+): number {
+  const pct = toMoney(commissionPercentage);
+  return (toMoney(price) * pct) / 100;
+}
