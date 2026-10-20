@@ -1,6 +1,6 @@
 import type { LoginBranding, TenantBranding } from '../types/branding.types';
 
-export const DEFAULT_DOCUMENT_TITLE = 'Beauty Express';
+export const DEFAULT_DOCUMENT_TITLE = 'Ageendoo';
 export const DEFAULT_FAVICON_HREF = '/logo.png';
 
 function resolveFaviconHref(

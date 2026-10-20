@@ -2,7 +2,7 @@ import type { LoginBranding } from '../../types/branding.types';
 import type { TenantSettings } from '../../types/tenant-settings.types';
 
 export const DEFAULT_BRANDING: LoginBranding = {
-  displayName: 'Beauty Express',
+  displayName: 'Ageendoo',
   logoUrl: '/logo.png',
   faviconUrl: null,
   primaryColor: '#e64980',
@@ -20,7 +20,7 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettings = {
 
 export function normalizeBranding(
   branding?: Partial<LoginBranding> | null,
-  fallbackName = 'Beauty Express',
+  fallbackName = 'Ageendoo',
 ): LoginBranding {
   return {
     displayName: branding?.displayName?.trim() || fallbackName,
@@ -33,7 +33,7 @@ export function normalizeBranding(
 
 export function normalizeTenantSettings(
   settings?: Partial<TenantSettings> | null,
-  fallbackName = 'Beauty Express',
+  fallbackName = 'Ageendoo',
 ): TenantSettings {
   return {
     branding: normalizeBranding(settings?.branding, fallbackName),

@@ -6,7 +6,7 @@ import { DEFAULT_LOGIN_BRANDING } from '../utils/theme.util';
 
 const DEFAULT_TENANT_SETTINGS: TenantSettings = {
   branding: {
-    displayName: 'Beauty Express',
+    displayName: 'Ageendoo',
     logoUrl: '/logo.png',
     faviconUrl: null,
     primaryColor: DEFAULT_LOGIN_BRANDING.primaryColor,

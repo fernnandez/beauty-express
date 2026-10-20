@@ -14,7 +14,7 @@ export const DEFAULT_PRIMARY_COLOR = '#e64980';
 export const DEFAULT_ACCENT_COLOR = '#faf5ff';
 
 export function defaultTenantSettings(
-  displayName = 'Beauty Express',
+  displayName = 'Ageendoo',
   overrides?: {
     branding?: Partial<TenantBranding>;
     features?: Partial<TenantFeatureSettings>;

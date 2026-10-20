@@ -44,7 +44,7 @@ async function bootstrap() {
   });
 
   const operationalConfig = new DocumentBuilder()
-    .setTitle('Beauty Express API — Operacional')
+    .setTitle('Ageendoo API — Operacional')
     .setDescription('Endpoints das filiais (agendamentos, colaboradores, etc.)')
     .setVersion('1.0')
     .addBearerAuth()
@@ -56,7 +56,7 @@ async function bootstrap() {
     .build();
 
   const adminConfig = new DocumentBuilder()
-    .setTitle('Beauty Express API — Backoffice')
+    .setTitle('Ageendoo API — Backoffice')
     .setDescription('Endpoints exclusivos do super admin')
     .setVersion('1.0')
     .addBearerAuth()
