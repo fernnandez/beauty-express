@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { LandingPage } from './pages/LandingPage'
 import { SystemPage } from './pages/SystemPage'
+import { PresentationPage } from './pages/PresentationPage'
 
 /** Rola para o topo ao trocar de rota (exceto quando há âncora #). */
 function ScrollToTop() {
@@ -26,6 +27,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/sistema" element={<SystemPage />} />
+        <Route path="/presentation" element={<PresentationPage />} />
         <Route path="*" element={<LandingPage />} />
       </Routes>
     </BrowserRouter>
