@@ -16,6 +16,7 @@ import { parseDateString } from '../../utils/date.util';
 import { CreateAppointmentDto } from '../dtos/appointment/create-appointment.dto';
 import { UpdateAppointmentDto } from '../dtos/appointment/update-appointment.dto';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
+import { Roles } from '@common/decorators/roles.decorator';
 import { AccessTokenPayload } from '@domain/services/auth.types';
 import { UserRole } from '@domain/entities/user-role.enum';
 
@@ -25,6 +26,7 @@ export class AppointmentController {
   constructor(private readonly appointmentDomainService: AppointmentService) {}
 
   @Post()
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new appointment' })
   @ApiResponse({
@@ -57,6 +59,7 @@ export class AppointmentController {
   }
 
   @Get(':id')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get an appointment by ID' })
   @ApiResponse({ status: 200, description: 'Appointment found' })
   @ApiResponse({ status: 404, description: 'Appointment not found' })
@@ -65,6 +68,7 @@ export class AppointmentController {
   }
 
   @Put(':id')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update an appointment' })
   @ApiResponse({
     status: 200,
@@ -86,11 +90,20 @@ export class AppointmentController {
     description: 'Appointment completed successfully',
   })
   @ApiResponse({ status: 404, description: 'Appointment not found' })
-  async complete(@Param('id') id: string) {
-    return await this.appointmentDomainService.completeAppointment(id);
+  async complete(
+    @Param('id') id: string,
+    @CurrentUser() user: AccessTokenPayload,
+  ) {
+    const scopedCollaboratorId =
+      user.role === UserRole.COLLABORATOR ? user.collaboratorId : undefined;
+    return await this.appointmentDomainService.completeAppointment(
+      id,
+      scopedCollaboratorId,
+    );
   }
 
   @Put(':id/cancel')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Cancel an appointment' })
   @ApiResponse({
     status: 200,
@@ -102,6 +115,7 @@ export class AppointmentController {
   }
 
   @Put(':id/reopen')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Reopen a completed appointment' })
   @ApiResponse({
     status: 200,

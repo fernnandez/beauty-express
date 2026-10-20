@@ -5,6 +5,7 @@ import {
 import { UpdateAppointmentDto } from '@application/dtos/appointment/update-appointment.dto';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   Scope,
@@ -256,7 +257,10 @@ export class AppointmentService {
     return updated;
   }
 
-  async completeAppointment(appointmentId: string): Promise<Appointment> {
+  async completeAppointment(
+    appointmentId: string,
+    scopedCollaboratorId?: string | null,
+  ): Promise<Appointment> {
     const tenantId = this.getTenantId();
     const appointment = await this.findById(appointmentId);
     if (!appointment) {
@@ -283,6 +287,19 @@ export class AppointmentService {
       throw new BadRequestException(
         'Appointment must have at least one non-cancelled service',
       );
+    }
+
+    // Colaborador só pode concluir atendimentos em que ele próprio é o
+    // responsável por todos os serviços não cancelados.
+    if (scopedCollaboratorId) {
+      const allOwnedByCollaborator = nonCancelledServices.every(
+        (s) => s.collaboratorId === scopedCollaboratorId,
+      );
+      if (!allOwnedByCollaborator) {
+        throw new ForbiddenException(
+          'You can only complete appointments assigned to you',
+        );
+      }
     }
 
     const allHaveCollaborator = nonCancelledServices.every(

@@ -27,7 +27,7 @@ describe('AppointmentController', () => {
 
   const mockAppointment: Appointment = {
     id: 'appointment-1',
-      tenantId: TENANT_ID_MOCK,
+    tenantId: TENANT_ID_MOCK,
     clientName: 'João Silva',
     clientPhone: '11999999999',
     date: parseDateString('2024-12-28'),
@@ -207,16 +207,35 @@ describe('AppointmentController', () => {
       status: AppointmentStatus.COMPLETED,
     };
 
-    it('should complete an appointment', async () => {
+    it('should complete an appointment as admin (no collaborator scope)', async () => {
       mockAppointmentService.completeAppointment.mockResolvedValue(
         completedAppointment,
       );
 
-      const result = await controller.complete(mockAppointment.id);
+      const result = await controller.complete(mockAppointment.id, adminUser);
 
       expect(result).toEqual(completedAppointment);
       expect(service.completeAppointment).toHaveBeenCalledWith(
         mockAppointment.id,
+        undefined,
+      );
+    });
+
+    it('should scope completion to the collaborator when role is collaborator', async () => {
+      const collaboratorUser: AccessTokenPayload = {
+        ...adminUser,
+        role: UserRole.COLLABORATOR,
+        collaboratorId: 'collaborator-1',
+      };
+      mockAppointmentService.completeAppointment.mockResolvedValue(
+        completedAppointment,
+      );
+
+      await controller.complete(mockAppointment.id, collaboratorUser);
+
+      expect(service.completeAppointment).toHaveBeenCalledWith(
+        mockAppointment.id,
+        'collaborator-1',
       );
     });
   });

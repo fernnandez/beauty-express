@@ -566,6 +566,46 @@ describe('AppointmentService', () => {
       ).toHaveBeenCalledWith(mockAppointment.id);
     });
 
+    it('should allow the owning collaborator to complete the appointment', async () => {
+      const completedAppointment = {
+        ...mockAppointment,
+        status: AppointmentStatus.COMPLETED,
+      };
+
+      mockAppointmentRepository.findById
+        .mockResolvedValueOnce(mockAppointment)
+        .mockResolvedValueOnce(completedAppointment);
+      mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue(
+        mockScheduledServices,
+      );
+      mockAppointmentRepository.save.mockResolvedValue(completedAppointment);
+      mockCommissionService.calculateCommissionsForAppointment.mockResolvedValue(
+        [],
+      );
+
+      // collaborator-1 é dono de todos os serviços não cancelados
+      const result = await service.completeAppointment(
+        mockAppointment.id,
+        'collaborator-1',
+      );
+
+      expect(result.status).toBe(AppointmentStatus.COMPLETED);
+    });
+
+    it('should forbid a collaborator from completing an appointment that is not theirs', async () => {
+      mockAppointmentRepository.findById.mockResolvedValueOnce(mockAppointment);
+      mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue(
+        mockScheduledServices,
+      );
+
+      // collaborator-2 não é dono do serviço (que pertence a collaborator-1)
+      await expect(
+        service.completeAppointment(mockAppointment.id, 'collaborator-2'),
+      ).rejects.toThrow('You can only complete appointments assigned to you');
+
+      expect(mockAppointmentRepository.save).not.toHaveBeenCalled();
+    });
+
     it('should throw error when appointment not found', async () => {
       mockAppointmentRepository.findById.mockResolvedValue(null);
 
