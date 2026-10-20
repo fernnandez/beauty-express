@@ -4,7 +4,6 @@ import {
   Badge,
   Box,
   Button,
-  Container,
   Grid,
   Group,
   List,
@@ -54,46 +53,64 @@ function FeatureSlide({
   flip?: boolean
 }) {
   const text = (
-    <Stack gap="sm">
+    <Stack gap="xs">
       <Group gap="sm">
-        <Text fw={800} fz={44} c="brand.3" lh={1}>
+        <Text fw={800} fz={36} c="brand.3" lh={1}>
           {n}
         </Text>
-        <Badge variant="light" color="brand" radius="sm" size="lg">
+        <Badge variant="light" color="brand" radius="sm">
           {tag}
         </Badge>
       </Group>
-      <Title order={2} fz={{ base: 26, sm: 38 }}>
+      <Title order={2} fz={{ base: 22, sm: 30 }}>
         {title}
       </Title>
-      <Text c="dimmed" fz={{ base: 'md', sm: 'lg' }}>
+      <Text c="dimmed" fz={{ base: 'sm', sm: 'md' }}>
         {description}
       </Text>
       <List
-        mt="xs"
-        spacing="sm"
+        mt={4}
+        spacing={6}
         icon={
-          <ThemeIcon color="brand" variant="light" size={24} radius="xl">
-            <IconCheck size={15} />
+          <ThemeIcon color="brand" variant="light" size={22} radius="xl">
+            <IconCheck size={13} />
           </ThemeIcon>
         }
       >
         {bullets.map((b) => (
-          <List.Item key={b}>{b}</List.Item>
+          <List.Item key={b}>
+            <Text fz="sm">{b}</Text>
+          </List.Item>
         ))}
       </List>
     </Stack>
   )
   const image = <BrowserFrame src={img} alt={alt} url={url} />
 
+  const textCol = (
+    <Grid.Col span={{ base: 12, md: 4 }} order={{ base: 2, md: flip ? 2 : 1 }}>
+      {text}
+    </Grid.Col>
+  )
+  const imageCol = (
+    <Grid.Col span={{ base: 12, md: 8 }} order={{ base: 1, md: flip ? 1 : 2 }}>
+      {image}
+    </Grid.Col>
+  )
+
   return (
-    <Grid gutter={40} align="center" w="100%">
-      <Grid.Col span={{ base: 12, md: 5 }} order={{ base: 2, md: flip ? 2 : 1 }}>
-        {flip ? image : text}
-      </Grid.Col>
-      <Grid.Col span={{ base: 12, md: 7 }} order={{ base: 1, md: flip ? 1 : 2 }}>
-        {flip ? text : image}
-      </Grid.Col>
+    <Grid gutter={32} align="center" w="100%">
+      {flip ? (
+        <>
+          {imageCol}
+          {textCol}
+        </>
+      ) : (
+        <>
+          {textCol}
+          {imageCol}
+        </>
+      )}
     </Grid>
   )
 }
@@ -343,13 +360,13 @@ export function PresentationPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '32px 24px',
+          padding: '24px clamp(20px, 4vw, 56px)',
           overflowY: 'auto',
         }}
       >
-        <Container size="xl" w="100%" style={{ display: 'flex', justifyContent: 'center' }}>
+        <Box w="100%" maw={1480} style={{ display: 'flex', justifyContent: 'center' }}>
           {slide.content}
-        </Container>
+        </Box>
       </Box>
 
       {/* Barra de navegação */}
