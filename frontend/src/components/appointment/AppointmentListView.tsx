@@ -14,6 +14,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import type { Appointment } from "../../types";
 import { AppointmentStatus } from "../../types";
 import { formatDate, formatPrice } from "../../utils/appointment.utils";
+import { formatPhoneDisplay } from "../../utils/phone.util";
 import { RowActions } from "../RowActions";
 
 interface AppointmentListViewProps {
@@ -133,7 +134,7 @@ export function AppointmentListView({
                 <Text fw={500}>{appointment.clientName || "-"}</Text>
                 {appointment.clientPhone && (
                   <Text size="sm" c="dimmed">
-                    {appointment.clientPhone}
+                    {formatPhoneDisplay(appointment.clientPhone)}
                   </Text>
                 )}
                 <Text size="sm" c="dimmed">
@@ -196,7 +197,7 @@ export function AppointmentListView({
                     </Stack>
                   </Table.Td>
                   <Table.Td>{appointment.clientName || "-"}</Table.Td>
-                  <Table.Td>{appointment.clientPhone || "-"}</Table.Td>
+                  <Table.Td>{formatPhoneDisplay(appointment.clientPhone) || "-"}</Table.Td>
                   <Table.Td>
                     {appointment.scheduledServices &&
                     appointment.scheduledServices.length > 0

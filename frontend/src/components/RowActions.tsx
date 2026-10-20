@@ -24,7 +24,7 @@ interface RowActionsProps {
   deleteDisabledLabel?: string;
 }
 
-const ICON_SIZE = 18;
+const ICON_SIZE = 19;
 
 /**
  * Ações padronizadas de linha de tabela (ver detalhes, editar, excluir).
@@ -40,51 +40,39 @@ export function RowActions({
   deleteDisabledLabel,
 }: RowActionsProps) {
   return (
-    <Group gap={4} wrap="nowrap">
+    <Group gap={6} wrap="nowrap">
       {onView && (
         <Tooltip label="Ver detalhes" withArrow>
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            onClick={onView}
-            aria-label="Ver detalhes"
-          >
+          <ActionIcon variant="subtle" size="lg" color="gray"
+          onClick={onView}
+          aria-label="Ver detalhes">
             <IconEye size={ICON_SIZE} />
           </ActionIcon>
         </Tooltip>
       )}
       {onEdit && (
         <Tooltip label="Editar" withArrow>
-          <ActionIcon
-            variant="subtle"
-            color="blue"
-            onClick={onEdit}
-            aria-label="Editar"
-          >
+          <ActionIcon variant="subtle" size="lg" color="blue"
+          onClick={onEdit}
+          aria-label="Editar">
             <IconEdit size={ICON_SIZE} />
           </ActionIcon>
         </Tooltip>
       )}
       {onComplete && (
         <Tooltip label="Concluir" withArrow>
-          <ActionIcon
-            variant="subtle"
-            color="green"
-            onClick={onComplete}
-            aria-label="Concluir"
-          >
+          <ActionIcon variant="subtle" size="lg" color="green"
+          onClick={onComplete}
+          aria-label="Concluir">
             <IconCheck size={ICON_SIZE} />
           </ActionIcon>
         </Tooltip>
       )}
       {onCancel && (
         <Tooltip label="Cancelar" withArrow>
-          <ActionIcon
-            variant="subtle"
-            color="red"
-            onClick={onCancel}
-            aria-label="Cancelar"
-          >
+          <ActionIcon variant="subtle" size="lg" color="red"
+          onClick={onCancel}
+          aria-label="Cancelar">
             <IconX size={ICON_SIZE} />
           </ActionIcon>
         </Tooltip>
@@ -98,13 +86,10 @@ export function RowActions({
           }
           withArrow
         >
-          <ActionIcon
-            variant="subtle"
-            color="red"
-            onClick={onDelete}
-            disabled={deleteDisabled}
-            aria-label="Excluir"
-          >
+          <ActionIcon variant="subtle" size="lg" color="red"
+          onClick={onDelete}
+          disabled={deleteDisabled}
+          aria-label="Excluir">
             <IconTrash size={ICON_SIZE} />
           </ActionIcon>
         </Tooltip>

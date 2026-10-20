@@ -23,6 +23,7 @@ import {
   useDeleteClient,
 } from "../hooks/useClients";
 import { useNotifications } from "../hooks/useNotifications";
+import { formatPhoneDisplay } from "../utils/phone.util";
 import type { Client } from "../types";
 
 export function Clients() {
@@ -93,7 +94,7 @@ export function Clients() {
         emptyMessage="Nenhum cliente encontrado"
         columns={[
           { key: "name", header: "Nome", primary: true, render: (c) => c.name },
-          { key: "phone", header: "Telefone", render: (c) => c.phone },
+          { key: "phone", header: "Telefone", render: (c) => formatPhoneDisplay(c.phone) },
         ]}
         actions={(client) => (
           <RowActions

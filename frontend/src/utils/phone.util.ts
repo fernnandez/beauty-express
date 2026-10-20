@@ -102,6 +102,33 @@ export function validateClientName(value: string): string | null {
   return null;
 }
 
+/**
+ * Formata um telefone para EXIBIÇÃO (listas, cards, detalhes).
+ * Lida com números salvos com código do país (ex.: 5511980000001) e devolve
+ * no formato (DD) 9XXXX-XXXX. Para internacionais não-BR, devolve com "+".
+ */
+export function formatPhoneDisplay(phone?: string | null): string {
+  if (!phone) return "";
+  const digits = normalizePhone(phone);
+
+  if (
+    digits.startsWith("55") &&
+    (digits.length === 12 || digits.length === 13)
+  ) {
+    return formatBrazilianPhone(digits.slice(2));
+  }
+
+  if (digits.length === 10 || digits.length === 11) {
+    return formatBrazilianPhone(digits);
+  }
+
+  if (digits.length > 11) {
+    return `+${digits}`;
+  }
+
+  return phone.trim();
+}
+
 export function formatPhoneInput(value: string): string {
   const trimmed = value.trim();
 

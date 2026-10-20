@@ -52,6 +52,7 @@ import {
   formatServiceOption,
 } from "../../utils/appointment.utils";
 import { sumMoney, toMoney } from "../../utils/money.util";
+import { formatPhoneDisplay } from "../../utils/phone.util";
 
 interface AppointmentDetailModalProps {
   opened: boolean;
@@ -335,7 +336,7 @@ export function AppointmentDetailModal({
               Telefone
             </Text>
             <Text size="sm" fw={500}>
-              {appointment.clientPhone || "-"}
+              {formatPhoneDisplay(appointment.clientPhone) || "-"}
             </Text>
           </div>
         </Group>
