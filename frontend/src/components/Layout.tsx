@@ -18,14 +18,15 @@ import {
   IconBrandWhatsapp,
   IconCalendar,
   IconChartBar,
-  IconDotsCircleHorizontal,
   IconHome,
+  IconLayoutGrid,
   IconLogout,
   IconScissors,
   IconReceipt2,
   IconSettings,
   IconUserCircle,
   IconUsers,
+  IconX,
 } from "@tabler/icons-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -368,14 +369,6 @@ interface MobileBottomNavProps {
   onLogout: () => void;
 }
 
-/** Caminhos que ficam fixos na barra inferior (destinos principais). */
-const PRIMARY_MOBILE_PATHS = [
-  "/",
-  "/appointments",
-  "/whatsapp",
-  "/financial-reports",
-];
-
 function MobileBottomNav({
   items,
   activePath,
@@ -387,14 +380,21 @@ function MobileBottomNav({
   const [moreOpened, { open: openMore, close: closeMore }] =
     useDisclosure(false);
 
-  const primaryItems = [
+  // Dois destinos de cada lado do botão central.
+  const leftTabs = [
     { icon: IconHome, label: "Início", path: "/" },
-    ...items.filter((i) => PRIMARY_MOBILE_PATHS.includes(i.path)),
+    { icon: IconCalendar, label: "Agenda", path: "/appointments" },
   ];
-  const moreItems = items.filter(
-    (i) => !PRIMARY_MOBILE_PATHS.includes(i.path),
-  );
-  const moreActive = moreItems.some((i) => activePath === i.path);
+  const rightTabs = [
+    { icon: IconBrandWhatsapp, label: "Atendimento", path: "/whatsapp" },
+    { icon: IconChartBar, label: "Relatórios", path: "/financial-reports" },
+  ];
+
+  // O drawer central lista TODA a navegação (inclui os atalhos da barra).
+  const allNavItems = [
+    { icon: IconHome, label: "Início", path: "/" },
+    ...items,
+  ];
 
   const tabStyle = (active: boolean) => ({
     flex: 1,
@@ -407,6 +407,45 @@ function MobileBottomNav({
     color: active ? primaryColor : "var(--mantine-color-gray-6)",
   });
 
+  const renderTab = (item: {
+    icon: typeof IconHome;
+    label: string;
+    path: string;
+  }) => {
+    const Icon = item.icon;
+    const isActive = activePath === item.path;
+    return (
+      <UnstyledButton
+        key={item.path}
+        onClick={() => onNavigate(item.path)}
+        aria-label={item.label}
+        style={tabStyle(isActive)}
+      >
+        <div style={{ position: "relative" }}>
+          <Icon size={23} stroke={isActive ? 2 : 1.6} />
+          {item.path === "/whatsapp" && unreadCount > 0 && (
+            <Badge
+              size="xs"
+              circle
+              color="red"
+              style={{
+                position: "absolute",
+                top: -6,
+                right: -8,
+                pointerEvents: "none",
+              }}
+            >
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </Badge>
+          )}
+        </div>
+        <Text fz={10} fw={isActive ? 600 : 400} lh={1}>
+          {item.label}
+        </Text>
+      </UnstyledButton>
+    );
+  };
+
   return (
     <>
       <Group
@@ -414,6 +453,7 @@ function MobileBottomNav({
         gap={0}
         wrap="nowrap"
         justify="space-around"
+        align="center"
         style={{
           position: "fixed",
           bottom: 0,
@@ -426,53 +466,43 @@ function MobileBottomNav({
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        {primaryItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activePath === item.path;
-          return (
-            <UnstyledButton
-              key={item.path}
-              onClick={() => onNavigate(item.path)}
-              aria-label={item.label}
-              style={tabStyle(isActive)}
-            >
-              <div style={{ position: "relative" }}>
-                <Icon size={22} stroke={isActive ? 2 : 1.6} />
-                {item.path === "/whatsapp" && unreadCount > 0 && (
-                  <Badge
-                    size="xs"
-                    circle
-                    color="red"
-                    style={{
-                      position: "absolute",
-                      top: -6,
-                      right: -8,
-                      pointerEvents: "none",
-                    }}
-                  >
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </Badge>
-                )}
-              </div>
-              <Text fz={10} fw={isActive ? 600 : 400} lh={1}>
-                {item.label}
-              </Text>
-            </UnstyledButton>
-          );
-        })}
-        <UnstyledButton
-          onClick={openMore}
-          aria-label="Mais"
-          style={tabStyle(moreActive)}
+        {leftTabs.map(renderTab)}
+
+        {/* Botão central (FAB) — abre o menu completo */}
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
         >
-          <IconDotsCircleHorizontal
-            size={22}
-            stroke={moreActive ? 2 : 1.6}
-          />
-          <Text fz={10} fw={moreActive ? 600 : 400} lh={1}>
-            Mais
-          </Text>
-        </UnstyledButton>
+          <UnstyledButton
+            onClick={moreOpened ? closeMore : openMore}
+            aria-label="Menu"
+            style={{
+              width: 56,
+              height: 56,
+              marginTop: -22,
+              borderRadius: "50%",
+              backgroundColor: primaryColor,
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 6px 16px rgba(0,0,0,0.22)",
+              border: "4px solid #fff",
+            }}
+          >
+            {moreOpened ? (
+              <IconX size={24} stroke={2} />
+            ) : (
+              <IconLayoutGrid size={24} stroke={2} />
+            )}
+          </UnstyledButton>
+        </div>
+
+        {rightTabs.map(renderTab)}
       </Group>
 
       <Drawer
@@ -480,12 +510,12 @@ function MobileBottomNav({
         onClose={closeMore}
         position="bottom"
         size="auto"
-        title="Menu"
+        title="Navegação"
         hiddenFrom="sm"
         radius="md"
       >
         <Stack gap={4} pb="md">
-          {moreItems.map((item) => {
+          {allNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activePath === item.path;
             return (
@@ -499,7 +529,7 @@ function MobileBottomNav({
                   display: "flex",
                   alignItems: "center",
                   gap: 12,
-                  padding: "12px 8px",
+                  padding: "14px 10px",
                   borderRadius: 10,
                   color: isActive
                     ? primaryColor
@@ -511,6 +541,11 @@ function MobileBottomNav({
               >
                 <Icon size={22} stroke={isActive ? 2 : 1.6} />
                 <Text fw={isActive ? 600 : 500}>{item.label}</Text>
+                {item.path === "/whatsapp" && unreadCount > 0 && (
+                  <Badge size="sm" circle color="red" ml="auto">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </Badge>
+                )}
               </UnstyledButton>
             );
           })}
@@ -523,7 +558,7 @@ function MobileBottomNav({
               display: "flex",
               alignItems: "center",
               gap: 12,
-              padding: "12px 8px",
+              padding: "14px 10px",
               borderRadius: 10,
               color: "var(--mantine-color-red-6)",
             }}

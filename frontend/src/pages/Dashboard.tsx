@@ -21,49 +21,49 @@ import { useNavigate } from "react-router-dom";
 const dashboardCards = [
   {
     title: "Colaboradores",
-    description: "Gerenciar colaboradores",
+    description: "Equipe e acessos",
     icon: IconUsers,
     path: "/collaborators",
     color: "blue",
   },
   {
     title: "Clientes",
-    description: "Gerenciar clientes",
+    description: "Base de clientes",
     icon: IconUserCircle,
     path: "/clients",
     color: "cyan",
   },
   {
     title: "Serviços",
-    description: "Gerenciar serviços",
+    description: "Preços e comissões",
     icon: IconScissors,
     path: "/services",
     color: "violet",
   },
   {
     title: "Agendamentos",
-    description: "Gerenciar agendamentos",
+    description: "Agenda e horários",
     icon: IconCalendar,
     path: "/appointments",
     color: "green",
   },
   {
     title: "Relatórios",
-    description: "Relatórios financeiros",
+    description: "Receita e lucro",
     icon: IconChartBar,
     path: "/financial-reports",
     color: "brand",
   },
   {
     title: "Despesas",
-    description: "Gerenciar despesas",
+    description: "Custos do negócio",
     icon: IconReceipt2,
     path: "/expenses",
     color: "red",
   },
   {
     title: "Configurações",
-    description: "Personalizar o estabelecimento",
+    description: "Preferências",
     icon: IconSettings,
     path: "/settings",
     color: "gray",
@@ -89,13 +89,13 @@ export function Dashboard() {
           <Text c="dimmed">Aqui está um resumo rápido do seu negócio.</Text>
         </Stack>
 
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
+        <SimpleGrid cols={{ base: 2, sm: 2, lg: 3 }} spacing={{ base: "sm", sm: "lg" }}>
           {visibleCards.map((card) => {
             const Icon = card.icon;
             return (
               <Card
                 key={card.path}
-                padding="xl"
+                padding="lg"
                 radius="lg"
                 withBorder
                 style={{
@@ -120,17 +120,17 @@ export function Dashboard() {
               >
                 <ThemeIcon
                   color={card.color}
-                  size={52}
+                  size={44}
                   radius="md"
                   variant="light"
-                  mb="md"
+                  mb="sm"
                 >
-                  <Icon size={26} />
+                  <Icon size={24} />
                 </ThemeIcon>
-                <Text fw={700} size="lg">
+                <Text fw={700} fz={{ base: "md", sm: "lg" }} lh={1.2}>
                   {card.title}
                 </Text>
-                <Text size="sm" c="dimmed">
+                <Text size="sm" c="dimmed" lineClamp={1}>
                   {card.description}
                 </Text>
               </Card>
