@@ -1,7 +1,7 @@
 import { Badge, Card, Container, Grid, Group, Stack, Text, ThemeIcon, Title } from '@mantine/core'
 import {
-  IconBrandWhatsapp,
   IconBell,
+  IconCalendarStats,
   IconSparkles,
   type IconProps,
 } from '@tabler/icons-react'
@@ -15,16 +15,16 @@ type RoadmapItem = {
 
 const items: RoadmapItem[] = [
   {
-    icon: IconBrandWhatsapp,
-    title: 'Integração com WhatsApp',
-    description:
-      'Comunicação com clientes diretamente pelo WhatsApp — confirmações e lembretes de agendamento sem sair do fluxo.',
-  },
-  {
     icon: IconBell,
     title: 'Lembretes automáticos',
     description:
       'Avisos de agendamentos e de comissões a pagar, para o gestor e para o profissional não perderem nada.',
+  },
+  {
+    icon: IconCalendarStats,
+    title: 'Confirmação automática',
+    description:
+      'Disparo de confirmação de horário pelo WhatsApp de forma automática, reduzindo faltas e no-shows.',
   },
   {
     icon: IconSparkles,

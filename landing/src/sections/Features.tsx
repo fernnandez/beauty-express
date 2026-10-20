@@ -1,6 +1,7 @@
 import { Box, Card, Container, Grid, Stack, Text, ThemeIcon, Title } from '@mantine/core'
 import {
   IconAlertTriangle,
+  IconBrandWhatsapp,
   IconCalendarEvent,
   IconCash,
   IconChartBar,
@@ -19,6 +20,12 @@ type Feature = {
 }
 
 const features: Feature[] = [
+  {
+    icon: IconBrandWhatsapp,
+    title: 'Atendimento por WhatsApp',
+    description:
+      'Converse com seus clientes pelo WhatsApp dentro do sistema: inbox com todas as conversas, confirmação de agendamentos, catálogo de preços e respostas rápidas — tudo em um só lugar.',
+  },
   {
     icon: IconCalendarEvent,
     title: 'Agendamentos',

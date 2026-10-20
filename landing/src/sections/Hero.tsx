@@ -40,9 +40,9 @@ export function Hero() {
               </Title>
 
               <Text fz={{ base: 'md', sm: 'lg' }} c="dimmed" maw={520}>
-                {brand.productName} tira a sua operação do caderno e da planilha. Agende, acompanhe
-                comissões automáticas e enxergue o resultado financeiro do seu negócio em tempo
-                real.
+                {brand.productName} tira a sua operação do caderno e da planilha. Agende, atenda
+                seus clientes pelo WhatsApp, acompanhe comissões automáticas e enxergue o resultado
+                financeiro do seu negócio em tempo real.
               </Text>
 
               <Group mt="xs" gap="sm" w={{ base: '100%', sm: 'auto' }}>
