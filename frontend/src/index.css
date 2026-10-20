@@ -51,3 +51,19 @@ body {
     padding-bottom: 72px;
   }
 }
+
+/* Botão de reagir nas mensagens do WhatsApp: discreto, aparece no hover (desktop) */
+.wa-react-btn {
+  opacity: 0;
+  transition: opacity 120ms ease;
+  flex: 0 0 auto;
+}
+.wa-msg-row:hover .wa-react-btn {
+  opacity: 1;
+}
+/* No mobile (sem hover), deixa o botão sempre visível, porém suave */
+@media (hover: none) {
+  .wa-react-btn {
+    opacity: 0.55;
+  }
+}

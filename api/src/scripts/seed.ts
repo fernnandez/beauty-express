@@ -7,10 +7,7 @@ import { Client } from '@domain/entities/client.entity';
 import { Collaborator } from '@domain/entities/collaborator.entity';
 import { Commission } from '@domain/entities/commission.entity';
 import { Expense } from '@domain/entities/expense.entity';
-import {
-  ExpenseCategory,
-  ExpenseType,
-} from '@domain/entities/expense-enums';
+import { ExpenseCategory, ExpenseType } from '@domain/entities/expense-enums';
 import {
   ScheduledService,
   ScheduledServiceStatus,
@@ -19,14 +16,22 @@ import { Service } from '@domain/entities/service.entity';
 import { Tenant } from '@domain/entities/tenant.entity';
 import { User } from '@domain/entities/user.entity';
 import { UserRole } from '@domain/entities/user-role.enum';
+import { WhatsappInstance } from '@domain/entities/whatsapp-instance.entity';
+import { Conversation } from '@domain/entities/conversation.entity';
+import { Message } from '@domain/entities/message.entity';
+import {
+  ConversationStatus,
+  MessageDirection,
+  MessageStatus,
+  MessageType,
+  WhatsappInstanceStatus,
+} from '@domain/entities/whatsapp-enums';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
-import { DataSource } from 'typeorm';
+import { Between, DataSource } from 'typeorm';
 import { getDatabaseConfig } from '../config/database.config';
 import { resetDatabaseSchema } from './db-reset.util';
-import {
-  defaultTenantSettings,
-} from '../domain/services/tenant-settings.util';
+import { defaultTenantSettings } from '../domain/services/tenant-settings.util';
 import {
   resolvePayoutDays,
   isCommissionOverdue,
@@ -63,11 +68,14 @@ async function seed() {
   const scheduledServiceRepository = dataSource.getRepository(ScheduledService);
   const commissionRepository = dataSource.getRepository(Commission);
   const expenseRepository = dataSource.getRepository(Expense);
+  const whatsappInstanceRepository = dataSource.getRepository(WhatsappInstance);
+  const conversationRepository = dataSource.getRepository(Conversation);
+  const messageRepository = dataSource.getRepository(Message);
 
   // Limpa dados existentes (CASCADE para respeitar FKs no PostgreSQL)
   console.log('🧹 Limpando dados existentes...');
   await dataSource.query(
-    'TRUNCATE TABLE refresh_tokens, users, tenants, commissions, scheduled_services, appointments, collaborator_services, collaborators, services, clients, expenses RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE refresh_tokens, users, tenants, commissions, scheduled_services, appointments, collaborator_services, collaborators, services, clients, expenses, whatsapp_messages, whatsapp_conversations, whatsapp_instances RESTART IDENTITY CASCADE',
   );
   console.log('✅ Dados limpos\n');
 
@@ -632,8 +640,7 @@ async function seed() {
       (item) => item.id === scheduledService.serviceId,
     );
     const percentage = Number(service?.commissionPercentage ?? 0);
-    commission.amount =
-      (Number(scheduledService.price) * percentage) / 100;
+    commission.amount = (Number(scheduledService.price) * percentage) / 100;
     commission.percentage = percentage;
     commission.paid = paid;
     return await commissionRepository.save(commission);
@@ -644,6 +651,7 @@ async function seed() {
     appointmentData: {
       clientName: string;
       clientPhone: string;
+      clientId?: string;
       date: Date;
       startTime: string; // HH:MM
       endTime: string; // HH:MM
@@ -661,6 +669,7 @@ async function seed() {
     appointment.id = generateId();
     appointment.tenantId = DEMO_TENANT_ID;
     appointment.clientName = appointmentData.clientName;
+    appointment.clientId = appointmentData.clientId ?? null;
     appointment.clientPhone = appointmentData.clientPhone;
     appointment.date = appointmentData.date;
     appointment.startTime = appointmentData.startTime;
@@ -704,7 +713,7 @@ async function seed() {
             PAYOUT_DAYS,
             today,
           );
-          const paid = overdue ? true : servico.paid ?? false;
+          const paid = overdue ? true : (servico.paid ?? false);
           await createCommission(savedScheduledService, collaborator, paid);
         }
       }
@@ -735,7 +744,14 @@ async function seed() {
     .filter((s): s is NonNullable<typeof s> => Boolean(s))
     .map((s) => s.id);
 
-  const historyCollaboratorIds = [maria, ana, juliana, fernanda, camila, larissa]
+  const historyCollaboratorIds = [
+    maria,
+    ana,
+    juliana,
+    fernanda,
+    camila,
+    larissa,
+  ]
     .filter((c): c is NonNullable<typeof c> => Boolean(c))
     .map((c) => c.id);
 
@@ -788,7 +804,9 @@ async function seed() {
       const servicesForAppointment = Array.from({ length: serviceCount }).map(
         (_, j) => ({
           serviceId:
-            historyServiceIds[(i + j * 5 + monthsAgo) % historyServiceIds.length],
+            historyServiceIds[
+              (i + j * 5 + monthsAgo) % historyServiceIds.length
+            ],
           collaboratorId,
           status: ScheduledServiceStatus.COMPLETED,
           // Meses mais antigos quase todos pagos; recentes com parte pendente.
@@ -890,11 +908,36 @@ async function seed() {
 
   // Despesas fixas (recorrentes)
   const recurringExpenses = [
-    { description: 'Aluguel', category: ExpenseCategory.RENT, amount: 2500, dayOfMonth: 5 },
-    { description: 'Internet', category: ExpenseCategory.UTILITIES, amount: 150, dayOfMonth: 10 },
-    { description: 'Energia elétrica', category: ExpenseCategory.UTILITIES, amount: 480, dayOfMonth: 15 },
-    { description: 'Água', category: ExpenseCategory.UTILITIES, amount: 120, dayOfMonth: 15 },
-    { description: 'Salário recepcionista', category: ExpenseCategory.SALARIES, amount: 1800, dayOfMonth: 5 },
+    {
+      description: 'Aluguel',
+      category: ExpenseCategory.RENT,
+      amount: 2500,
+      dayOfMonth: 5,
+    },
+    {
+      description: 'Internet',
+      category: ExpenseCategory.UTILITIES,
+      amount: 150,
+      dayOfMonth: 10,
+    },
+    {
+      description: 'Energia elétrica',
+      category: ExpenseCategory.UTILITIES,
+      amount: 480,
+      dayOfMonth: 15,
+    },
+    {
+      description: 'Água',
+      category: ExpenseCategory.UTILITIES,
+      amount: 120,
+      dayOfMonth: 15,
+    },
+    {
+      description: 'Salário recepcionista',
+      category: ExpenseCategory.SALARIES,
+      amount: 1800,
+      dayOfMonth: 5,
+    },
   ];
 
   for (const exp of recurringExpenses) {
@@ -914,12 +957,48 @@ async function seed() {
 
   // Despesas esporádicas espalhadas pelos últimos meses
   const oneTimeExpenses = [
-    { description: 'Compra de produtos', category: ExpenseCategory.SUPPLIES, amount: 620, monthsAgo: 5, day: 12 },
-    { description: 'Reparo de secador', category: ExpenseCategory.OTHER, amount: 180, monthsAgo: 4, day: 20 },
-    { description: 'Campanha Instagram', category: ExpenseCategory.MARKETING, amount: 300, monthsAgo: 3, day: 8 },
-    { description: 'Reposição de esmaltes', category: ExpenseCategory.SUPPLIES, amount: 240, monthsAgo: 2, day: 18 },
-    { description: 'Impostos (DAS)', category: ExpenseCategory.TAXES, amount: 410, monthsAgo: 1, day: 20 },
-    { description: 'Compra de toalhas', category: ExpenseCategory.SUPPLIES, amount: 160, monthsAgo: 0, day: 3 },
+    {
+      description: 'Compra de produtos',
+      category: ExpenseCategory.SUPPLIES,
+      amount: 620,
+      monthsAgo: 5,
+      day: 12,
+    },
+    {
+      description: 'Reparo de secador',
+      category: ExpenseCategory.OTHER,
+      amount: 180,
+      monthsAgo: 4,
+      day: 20,
+    },
+    {
+      description: 'Campanha Instagram',
+      category: ExpenseCategory.MARKETING,
+      amount: 300,
+      monthsAgo: 3,
+      day: 8,
+    },
+    {
+      description: 'Reposição de esmaltes',
+      category: ExpenseCategory.SUPPLIES,
+      amount: 240,
+      monthsAgo: 2,
+      day: 18,
+    },
+    {
+      description: 'Impostos (DAS)',
+      category: ExpenseCategory.TAXES,
+      amount: 410,
+      monthsAgo: 1,
+      day: 20,
+    },
+    {
+      description: 'Compra de toalhas',
+      category: ExpenseCategory.SUPPLIES,
+      amount: 160,
+      monthsAgo: 0,
+      day: 3,
+    },
   ];
 
   for (const exp of oneTimeExpenses) {
@@ -1055,6 +1134,28 @@ async function seed() {
       },
     ],
   );
+
+  // Vincula os agendamentos de hoje aos clientes cadastrados (quando o nome
+  // casa) e normaliza o telefone com DDI, para o disparo de confirmação por
+  // WhatsApp funcionar a partir da lista de "Agendamentos de hoje".
+  const dayStart = new Date(todayDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(todayDate);
+  dayEnd.setHours(23, 59, 59, 999);
+  const todayAppointments = await appointmentRepository.find({
+    where: { tenantId: DEMO_TENANT_ID, date: Between(dayStart, dayEnd) },
+  });
+  for (const appt of todayAppointments) {
+    const client = savedClients.find((c) => c.name === appt.clientName);
+    if (client) {
+      appt.clientId = client.id;
+      // phoneNormalized do cliente são dígitos BR (DDD+numero); prefixa DDI 55.
+      const digits = client.phoneNormalized.replace(/\D/g, '');
+      appt.clientPhone = digits.startsWith('55') ? digits : `55${digits}`;
+      await appointmentRepository.save(appt);
+    }
+  }
+  console.log('✅ Agendamentos de hoje vinculados aos clientes\n');
 
   // ========== AGENDAMENTOS DE ONTEM (CONCLUÍDOS) ==========
   console.log('📅 Criando agendamentos de ontem (concluídos)...');
@@ -1493,6 +1594,118 @@ async function seed() {
   }
 
   console.log('✅ Agendamentos criados\n');
+
+  // ===========================================================================
+  // WhatsApp — inbox de atendimento (dados fake para testar sem WhatsApp real)
+  // ===========================================================================
+  console.log('💬 Criando conversas de WhatsApp (fake)...');
+
+  await whatsappInstanceRepository.save({
+    tenantId: DEMO_TENANT_ID,
+    instanceName: `beauty-${DEMO_TENANT_ID}`,
+    phoneNormalized: '5511999990000',
+    status: WhatsappInstanceStatus.CONNECTED,
+  });
+
+  const now = Date.now();
+  const minsAgo = (m: number) => new Date(now - m * 60_000);
+
+  // Duas conversas vinculadas a clientes do seed e uma de contato novo (lead).
+  const waClientA = savedClients[0];
+  const waClientB = savedClients[1];
+
+  const convClientA = await conversationRepository.save({
+    tenantId: DEMO_TENANT_ID,
+    waChatId: `${waClientA.phoneNormalized}@s.whatsapp.net`,
+    phoneNormalized: waClientA.phoneNormalized,
+    contactName: waClientA.name,
+    clientId: waClientA.id,
+    status: ConversationStatus.OPEN,
+    lastMessagePreview: 'Perfeito, muito obrigada! 💖',
+    lastMessageAt: minsAgo(8),
+    unreadCount: 0,
+  });
+
+  const convClientB = await conversationRepository.save({
+    tenantId: DEMO_TENANT_ID,
+    waChatId: `${waClientB.phoneNormalized}@s.whatsapp.net`,
+    phoneNormalized: waClientB.phoneNormalized,
+    contactName: waClientB.name,
+    clientId: waClientB.id,
+    status: ConversationStatus.OPEN,
+    lastMessagePreview: 'Quais horários vocês têm amanhã?',
+    lastMessageAt: minsAgo(40),
+    unreadCount: 2,
+  });
+
+  const leadPhone = '5511977776666';
+  const convLead = await conversationRepository.save({
+    tenantId: DEMO_TENANT_ID,
+    waChatId: `${leadPhone}@s.whatsapp.net`,
+    phoneNormalized: leadPhone,
+    contactName: 'Camila (Instagram)',
+    clientId: null,
+    status: ConversationStatus.OPEN,
+    lastMessagePreview: 'Oi! Vi vocês no Instagram, fazem alongamento?',
+    lastMessageAt: minsAgo(15),
+    unreadCount: 1,
+  });
+
+  const inbound = (
+    conversationId: string,
+    content: string,
+    minutes: number,
+  ) => ({
+    tenantId: DEMO_TENANT_ID,
+    conversationId,
+    waMessageId: randomUUID(),
+    direction: MessageDirection.INBOUND,
+    type: MessageType.TEXT,
+    content,
+    status: MessageStatus.DELIVERED,
+    timestamp: minsAgo(minutes),
+  });
+  const outbound = (
+    conversationId: string,
+    content: string,
+    minutes: number,
+  ) => ({
+    tenantId: DEMO_TENANT_ID,
+    conversationId,
+    waMessageId: randomUUID(),
+    direction: MessageDirection.OUTBOUND,
+    type: MessageType.TEXT,
+    content,
+    status: MessageStatus.SENT,
+    timestamp: minsAgo(minutes),
+  });
+
+  await messageRepository.save([
+    // Conversa A — cliente, atendimento concluído
+    inbound(
+      convClientA.id,
+      'Oi, boa tarde! Gostaria de agendar uma manicure.',
+      60,
+    ),
+    outbound(
+      convClientA.id,
+      'Oi! Claro 😊 Temos amanhã às 14h ou 16h, qual prefere?',
+      55,
+    ),
+    inbound(convClientA.id, 'Pode ser 14h!', 50),
+    outbound(convClientA.id, 'Agendado para amanhã às 14h. Te espero! 💅', 48),
+    inbound(convClientA.id, 'Perfeito, muito obrigada! 💖', 8),
+
+    // Conversa B — cliente, aguardando resposta (2 não lidas)
+    outbound(convClientB.id, 'Oi! Tudo bem? Como posso ajudar?', 90),
+    inbound(convClientB.id, 'Oi! Queria fazer escova e hidratação', 45),
+    inbound(convClientB.id, 'Quais horários vocês têm amanhã?', 40),
+
+    // Conversa C — lead (contato novo, não cadastrado)
+    inbound(convLead.id, 'Oi! Vi vocês no Instagram, fazem alongamento?', 15),
+  ]);
+
+  console.log('✅ 3 conversas e mensagens de WhatsApp criadas\n');
 
   // Estatísticas finais
   const totalCommissions = await commissionRepository.count();

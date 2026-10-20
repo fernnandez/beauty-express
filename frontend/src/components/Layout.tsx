@@ -2,6 +2,7 @@ import {
   Anchor,
   AppShell,
   Avatar,
+  Badge,
   Box,
   Center,
   Drawer,
@@ -14,6 +15,7 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconBook2,
+  IconBrandWhatsapp,
   IconCalendar,
   IconChartBar,
   IconDotsCircleHorizontal,
@@ -28,6 +30,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useOperationalBranding } from "../hooks/useOperationalBranding";
+import { useWhatsappUnreadCount } from "../hooks/useWhatsapp";
 import {
   DEV_BANNER_HEIGHT,
   DevEnvironmentBanner,
@@ -43,6 +46,7 @@ const navigationItems = [
   { icon: IconUserCircle, label: "Clientes", path: "/clients" },
   { icon: IconScissors, label: "Serviços", path: "/services" },
   { icon: IconCalendar, label: "Agendamentos", path: "/appointments" },
+  { icon: IconBrandWhatsapp, label: "Atendimento", path: "/whatsapp" },
   { icon: IconChartBar, label: "Relatórios", path: "/financial-reports" },
   { icon: IconReceipt2, label: "Despesas", path: "/expenses" },
   { icon: IconSettings, label: "Configurações", path: "/settings" },
@@ -56,6 +60,8 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { branding } = useOperationalBranding();
+  const { data: unread } = useWhatsappUnreadCount();
+  const unreadCount = unread?.count ?? 0;
 
   const visibleNavigationItems = navigationItems;
 
@@ -227,6 +233,21 @@ export function Layout({ children }: LayoutProps) {
                       />
                     )}
                     <Icon size={22} stroke={isActive ? 2 : 1.6} />
+                    {item.path === "/whatsapp" && unreadCount > 0 && (
+                      <Badge
+                        size="xs"
+                        circle
+                        color="red"
+                        style={{
+                          position: "absolute",
+                          top: 4,
+                          right: 10,
+                          pointerEvents: "none",
+                        }}
+                      >
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </Badge>
+                    )}
                   </UnstyledButton>
                 </Tooltip>
               );
@@ -330,6 +351,7 @@ export function Layout({ children }: LayoutProps) {
         items={visibleNavigationItems}
         activePath={location.pathname}
         primaryColor={branding.primaryColor}
+        unreadCount={unreadCount}
         onNavigate={navigate}
         onLogout={handleLogout}
       />
@@ -341,6 +363,7 @@ interface MobileBottomNavProps {
   items: { icon: typeof IconHome; label: string; path: string }[];
   activePath: string;
   primaryColor: string;
+  unreadCount: number;
   onNavigate: (path: string) => void;
   onLogout: () => void;
 }
@@ -349,7 +372,7 @@ interface MobileBottomNavProps {
 const PRIMARY_MOBILE_PATHS = [
   "/",
   "/appointments",
-  "/collaborators",
+  "/whatsapp",
   "/financial-reports",
 ];
 
@@ -357,6 +380,7 @@ function MobileBottomNav({
   items,
   activePath,
   primaryColor,
+  unreadCount,
   onNavigate,
   onLogout,
 }: MobileBottomNavProps) {
@@ -412,7 +436,24 @@ function MobileBottomNav({
               aria-label={item.label}
               style={tabStyle(isActive)}
             >
-              <Icon size={22} stroke={isActive ? 2 : 1.6} />
+              <div style={{ position: "relative" }}>
+                <Icon size={22} stroke={isActive ? 2 : 1.6} />
+                {item.path === "/whatsapp" && unreadCount > 0 && (
+                  <Badge
+                    size="xs"
+                    circle
+                    color="red"
+                    style={{
+                      position: "absolute",
+                      top: -6,
+                      right: -8,
+                      pointerEvents: "none",
+                    }}
+                  >
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </Badge>
+                )}
+              </div>
               <Text fz={10} fw={isActive ? 600 : 400} lh={1}>
                 {item.label}
               </Text>

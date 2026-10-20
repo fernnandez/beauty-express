@@ -10,6 +10,9 @@ import { User } from '@domain/entities/user.entity';
 import { AdminAuditLog } from '@domain/entities/admin-audit-log.entity';
 import { RefreshToken } from '@domain/entities/refresh-token.entity';
 import { Expense } from '@domain/entities/expense.entity';
+import { WhatsappInstance } from '@domain/entities/whatsapp-instance.entity';
+import { Conversation } from '@domain/entities/conversation.entity';
+import { Message } from '@domain/entities/message.entity';
 import { DataSourceOptions } from 'typeorm';
 
 export const entities = [
@@ -24,6 +27,9 @@ export const entities = [
   Commission,
   ScheduledService,
   Expense,
+  WhatsappInstance,
+  Conversation,
+  Message,
 ];
 
 const isProduction = process.env.NODE_ENV === 'production';

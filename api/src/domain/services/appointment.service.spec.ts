@@ -153,7 +153,7 @@ describe('AppointmentService', () => {
       scheduledServices: [
         {
           id: 'scheduled-1',
-        tenantId: TENANT_ID_MOCK,
+          tenantId: TENANT_ID_MOCK,
           appointmentId: savedAppointment.id,
           serviceId: 'service-1',
           price: 50.0,
@@ -165,7 +165,7 @@ describe('AppointmentService', () => {
     it('should create appointment with valid data', async () => {
       mockAppointmentRepository.save.mockResolvedValue(savedAppointment);
       mockScheduledServiceService.createScheduledService.mockResolvedValue(
-        appointmentWithServices.scheduledServices[0],
+        appointmentWithServices.scheduledServices![0],
       );
       mockAppointmentRepository.findById.mockResolvedValue(
         appointmentWithServices,
@@ -190,7 +190,7 @@ describe('AppointmentService', () => {
     });
 
     it('should throw error when no services provided', async () => {
-      const invalidDto = { ...createDto, servicos: [] };
+      const invalidDto: CreateAppointmentDto = { ...createDto, servicos: [] };
 
       await expect(service.createAppointment(invalidDto)).rejects.toThrow(
         'Appointment must have at least one service',
@@ -283,7 +283,7 @@ describe('AppointmentService', () => {
 
       const scheduledService: ScheduledService = {
         id: 'scheduled-1',
-      tenantId: TENANT_ID_MOCK,
+        tenantId: TENANT_ID_MOCK,
         appointmentId: pastSavedAppointment.id,
         serviceId: 'service-1',
         collaboratorId: 'collab-1',
@@ -350,7 +350,7 @@ describe('AppointmentService', () => {
       mockAppointmentRepository.save.mockResolvedValue(savedAppointment);
       mockServiceRepository.findById.mockResolvedValue(mockService);
       mockScheduledServiceService.createScheduledService.mockResolvedValue({
-        ...appointmentWithServices.scheduledServices[0],
+        ...appointmentWithServices.scheduledServices![0],
         price: 70.0,
       });
       mockAppointmentRepository.findById.mockResolvedValue(
@@ -381,7 +381,7 @@ describe('AppointmentService', () => {
       mockAppointmentRepository.save.mockResolvedValue(savedAppointment);
       mockServiceRepository.findById.mockResolvedValue(mockService);
       mockScheduledServiceService.createScheduledService.mockResolvedValue(
-        appointmentWithServices.scheduledServices[0],
+        appointmentWithServices.scheduledServices![0],
       );
       mockAppointmentRepository.findById.mockResolvedValue(
         appointmentWithServices,
@@ -406,7 +406,7 @@ describe('AppointmentService', () => {
       mockAppointmentRepository.save.mockResolvedValue(savedAppointment);
       mockServiceRepository.findById.mockResolvedValue(mockService);
       mockScheduledServiceService.createScheduledService.mockResolvedValue(
-        appointmentWithServices.scheduledServices[0],
+        appointmentWithServices.scheduledServices![0],
       );
       mockAppointmentRepository.findById.mockResolvedValue(
         appointmentWithServices,
@@ -428,7 +428,7 @@ describe('AppointmentService', () => {
       mockAppointmentRepository.save.mockResolvedValue(savedAppointment);
       mockServiceRepository.findById.mockResolvedValue(mockService);
       mockScheduledServiceService.createScheduledService.mockResolvedValue(
-        appointmentWithServices.scheduledServices[0],
+        appointmentWithServices.scheduledServices![0],
       );
       mockAppointmentRepository.findById.mockResolvedValue(
         appointmentWithServices,
@@ -500,7 +500,10 @@ describe('AppointmentService', () => {
           services: {},
         },
       });
-      expect(mockAppointmentRepository.findById).toHaveBeenCalledWith(mockAppointment.id, TENANT_ID_MOCK);
+      expect(mockAppointmentRepository.findById).toHaveBeenCalledWith(
+        mockAppointment.id,
+        TENANT_ID_MOCK,
+      );
     });
 
     it('should return null when appointment not found', async () => {
@@ -686,7 +689,7 @@ describe('AppointmentService', () => {
         } as ScheduledService,
         {
           id: 'scheduled-2',
-        tenantId: TENANT_ID_MOCK,
+          tenantId: TENANT_ID_MOCK,
           appointmentId: 'appointment-1',
           serviceId: 'service-2',
           collaboratorId: 'collaborator-2',
@@ -785,7 +788,9 @@ describe('AppointmentService', () => {
         status: AppointmentStatus.COMPLETED,
       };
 
-      mockAppointmentRepository.findById.mockResolvedValue(completedAppointment);
+      mockAppointmentRepository.findById.mockResolvedValue(
+        completedAppointment,
+      );
 
       await expect(
         service.cancelAppointment(mockAppointment.id),
@@ -866,7 +871,9 @@ describe('AppointmentService', () => {
         status: AppointmentStatus.SCHEDULED,
       };
 
-      mockAppointmentRepository.findById.mockResolvedValue(scheduledAppointment);
+      mockAppointmentRepository.findById.mockResolvedValue(
+        scheduledAppointment,
+      );
 
       await expect(
         service.reopenAppointment(mockAppointment.id),
@@ -879,7 +886,9 @@ describe('AppointmentService', () => {
         status: AppointmentStatus.COMPLETED,
       };
 
-      mockAppointmentRepository.findById.mockResolvedValue(completedAppointment);
+      mockAppointmentRepository.findById.mockResolvedValue(
+        completedAppointment,
+      );
       mockScheduledServiceRepository.findByAppointmentId.mockResolvedValue([
         {
           ...mockScheduledServices[0],

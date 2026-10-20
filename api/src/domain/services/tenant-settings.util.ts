@@ -1,6 +1,5 @@
-import {
-  TenantBranding,
-} from '../types/branding.types';
+import { randomUUID } from 'crypto';
+import { TenantBranding } from '../types/branding.types';
 import {
   TenantFeatureSettings,
   TenantSettings,
@@ -69,10 +68,31 @@ export function normalizeTenantSettings(
     features.commissionPayoutDays = normalizePayoutDays(payoutOverride);
   }
 
+  // Respostas rápidas: sanea e limita (título/mensagem obrigatórios).
+  const rawReplies = defaults.features.quickReplies;
+  if (Array.isArray(rawReplies)) {
+    features.quickReplies = rawReplies
+      .filter((r) => r && r.title?.trim() && r.message?.trim())
+      .slice(0, 50)
+      .map((r) => ({
+        id: r.id || randomUUID(),
+        title: r.title.trim().slice(0, 60),
+        message: r.message.trim().slice(0, 2000),
+      }));
+  }
+
+  // Catálogo de preços configurável.
+  const rawPriceList = defaults.features.priceList;
+  if (rawPriceList) {
+    features.priceList = {
+      enabled: rawPriceList.enabled === true,
+      message: (rawPriceList.message ?? '').slice(0, 4000),
+    };
+  }
+
   return {
     branding: {
-      displayName:
-        defaults.branding.displayName?.trim() || fallbackDisplayName,
+      displayName: defaults.branding.displayName?.trim() || fallbackDisplayName,
       logoUrl: defaults.branding.logoUrl ?? null,
       faviconUrl: defaults.branding.faviconUrl ?? null,
       primaryColor: defaults.branding.primaryColor || DEFAULT_PRIMARY_COLOR,

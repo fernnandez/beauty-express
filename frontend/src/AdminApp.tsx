@@ -10,6 +10,7 @@ import { Expenses } from "./pages/Expenses";
 import { FinancialReports } from "./pages/FinancialReports";
 import { Services } from "./pages/Services";
 import { Settings } from "./pages/Settings";
+import { Whatsapp } from "./pages/Whatsapp";
 import { ManualIndex } from "./pages/manual/ManualIndex";
 import { ManualArticle } from "./pages/manual/ManualArticle";
 
@@ -25,6 +26,7 @@ export function AdminApp() {
           <Route path="/clients" element={<Clients />} />
           <Route path="/services" element={<Services />} />
           <Route path="/appointments" element={<Appointments />} />
+          <Route path="/whatsapp" element={<Whatsapp />} />
           <Route path="/financial-reports" element={<FinancialReports />} />
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/settings" element={<Settings />} />

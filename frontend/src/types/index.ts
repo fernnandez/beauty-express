@@ -255,3 +255,73 @@ export interface UpdateExpenseDto {
   endDate?: string | null;
   isActive?: boolean;
 }
+
+// ===== WhatsApp (atendimento) =====
+export type WhatsappInstanceStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected";
+
+export interface WhatsappInstanceState {
+  status: WhatsappInstanceStatus;
+  phoneNormalized?: string | null;
+}
+
+export interface WhatsappQr {
+  base64?: string;
+  code?: string;
+}
+
+export type MessageDirection = "inbound" | "outbound";
+
+export type MessageType =
+  | "text"
+  | "image"
+  | "audio"
+  | "video"
+  | "document"
+  | "sticker"
+  | "location"
+  | "contact"
+  | "unknown";
+
+export type MessageStatus =
+  | "pending"
+  | "sent"
+  | "delivered"
+  | "read"
+  | "failed";
+
+export type ConversationStatus = "open" | "closed";
+
+export type ConversationCategory = "scheduled" | "client" | "lead";
+
+export interface Conversation {
+  id: string;
+  waChatId: string;
+  phoneNormalized: string;
+  contactName?: string | null;
+  clientId?: string | null;
+  status: ConversationStatus;
+  category?: ConversationCategory;
+  lastMessagePreview?: string | null;
+  lastMessageAt?: string | null;
+  unreadCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WhatsappMessage {
+  id: string;
+  conversationId: string;
+  waMessageId?: string | null;
+  direction: MessageDirection;
+  type: MessageType;
+  content?: string | null;
+  mediaUrl?: string | null;
+  reaction?: string | null;
+  status: MessageStatus;
+  sentByUserId?: string | null;
+  timestamp: string;
+  createdAt: string;
+}

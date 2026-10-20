@@ -35,7 +35,7 @@ describe('AuthService', () => {
     email: 'owner@beautyexpress.com',
     passwordHash: '',
     role: UserRole.SUPER_ADMIN,
-    tenantId: null,
+    tenantId: null as string | null,
     isActive: true,
     createdAt: new Date(),
   };

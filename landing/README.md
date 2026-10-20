@@ -23,8 +23,8 @@ npm run preview
 
 Tudo que muda quando o branding final sair está centralizado:
 
-- `src/branding.ts` — nome do produto, número de WhatsApp (placeholder), mensagem, cliente âncora.
-- `src/theme.ts` — paleta de cores Mantine (rosa provisório).
+- `src/branding.ts` — nome do produto (`Ageendoo`), número/mensagem de WhatsApp, cliente âncora, cor primária.
+- `src/theme.ts` — paleta de cores Mantine (rosa `#bc5675`).
 
 Trocar os valores nesses dois arquivos propaga para todas as seções.
 
@@ -32,16 +32,28 @@ Trocar os valores nesses dois arquivos propaga para todas as seções.
 
 ```
 src/
-  branding.ts        # tokens de conteúdo/CTA
+  branding.ts        # tokens de conteúdo/CTA (whatsappLink, productName…)
   theme.ts           # tema Mantine
-  App.tsx            # compõe as seções
+  App.tsx            # compõe as seções na ordem
+  components/        # Logo, PhoneFrame, BrowserFrame
   sections/
     Navbar.tsx
     Hero.tsx
-    ProblemSolution.tsx
-    Features.tsx     # funcionalidades atuais do sistema
-    Roadmap.tsx      # perfil do profissional, WhatsApp (em breve)
-    Franchises.tsx   # multi-filial / franquias
+    Features.tsx     # funcionalidades reais do sistema
+    Demo.tsx         # prints do app em browser frame
+    MobileApp.tsx    # app no celular (PWA)
+    ClientProof.tsx  # prova social
+    FromNotebook.tsx # do caderno para o sistema
+    Roadmap.tsx      # próximos passos (WhatsApp, lembretes, etc.)
+    Results.tsx
     CTA.tsx
     Footer.tsx
 ```
+
+## Prints
+
+Imagens de demonstração ficam em `public/demo/` e `public/demo-mobile/`. O script `scripts/capture.mjs` captura telas reais do app (requer o app rodando) — pode precisar de ajuste conforme as rotas/login atuais.
+
+## Deploy
+
+Build estático servido separadamente (ex.: Vercel). Tem `vercel.json` próprio.

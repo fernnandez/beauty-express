@@ -1,4 +1,6 @@
-# PROJECT.md — Beauty Express / Maria Borboleta
+# PROJECT.md — Ageendoo
+
+> **Nomenclatura:** o produto se chama **Ageendoo**. Nomes técnicos permanecem como estão: o repositório ainda é `beauty-express`, os pacotes npm (`beauty-express-api`) e o serviço/URL da API no Railway (`beauty-express-production-43cf.up.railway.app`) não mudaram. "Maria Borboleta" passa a ser apenas um dos tenants (clientes) do produto.
 
 Documento de contexto para continuidade de desenvolvimento. Leia isto antes de qualquer tarefa nova.
 
@@ -6,26 +8,31 @@ Documento de contexto para continuidade de desenvolvimento. Leia isto antes de q
 
 ## 1. O que é o projeto
 
-Sistema de gestão para **esmalterias Maria Borboleta** (multi-filial). Monorepo com API REST e frontend SPA independentes.
+**Ageendoo** — SaaS multi-tenant de gestão para salões/esmalterias/barbearias. Monorepo com API REST e frontend SPA independentes.
 
 | Camada | Stack |
 |--------|-------|
-| **API** | NestJS 11, TypeORM 0.3, PostgreSQL 16, JWT, Swagger, Jest |
-| **Frontend** | React 19, Vite 7, Mantine 8, TanStack Query, Axios, React Router 7 |
+| **API** | NestJS 11, TypeORM 0.3, PostgreSQL 16, JWT, Swagger, Jest, WebSocket (socket.io) |
+| **Frontend** | React 19, Vite 7 (PWA), Mantine 8, TanStack Query, Axios, React Router 7, socket.io-client |
 | **Local** | Docker Compose (`api/docker-compose.yml`) para Postgres |
 | **Produção** | API no **Railway**, frontend na **Vercel** |
 
+> Além de `api/` e `frontend/`, o monorepo tem `landing/` (site de divulgação, React/Vite).
+
 ### Funcionalidades de negócio
 
-- Colaboradores (comissão %, serviços associados, ativo/inativo)
-- Catálogo de serviços (preço padrão, descrição)
+- Colaboradores (serviços associados, ativo/inativo; podem ter login próprio — role `collaborator`)
+- Catálogo de serviços (preço padrão, **percentual de comissão por serviço**, descrição)
 - Agendamentos (múltiplos serviços, status, registro retroativo)
-- Comissões automáticas ao concluir serviços
-- Relatórios financeiros mensais (receita, comissões, líquido)
+- Comissões automáticas ao concluir serviços, com regime de período (quinzenal/mensal) e alertas de atraso
+- Despesas (fixas/recorrentes e esporádicas, por categoria)
+- Relatórios financeiros (receita, comissões, despesas e **lucro líquido**)
+- Central de ajuda/manual embutida no app
+- Atendimento via WhatsApp (**em desenvolvimento — ver seção 14; apenas na branch `feat/whatsapp`, ainda não em produção**)
 
 ---
 
-## 2. Produção atual (Jun/2026)
+## 2. Produção atual (Out/2026)
 
 | Serviço | URL / provedor |
 |---------|----------------|
@@ -34,6 +41,8 @@ Sistema de gestão para **esmalterias Maria Borboleta** (multi-filial). Monorepo
 | Backoffice | `https://mariaborboleta.fernnandez.com/backoffice/login` |
 | API | `https://beauty-express-production-43cf.up.railway.app` (Railway) |
 | Banco | PostgreSQL no mesmo projeto Railway |
+
+Tenants em produção: um tenant de testes **"Ageendoo"** e o tenant real **"Maria Borboleta - Aurora Paulista"**. (Senhas de produção não ficam documentadas.)
 
 ### Variáveis críticas em produção
 
@@ -86,8 +95,12 @@ Dois “produtos” no mesmo frontend:
 
 | App | Rota | Quem usa |
 |-----|------|----------|
-| **Operacional** | `/login`, `/`, `/appointments`, … | admin/manager/staff de **uma filial** |
+| **Operacional** | `/login`, `/`, `/appointments`, … | `admin` ou `collaborator` de **um tenant** |
 | **Backoffice** | `/backoffice/login`, `/backoffice/*` | **super_admin** apenas |
+
+No app operacional, `OperationalEntry` escolhe a experiência pelo papel:
+- `admin` → app de gestão completo (`AdminApp`)
+- `collaborator` → visão mobile enxuta (`CollaboratorApp`: própria agenda + comissões)
 
 Sessões **isoladas** no frontend:
 - Operacional: `authStorage` (`beauty_express_*` no localStorage)
@@ -100,15 +113,16 @@ Sessões **isoladas** no frontend:
 ### Multi-tenant
 
 - **Estratégia:** banco único + coluna `tenantId` em entidades de negócio
-- **Tenant** = filial (slug único: `paulista`, `recife`, `boaviagem`)
+- **Tenant** = cliente/estabelecimento (slug único: `paulista`, `recife`, `boaviagem`, `barbearia-lucas`, …)
 - Isolamento via `TenantContextService` (scope REQUEST) + repositórios que filtram por `tenantId`
 - **Super admin** tem `tenantId = null` e **não** acessa rotas operacionais (`TenantGuard` bloqueia)
+- Customização por tenant (branding, regras de período/comissão, respostas rápidas) vive em `tenants.settings` (jsonb). **O conceito de "portal" foi removido** (migration `1783000000000-RemovePortals` dropou a tabela `portals` e a coluna `tenants.portalId`): a aplicação é única (Ageendoo) e a personalização acontece só após o login.
 
 ### Autenticação
 
 - JWT access (15m) + refresh token (7d), armazenados em `refresh_tokens` (hash SHA-256)
 - Dois audiences: `operational` e `admin` (refresh tokens separados)
-- Login operacional: e-mail + senha → resolve filial pelo `tenantId` do usuário (**sem** seleção de filial no login)
+- Login operacional: e-mail + senha → resolve o tenant pelo `tenantId` do usuário (**sem** seleção de filial/portal no login)
 - Login backoffice: `POST /auth/admin/login` → só `super_admin`
 - Guards globais: `JwtAuthGuard`, `RolesGuard`, `TenantGuard`
 - Rotas públicas: decorator `@Public()`
@@ -118,9 +132,21 @@ Sessões **isoladas** no frontend:
 
 ### Usuários
 
-- **Não há campo `name`** — só `email`, `role`, `tenantId`, `isActive`
-- Roles: `super_admin`, `admin`, `manager`, `staff`
+- **Não há campo `name`** — só `email`, `role`, `tenantId`, `collaboratorId`, `isActive`
+- Roles: `super_admin`, `admin`, `collaborator` (`api/src/domain/entities/user-role.enum.ts`). Os antigos `manager`/`staff` foram consolidados em `admin`/`collaborator` pela migration `1784000000000-MigrateUserRoles`.
+- `collaboratorId` (migration `1785000000000-AddUserCollaboratorId`): vincula a conta de login a um registro de `collaborators`. Um usuário `collaborator` loga com a própria conta e vê apenas a própria agenda e comissões.
 - Unique: `(email, tenantId)` — super_admin usa `tenantId = null`
+
+### Comissões e regime de período
+
+- `commissionPercentage` por **serviço**; a comissão é gerada automaticamente ao concluir o `scheduled_service`
+- Regime de período em `tenants.settings.features`: `periodMode` (`'biweekly'` quinzenal — default — ou `'monthly'`) e `commissionPayoutDays` (override opcional dos dias de vencimento). Há alertas de comissão atrasada. Ver `api/src/domain/types/tenant-settings.types.ts` e `tenant-settings.util.ts`.
+- `financialReportsMode` (`'full'` | `'revenue_only'`) e `commissionsEnabled` também vivem em `settings.features`
+
+### Despesas e relatórios
+
+- Entidade `expenses` (tipos `one_time`/`recurring`, categorias em `expense-enums.ts`)
+- Relatório financeiro agrega **receita, comissões, despesas e lucro líquido** (`netAmount` = receita − comissões − despesas); endpoints `monthly`, `period`, `timeseries`, `top-services`
 
 ### Banco de dados
 
@@ -146,6 +172,7 @@ Sessões **isoladas** no frontend:
 - `resolveApiBaseUrl()` em `frontend/src/utils/api-url.util.ts` — prefixa `https://` se `VITE_API_URL` vier sem protocolo
 - `frontend/vercel.json` — rewrite SPA (`/(.*) → /index.html`) para rotas como `/backoffice/login`
 - Valores monetários: PostgreSQL `decimal` vem como **string** no JSON → usar `toMoney()` / `formatPrice()` / `sumMoney()` de `money.util.ts`
+- **PWA**: instalável via `vite-plugin-pwa` (`frontend/vite.config.ts`, `registerType: 'autoUpdate'`, manifest "Ageendoo"). Service worker gerado só no build; há prompt de instalação (`PwaInstallPrompt`).
 - Tema operacional: pink; backoffice: indigo + dark mode
 
 ### Deploy
@@ -162,16 +189,22 @@ Sessões **isoladas** no frontend:
 
 | Tabela | Escopo | Notas |
 |--------|--------|-------|
-| `tenants` | global | slug, name, isActive |
-| `users` | global | email, passwordHash, role, tenantId (null = super_admin) |
+| `tenants` | global | slug, name, isActive, `settings` (jsonb: branding + features) |
+| `users` | global | email, passwordHash, role, tenantId (null = super_admin), `collaboratorId` |
 | `refresh_tokens` | global | userId, tokenHash, audience, expiresAt |
 | `admin_audit_logs` | global | actorUserId, action, entityType, metadata (jsonb) |
-| `collaborators` | tenant | |
-| `services` | tenant | |
+| `collaborators` | tenant | name, phone, area, isActive (**sem** campo de comissão) |
+| `services` | tenant | defaultPrice, `commissionPercentage`, description |
 | `appointments` | tenant | status: agendado/concluido/cancelado |
 | `scheduled_services` | tenant | price decimal, status: pendente/concluido/cancelado |
 | `commissions` | tenant | unique em scheduledServiceId |
 | `collaborator_services` | join | M:N colaborador ↔ serviço |
+| `clients` | tenant | name, phone, phoneNormalized |
+| `expenses` | tenant | description, category, amount, type (one_time/recurring), date/dayOfMonth/startDate/endDate, isActive |
+
+As tabelas `whatsapp_instances`, `whatsapp_conversations` e `whatsapp_messages` existem apenas na branch `feat/whatsapp` — ver seção 14.
+
+> **Comissão por serviço:** o campo `commissionPercentage` vive em `services` (migration `1785000000000-MoveCommissionToService`). A antiga tabela `collaborator_commission_rates` e a coluna `scheduled_services.commissionRateId` foram removidas; colaboradores não têm mais campo de comissão.
 
 ### Criar super admin em produção (SQL)
 
@@ -207,9 +240,11 @@ config/
   jwt.config.ts
   throttle.config.ts
 scripts/
-  seed.ts          # 3 filiais + usuários demo + dados ricos
+  seed.ts          # tenants demo + usuários + dados ricos (reset global)
+  seed-tenant.ts   # seed LEVE escopado em um tenant (sem reset/synchronize/truncate global)
   reset-db.ts
   db-reset.util.ts
+  change-super-admin-password.ts
 migrations/
 bootstrap-paths.ts
 main.ts
@@ -218,12 +253,15 @@ main.ts
 ### Frontend (`frontend/src/`)
 
 ```
-pages/             # App operacional
+pages/             # App operacional (Dashboard, Appointments, Collaborators,
+                   #   Services, Clients, Expenses, FinancialReports, Settings,
+                   #   Whatsapp, manual/*)
+collaborator/      # CollaboratorApp — visão mobile do profissional (agenda + comissões)
 backoffice/
   pages/           # Dashboard, Tenants, Users, AdminLogin
   components/      # BackofficeLayout
   hooks/
-components/        # Modais, listas por domínio
+components/        # Modais, listas por domínio, PwaInstallPrompt, LoginThemeProvider
 contexts/          # AuthContext, AdminAuthContext
 config/
   api.ts           # Axios operacional + refresh interceptor
@@ -243,7 +281,9 @@ types/
 | Auth operacional | `POST /auth/login`, `/auth/refresh`, `/auth/logout`, `GET /auth/me` |
 | Auth admin | `POST /auth/admin/login`, `/auth/admin/refresh`, `/auth/admin/logout`, `GET /auth/admin/me` |
 | Admin | `GET/POST /admin/tenants`, `PATCH /admin/tenants/:id`, `GET/POST /admin/users`, `PATCH /admin/users/:id`, `GET /admin/dashboard/stats`, `GET /admin/audit-logs` |
-| Negócio | `/collaborators`, `/services`, `/appointments`, `/scheduled-services`, `/commissions`, `/financial-reports` |
+| Negócio | `/collaborators`, `/services`, `/appointments`, `/scheduled-services`, `/commissions`, `/clients`, `/expenses`, `/settings` |
+| Relatórios | `GET /financial-reports/monthly`, `/financial-reports/period`, `/financial-reports/timeseries`, `/financial-reports/top-services` |
+| WhatsApp (branch `feat/whatsapp`) | `/whatsapp/*` + webhook público `/webhooks/whatsapp` — ver seção 14 |
 
 Todos os endpoints de negócio exigem JWT operacional + `tenantId` no token.
 
@@ -274,17 +314,25 @@ cd frontend && npm install && cp .env.example .env && npm run dev
 
 ### Credenciais seed (só dev)
 
+O seed principal (`npm run seed`) reseta o schema e cria 4 tenants demo — `paulista` ("Espaço Bella"), `recife`, `boaviagem` e `barbearia-lucas` ("Barbearia Lucas") — com dados ricos.
+
 | Papel | E-mail | Senha |
 |-------|--------|-------|
 | Super admin | `owner@beautyexpress.com` | `SenhaAdmin123!` |
 | Admin Paulista | `admin@paulista.mariaborboleta.com` | `Senha123!` |
 | Admin Recife | `admin@recife.mariaborboleta.com` | `Senha123!` |
 | Admin Boa Viagem | `admin@boaviagem.mariaborboleta.com` | `Senha123!` |
+| Admin Barbearia | `admin@barbearia.fernnandez.com` | `Senha123!` |
+
+> Seed leve por tenant (`seed-tenant.ts`): não reseta schema nem faz truncate global, só repopula o tenant informado. Não há script npm dedicado; rode via ts-node:
+> ```bash
+> cd api && SEED_TENANT_ID=<uuid> npx ts-node -r tsconfig-paths/register src/scripts/seed-tenant.ts
+> ```
 
 ### Testes
 
 ```bash
-cd api && npm test   # ~171 testes
+cd api && npm test   # ~293 testes (24 arquivos .spec.ts)
 ```
 
 ---
@@ -306,6 +354,8 @@ npm run dev
 npm run build
 ```
 
+> WhatsApp (branch `feat/whatsapp`): `npm run evolution:up` / `evolution:down` / `evolution:logs` sobem a stack da Evolution API (via `api/docker-compose.evolution.yml`) — ver seção 14.
+
 ---
 
 ## 10. Armadilhas já encontradas (não repetir)
@@ -319,6 +369,7 @@ npm run build
 | `migration:run` no pre-deploy Railway | Script de dev (ts-node + src/) | Usar migrations automáticas no boot ou `migration:run:prod` |
 | Valores `NaN` no frontend | `decimal` da API como string | `money.util.ts` |
 | CORS bloqueado | `CORS_ORIGIN` vazio em produção | Definir URL exata do frontend |
+| Entidade nova sem migration | `DB_SYNCHRONIZE=true` em dev cria a tabela automaticamente e mascara a falta da migration (ex.: `expenses`) | Sempre gerar a migration (`migration:generate`) **antes** de ir para produção, onde `synchronize=false` |
 
 ---
 
@@ -327,10 +378,11 @@ npm run build
 Itens do plano (`docs/PLANO_AUTH_MULTI_TENANT.md`) ainda não implementados ou parciais:
 
 - [ ] Dashboard backoffice com métricas reais cross-filial (stats básicas existem)
-- [ ] Endpoints admin para ver dados de filial específica (`/admin/tenants/:id/appointments`, etc.)
-- [ ] Seed demo restrito à filial Paulista (hoje popula as 3)
+- [ ] Endpoints admin para ver dados de tenant específico (`/admin/tenants/:id/appointments`, etc.)
+- [x] Seed leve escopado por tenant (`seed-tenant.ts`) — feito
 - [ ] CI/CD (GitHub Actions)
-- [ ] `docs/MULTI_TENANT.md` desatualizado vs implementação real
+- [ ] `docs/MULTI_TENANT.md` e `docs/PLANO_AUTH_MULTI_TENANT.md` desatualizados vs implementação real (ex.: ainda citam `manager`/`staff` e portais)
+- [ ] Migration da tabela `expenses` existe (`1785500000000`); confirmar que roda em produção antes do próximo deploy
 
 ### Débitos técnicos / segurança
 
@@ -339,7 +391,7 @@ Itens do plano (`docs/PLANO_AUTH_MULTI_TENANT.md`) ainda não implementados ou p
 - [ ] `createScheduledService` não valida se `appointmentId` pertence ao tenant
 - [ ] JWT não revalida usuário desativado no banco a cada request
 - [ ] Refresh tokens não revogados ao desativar usuário / trocar senha
-- [ ] `RolesGuard` sem `@Roles()` na maioria dos controllers — papéis operacionais equivalentes hoje
+- [ ] `RolesGuard` + `@Roles()`: controllers sensíveis já restringem a `admin` (ex.: `expenses`, `financial-reports`, `whatsapp`); revisar os demais para garantir que `collaborator` só acesse os próprios dados
 - [ ] Tokens no `localStorage` (XSS)
 - [ ] Desabilitar Swagger ou proteger em produção
 
@@ -368,4 +420,35 @@ Itens do plano (`docs/PLANO_AUTH_MULTI_TENANT.md`) ainda não implementados ou p
 
 ---
 
-**Última atualização:** Junho 2026
+## 14. WhatsApp / Atendimento — 🚧 EM DESENVOLVIMENTO
+
+> **Status:** existe **apenas na branch `feat/whatsapp`** e **ainda não está em produção**. Documentado aqui para continuidade; não assumir que está no `main` nem no ar.
+
+Módulo de atendimento via WhatsApp usando a **Evolution API** (biblioteca **não oficial**). Cada tenant conecta o próprio número.
+
+**Backend (`api/src`)**
+- Entidades/tabelas (migration `1786000000000-AddWhatsappInbox`): `whatsapp_instances` (conexão/instância Evolution por tenant, status disconnected/connecting/connected), `whatsapp_conversations` (chat por contato, vínculo opcional a `clients`, `unreadCount`, prévia da última mensagem) e `whatsapp_messages` (histórico espelhado: direção inbound/outbound, tipo text/image/sticker/… , status pending/sent/delivered/read/failed, `reaction`, `waMessageId` para dedupe).
+- Controllers: `whatsapp.controller.ts` (`@Roles(ADMIN)`, prefixo `/whatsapp`) e `whatsapp-webhook.controller.ts` (webhook público validado por `?token=`).
+- Tempo real: `whatsapp.gateway.ts` — WebSocket socket.io no namespace **`/whatsapp`**.
+- Endpoints principais: `GET/POST /whatsapp/instance`, `GET /whatsapp/instance/qr` (QR de pareamento), `POST /whatsapp/instance/disconnect`, `GET /whatsapp/conversations`, `GET /whatsapp/unread-count`, `POST /whatsapp/conversations/from-client`, `POST /whatsapp/conversations/:id/link`, `GET/POST /whatsapp/conversations/:id/messages`, `POST /whatsapp/conversations/:id/read`, `GET /whatsapp/price-list/preview`, `POST /whatsapp/appointments/:id/confirm`, `POST /whatsapp/messages/:id/react`.
+
+**Frontend (`frontend/src/pages/Whatsapp.tsx`)**
+- Inbox (lista de conversas + chat), pareamento por QR, status de entrega (tiquinhos), reações (enviar/receber), recebimento de mídia (figurinha/imagem), buckets de conversa (agendado/cliente/novo contato), busca, iniciar conversa a partir de um cliente, vincular/criar cliente, preparar confirmação de agendamento (preenche o texto no input), catálogo de preços e respostas rápidas configuráveis na engrenagem, badge de não lidas na navegação, atualização em tempo real via WebSocket.
+
+**Respostas rápidas e catálogo** ficam em `tenants.settings.features` (`quickReplies`, `priceList`).
+
+**Infra de dev:** `api/docker-compose.evolution.yml` sobe Evolution API + Postgres + Redis. Scripts: `npm run evolution:up|down|logs`.
+
+**Envs novas (`api/.env`):**
+```env
+EVOLUTION_API_URL=http://localhost:8080
+EVOLUTION_API_KEY=change-me-evolution-apikey
+EVOLUTION_WEBHOOK_PUBLIC_URL=http://localhost:3000   # URL pública desta API (túnel em dev)
+EVOLUTION_WEBHOOK_TOKEN=change-me-webhook-token      # valida ?token= no webhook
+```
+
+> Antes de ir para produção: criar/validar a instância por tenant, expor a URL pública do webhook e proteger o token.
+
+---
+
+**Última atualização:** Outubro 2026

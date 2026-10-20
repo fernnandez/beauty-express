@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import * as bcrypt from 'bcrypt';
-import { DataSource } from 'typeorm';
+import { DataSource, IsNull } from 'typeorm';
 import { getDatabaseConfig } from '../config/database.config';
 import { UserRole } from '@domain/entities/user-role.enum';
 import { User } from '@domain/entities/user.entity';
@@ -97,7 +97,7 @@ async function changeSuperAdminPassword(): Promise<void> {
     const userRepository = dataSource.getRepository(User);
 
     const superAdmins = await userRepository.find({
-      where: { role: UserRole.SUPER_ADMIN, tenantId: null },
+      where: { role: UserRole.SUPER_ADMIN, tenantId: IsNull() },
       order: { createdAt: 'ASC' },
     });
 

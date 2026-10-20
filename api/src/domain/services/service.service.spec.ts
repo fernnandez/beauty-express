@@ -208,7 +208,10 @@ describe('ServiceService', () => {
       const result = await service.findAll(searchTerm);
 
       expect(result).toEqual([mockServices[0]]);
-      expect(repository.searchByName).toHaveBeenCalledWith(searchTerm.trim(), TENANT_ID_MOCK);
+      expect(repository.searchByName).toHaveBeenCalledWith(
+        searchTerm.trim(),
+        TENANT_ID_MOCK,
+      );
       expect(repository.find).not.toHaveBeenCalled();
     });
 
@@ -239,7 +242,10 @@ describe('ServiceService', () => {
       const result = await service.findById(mockService.id);
 
       expect(result).toEqual(mockService);
-      expect(repository.findById).toHaveBeenCalledWith(mockService.id, TENANT_ID_MOCK);
+      expect(repository.findById).toHaveBeenCalledWith(
+        mockService.id,
+        TENANT_ID_MOCK,
+      );
     });
 
     it('should return null when service not found', async () => {
@@ -276,12 +282,14 @@ describe('ServiceService', () => {
 
       repository.findById.mockResolvedValueOnce(existingService);
       repository.findById.mockResolvedValueOnce(updatedService);
-      repository.update.mockResolvedValue(undefined);
+      repository.update.mockResolvedValue({ affected: 1 } as any);
 
       const result = await service.updateService(existingService.id, updateDto);
 
       expect(result).toEqual(updatedService);
-      expect(repository.update).toHaveBeenCalledWith({ id: existingService.id, tenantId: TENANT_ID_MOCK }, updateDto,
+      expect(repository.update).toHaveBeenCalledWith(
+        { id: existingService.id, tenantId: TENANT_ID_MOCK },
+        updateDto,
       );
     });
 
@@ -324,7 +332,7 @@ describe('ServiceService', () => {
 
       repository.findById.mockResolvedValueOnce(existingService);
       repository.findById.mockResolvedValueOnce(updatedService);
-      repository.update.mockResolvedValue(undefined);
+      repository.update.mockResolvedValue({ affected: 1 } as any);
 
       await service.updateService(existingService.id, updateDto);
 
@@ -340,7 +348,7 @@ describe('ServiceService', () => {
 
       repository.findById.mockResolvedValueOnce(existingService);
       repository.findById.mockResolvedValueOnce(updatedService);
-      repository.update.mockResolvedValue(undefined);
+      repository.update.mockResolvedValue({ affected: 1 } as any);
 
       await service.updateService(existingService.id, updateDto);
 
@@ -362,15 +370,21 @@ describe('ServiceService', () => {
     it('should delete service when found and not in use', async () => {
       repository.findById.mockResolvedValue(existingService);
       scheduledServiceRepository.find.mockResolvedValue([]);
-      repository.delete.mockResolvedValue(undefined);
+      repository.delete.mockResolvedValue({ affected: 1 } as any);
 
       await service.delete(existingService.id);
 
-      expect(repository.findById).toHaveBeenCalledWith(existingService.id, TENANT_ID_MOCK);
+      expect(repository.findById).toHaveBeenCalledWith(
+        existingService.id,
+        TENANT_ID_MOCK,
+      );
       expect(scheduledServiceRepository.find).toHaveBeenCalledWith({
         where: { serviceId: existingService.id, tenantId: TENANT_ID_MOCK },
       });
-      expect(repository.delete).toHaveBeenCalledWith({ id: existingService.id, tenantId: TENANT_ID_MOCK });
+      expect(repository.delete).toHaveBeenCalledWith({
+        id: existingService.id,
+        tenantId: TENANT_ID_MOCK,
+      });
     });
 
     it('should throw error when service not found', async () => {

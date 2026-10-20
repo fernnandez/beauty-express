@@ -3,14 +3,45 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsOptional,
+  IsString,
+  MaxLength,
   Max,
   Min,
   ValidateNested,
 } from 'class-validator';
 import { PartialBrandingDto } from '../admin/branding.dto';
+
+export class QuickReplyDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @ApiProperty()
+  @IsString()
+  @MaxLength(60)
+  title: string;
+
+  @ApiProperty()
+  @IsString()
+  @MaxLength(2000)
+  message: string;
+}
+
+export class PriceListDto {
+  @ApiProperty()
+  @IsBoolean()
+  enabled: boolean;
+
+  @ApiProperty()
+  @IsString()
+  @MaxLength(4000)
+  message: string;
+}
 
 /**
  * Configurações editáveis pelo próprio tenant (área operacional, admin):
@@ -32,6 +63,20 @@ export class OperationalFeatureSettingsDto {
   @Min(1, { each: true })
   @Max(31, { each: true })
   commissionPayoutDays?: number[];
+
+  @ApiProperty({ required: false, type: [QuickReplyDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => QuickReplyDto)
+  quickReplies?: QuickReplyDto[];
+
+  @ApiProperty({ required: false, type: PriceListDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PriceListDto)
+  priceList?: PriceListDto;
 }
 
 export class UpdateSettingsDto {

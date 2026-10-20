@@ -10,6 +10,7 @@ import { ScheduledServiceModule } from './modules/scheduled-service.module';
 import { FinancialReportModule } from './modules/financial-report.module';
 import { SettingsModule } from './modules/settings.module';
 import { ExpenseModule } from './modules/expense.module';
+import { WhatsappModule } from './modules/whatsapp.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ExpenseModule } from './modules/expense.module';
     FinancialReportModule,
     SettingsModule,
     ExpenseModule,
+    WhatsappModule,
   ],
   exports: [
     AuthModule,
@@ -36,6 +38,7 @@ import { ExpenseModule } from './modules/expense.module';
     FinancialReportModule,
     SettingsModule,
     ExpenseModule,
+    WhatsappModule,
   ],
 })
 export class DomainModule {}
