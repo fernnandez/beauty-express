@@ -22,6 +22,7 @@ export interface AuthUserResponse {
   role: UserRole;
   tenantId: string | null;
   collaboratorId: string | null;
+  collaboratorName?: string | null;
   tenantName?: string;
   tenantSettings?: TenantSettingsResponse;
 }

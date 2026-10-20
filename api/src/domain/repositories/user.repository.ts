@@ -29,7 +29,7 @@ export class UserRepository extends Repository<User> {
         email,
         role: Not(UserRole.SUPER_ADMIN),
       },
-      relations: ['tenant'],
+      relations: ['tenant', 'collaborator'],
     });
   }
 
@@ -42,7 +42,7 @@ export class UserRepository extends Repository<User> {
   async findByIdWithTenant(id: string): Promise<User | null> {
     return await this.findOne({
       where: { id },
-      relations: ['tenant'],
+      relations: ['tenant', 'collaborator'],
     });
   }
 
@@ -52,9 +52,7 @@ export class UserRepository extends Repository<User> {
     excludeId?: string,
   ): Promise<User | null> {
     const where =
-      tenantId === null
-        ? { email, tenantId: IsNull() }
-        : { email, tenantId };
+      tenantId === null ? { email, tenantId: IsNull() } : { email, tenantId };
 
     const user = await this.findOne({ where });
     if (!user) {

@@ -120,13 +120,14 @@ export function CollaboratorAgenda() {
     return { count, total, commission };
   }, [sorted, collaboratorId]);
 
-  // Nome amigável derivado do e-mail (ex.: "maria@..." -> "Maria"),
-  // usado só para a saudação. Fallback vazio se não houver.
+  // Primeiro nome do colaborador (preferindo o nome real; fallback no e-mail).
   const firstName = useMemo(() => {
+    const real = (user?.collaboratorName ?? "").trim().split(/\s+/)[0];
+    if (real) return real;
     const local = (user?.email ?? "").split("@")[0]?.split(/[._-]/)[0] ?? "";
     if (!local) return "";
     return local.charAt(0).toUpperCase() + local.slice(1);
-  }, [user?.email]);
+  }, [user?.collaboratorName, user?.email]);
 
   return (
     <Stack gap="md" pb={80}>

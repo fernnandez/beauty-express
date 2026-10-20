@@ -8,6 +8,7 @@ export interface AuthUser {
   role: UserRole;
   tenantId: string | null;
   collaboratorId?: string | null;
+  collaboratorName?: string | null;
   tenantName?: string;
   tenantSettings?: TenantSettings;
 }

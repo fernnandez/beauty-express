@@ -12,17 +12,11 @@ import { createHash, randomBytes } from 'crypto';
 import { jwtConfig, parseExpiresInSeconds } from '@config/jwt.config';
 import { UserRole } from '@domain/entities/user-role.enum';
 import { User } from '@domain/entities/user.entity';
-import {
-  RefreshTokenAudience,
-} from '@domain/entities/refresh-token.entity';
+import { RefreshTokenAudience } from '@domain/entities/refresh-token.entity';
 import { RefreshTokenRepository } from '@domain/repositories/refresh-token.repository';
 import { UserRepository } from '@domain/repositories/user.repository';
 import { normalizeTenantSettings } from '@domain/services/tenant-settings.util';
-import {
-  AuthTokens,
-  AuthUserResponse,
-  AccessTokenPayload,
-} from './auth.types';
+import { AuthTokens, AuthUserResponse, AccessTokenPayload } from './auth.types';
 
 @Injectable()
 export class AuthService {
@@ -36,14 +30,19 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async loginOperational(dto: LoginDto): Promise<AuthTokens & { user: AuthUserResponse }> {
+  async loginOperational(
+    dto: LoginDto,
+  ): Promise<AuthTokens & { user: AuthUserResponse }> {
     const candidates = await this.userRepository.findOperationalUsersByEmail(
       dto.email,
     );
 
     const user = await this.resolveOperationalUser(candidates, dto.password);
 
-    const tokens = await this.issueTokens(user, RefreshTokenAudience.OPERATIONAL);
+    const tokens = await this.issueTokens(
+      user,
+      RefreshTokenAudience.OPERATIONAL,
+    );
 
     return {
       ...tokens,
@@ -215,6 +214,7 @@ export class AuthService {
       role: user.role,
       tenantId: user.tenantId,
       collaboratorId: user.collaboratorId ?? null,
+      collaboratorName: user.collaborator?.name ?? null,
       tenantName: user.tenant?.name,
     };
 
