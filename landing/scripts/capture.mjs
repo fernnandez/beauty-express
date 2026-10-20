@@ -113,6 +113,28 @@ async function main() {
     console.warn('  (aviso: não consegui abrir o modal de novo agendamento)', err.message)
   }
 
+  // Captura extra: tela de Atendimento (WhatsApp) com uma conversa aberta
+  try {
+    console.log('→ capturando /whatsapp (inbox)')
+    await page.goto(`${BASE}/whatsapp`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(1500)
+    await preparePage(page)
+    // print do inbox (lista de conversas)
+    await page.screenshot({ path: join(OUT_DIR, 'whatsapp.png'), fullPage: false })
+
+    // tenta abrir a primeira conversa para mostrar o chat
+    try {
+      await page.getByText('Carla Mendes').first().click({ timeout: 4000 })
+      await page.waitForTimeout(1200)
+      await preparePage(page)
+      await page.screenshot({ path: join(OUT_DIR, 'whatsapp-chat.png'), fullPage: false })
+    } catch {
+      console.warn('  (aviso: não consegui abrir uma conversa; mantém só o inbox)')
+    }
+  } catch (err) {
+    console.warn('  (aviso: não consegui capturar /whatsapp)', err.message)
+  }
+
   await browser.close()
   console.log('✓ capturas salvas em', OUT_DIR)
 }
