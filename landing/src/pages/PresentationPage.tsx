@@ -20,6 +20,7 @@ import {
   IconCheck,
 } from '@tabler/icons-react'
 import { BrowserFrame } from '../components/BrowserFrame'
+import { PhoneFrame } from '../components/PhoneFrame'
 import { Logo } from '../components/Logo'
 import { whatsappLink } from '../branding'
 
@@ -281,6 +282,46 @@ const slides: { id: string; dark?: boolean; content: ReactNode }[] = [
         alt="Relatórios financeiros"
         url="app.ageendoo.com/financial-reports"
       />
+    ),
+  },
+  // 6 — No celular (prints mobile)
+  {
+    id: 'mobile',
+    content: (
+      <Stack w="100%" gap="lg" align="center">
+        <Stack gap={4} align="center" ta="center">
+          <Badge variant="light" color="brand" radius="sm">
+            No celular
+          </Badge>
+          <Title order={2} fz={{ base: 24, sm: 36 }}>
+            Na palma da mão, como um aplicativo
+          </Title>
+          <Text c="dimmed" maw={620}>
+            Instala direto na tela inicial. O recepcionista atende pelo WhatsApp e
+            cada profissional acompanha a própria agenda e comissão.
+          </Text>
+        </Stack>
+        <Group justify="center" gap="xl" wrap="wrap" align="flex-start">
+          <Stack align="center" gap="xs">
+            <PhoneFrame src="/demo-mobile/whatsapp.png" alt="WhatsApp no celular" />
+            <Text size="sm" c="dimmed" fw={600}>
+              Atendimento por WhatsApp
+            </Text>
+          </Stack>
+          <Stack align="center" gap="xs">
+            <PhoneFrame src="/demo-mobile/dashboard.png" alt="Início no celular" />
+            <Text size="sm" c="dimmed" fw={600}>
+              Gestão do dia a dia
+            </Text>
+          </Stack>
+          <Stack align="center" gap="xs">
+            <PhoneFrame src="/demo-mobile/colaborador.png" alt="App do profissional" />
+            <Text size="sm" c="dimmed" fw={600}>
+              Agenda e comissão do profissional
+            </Text>
+          </Stack>
+        </Group>
+      </Stack>
     ),
   },
   // 7 — Fechamento / CTA
