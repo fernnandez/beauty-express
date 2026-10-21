@@ -19,10 +19,19 @@ export interface StoreMediaInput {
 
 export interface MediaStorage {
   /**
-   * Persiste a mídia e retorna o valor a ser gravado em `message.mediaUrl`
-   * (um data URL em dev, ou a URL pública/chave no S3 em produção).
+   * Persiste a mídia e retorna o valor a ser gravado em `message.mediaUrl`.
+   * - InlineMediaStorage: um data URL base64 (dev).
+   * - S3MediaStorage: a *chave* do objeto no bucket (prod).
    */
   store(input: StoreMediaInput): Promise<string>;
+
+  /**
+   * Converte o valor persistido numa URL servível ao cliente.
+   * - InlineMediaStorage: retorna o próprio data URL.
+   * - S3MediaStorage: gera uma URL assinada (presigned GET) temporária,
+   *   pois o bucket é privado.
+   */
+  resolveUrl(stored: string | null | undefined): Promise<string | null>;
 }
 
 /** Token de injeção do NestJS para a MediaStorage. */

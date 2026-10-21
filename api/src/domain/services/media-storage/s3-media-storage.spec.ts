@@ -6,12 +6,26 @@ jest.mock('@aws-sdk/client-s3', () => ({
     __type: 'PutObject',
     input,
   })),
+  GetObjectCommand: jest.fn().mockImplementation((input) => ({
+    __type: 'GetObject',
+    input,
+  })),
   PutBucketLifecycleConfigurationCommand: jest
     .fn()
     .mockImplementation((input) => ({
       __type: 'Lifecycle',
       input,
     })),
+}));
+
+jest.mock('@aws-sdk/s3-request-presigner', () => ({
+  getSignedUrl: jest
+    .fn()
+    .mockImplementation((_client, command) =>
+      Promise.resolve(
+        `https://signed.example.com/${command.input.Key}?sig=abc`,
+      ),
+    ),
 }));
 
 import { S3MediaStorage } from './s3-media-storage';
@@ -38,9 +52,9 @@ describe('S3MediaStorage', () => {
     expect(() => new S3MediaStorage()).toThrow(/S3_BUCKET/);
   });
 
-  it('faz upload e retorna a URL pública com chave particionada por tenant/data', async () => {
+  it('faz upload e retorna a CHAVE particionada por tenant/data', async () => {
     const storage = new S3MediaStorage();
-    const url = await storage.store({
+    const key = await storage.store({
       base64: 'QUJD',
       mime: 'image/jpeg',
       tenantId: 'tenant-1',
@@ -48,9 +62,7 @@ describe('S3MediaStorage', () => {
     });
 
     // chave: whatsapp/<tenant>/<YYYY-MM-DD>/<msg>.jpg
-    expect(url).toMatch(
-      /^https:\/\/cdn\.exemplo\.com\/whatsapp\/tenant-1\/\d{4}-\d{2}-\d{2}\/WA123\.jpg$/,
-    );
+    expect(key).toMatch(/^whatsapp\/tenant-1\/\d{4}-\d{2}-\d{2}\/WA123\.jpg$/);
     expect(sendMock).toHaveBeenCalledTimes(1);
     const command = sendMock.mock.calls[0][0];
     expect(command.input.Bucket).toBe('meu-bucket');
@@ -58,18 +70,31 @@ describe('S3MediaStorage', () => {
     expect(Buffer.isBuffer(command.input.Body)).toBe(true);
   });
 
-  it('usa o endpoint quando não há S3_PUBLIC_URL', async () => {
-    delete process.env.S3_PUBLIC_URL;
+  it('resolveUrl gera presigned a partir de uma chave', async () => {
     const storage = new S3MediaStorage();
-    const url = await storage.store({
-      base64: 'QUJD',
-      mime: 'image/webp',
-      tenantId: 't2',
-      waMessageId: 'WA9',
-    });
-    expect(url).toMatch(
-      /^https:\/\/s3\.railway\.app\/meu-bucket\/whatsapp\/t2\/\d{4}-\d{2}-\d{2}\/WA9\.webp$/,
+    const url = await storage.resolveUrl('whatsapp/t1/2026-01-01/WA1.jpg');
+    expect(url).toBe(
+      'https://signed.example.com/whatsapp/t1/2026-01-01/WA1.jpg?sig=abc',
     );
+  });
+
+  it('resolveUrl extrai a chave de uma URL pública antiga (compat)', async () => {
+    const storage = new S3MediaStorage();
+    const url = await storage.resolveUrl(
+      'https://cdn.exemplo.com/whatsapp/t1/2026-01-01/WA1.jpg',
+    );
+    expect(url).toBe(
+      'https://signed.example.com/whatsapp/t1/2026-01-01/WA1.jpg?sig=abc',
+    );
+  });
+
+  it('resolveUrl retorna data URL inalterado e null quando vazio', async () => {
+    const storage = new S3MediaStorage();
+    expect(await storage.resolveUrl('data:image/png;base64,AAA')).toBe(
+      'data:image/png;base64,AAA',
+    );
+    expect(await storage.resolveUrl(null)).toBeNull();
+    expect(await storage.resolveUrl(undefined)).toBeNull();
   });
 
   it('aplica lifecycle/TTL no onModuleInit quando MEDIA_TTL_DAYS está setado', async () => {

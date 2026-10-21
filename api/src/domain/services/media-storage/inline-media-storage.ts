@@ -11,4 +11,9 @@ export class InlineMediaStorage implements MediaStorage {
   store(input: StoreMediaInput): Promise<string> {
     return Promise.resolve(`data:${input.mime};base64,${input.base64}`);
   }
+
+  /** O valor persistido já é um data URL servível; retorna como está. */
+  resolveUrl(stored: string | null | undefined): Promise<string | null> {
+    return Promise.resolve(stored ?? null);
+  }
 }

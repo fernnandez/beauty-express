@@ -1,10 +1,15 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import {
+  GetObjectCommand,
   PutObjectCommand,
   PutBucketLifecycleConfigurationCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { MediaStorage, StoreMediaInput } from './media-storage.interface';
+
+/** Validade da URL assinada servida ao cliente. */
+const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hora
 
 const MIME_EXTENSIONS: Record<string, string> = {
   'image/webp': 'webp',
@@ -39,13 +44,11 @@ export class S3MediaStorage implements MediaStorage, OnModuleInit {
   private readonly logger = new Logger(S3MediaStorage.name);
   private readonly client: S3Client;
   private readonly bucket: string;
-  private readonly publicUrl?: string;
   private readonly endpoint?: string;
 
   constructor() {
     this.bucket = requireEnv('S3_BUCKET');
     this.endpoint = process.env.S3_ENDPOINT;
-    this.publicUrl = process.env.S3_PUBLIC_URL;
     const forcePathStyle =
       (process.env.S3_FORCE_PATH_STYLE ??
         (this.endpoint ? 'true' : 'false')) === 'true';
@@ -108,17 +111,52 @@ export class S3MediaStorage implements MediaStorage, OnModuleInit {
       }),
     );
 
-    return this.buildUrl(key);
+    // Persistimos a *chave* do objeto; a URL servível é assinada sob demanda
+    // em resolveUrl (o bucket é privado).
+    return key;
   }
 
-  private buildUrl(key: string): string {
-    if (this.publicUrl) {
-      return `${this.publicUrl.replace(/\/$/, '')}/${key}`;
+  /**
+   * Gera uma URL assinada (presigned GET) temporária para servir a mídia.
+   * Aceita tanto uma chave pura quanto uma URL antiga (extrai a chave dela),
+   * mantendo compatibilidade com registros gravados antes desta mudança.
+   */
+  async resolveUrl(stored: string | null | undefined): Promise<string | null> {
+    if (!stored) return null;
+    // Data URL (ambiente inline antigo) — serve como está.
+    if (stored.startsWith('data:')) return stored;
+
+    const key = this.extractKey(stored);
+    try {
+      return await getSignedUrl(
+        this.client,
+        new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+        { expiresIn: SIGNED_URL_TTL_SECONDS },
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Falha ao assinar URL da mídia (${key}): ${String(err)}`,
+      );
+      return null;
     }
-    if (this.endpoint) {
-      return `${this.endpoint.replace(/\/$/, '')}/${this.bucket}/${key}`;
+  }
+
+  /** Extrai a chave do objeto a partir de uma chave pura ou de uma URL antiga. */
+  private extractKey(stored: string): string {
+    if (!stored.startsWith('http')) {
+      return stored.replace(/^\/+/, '');
     }
-    return `https://${this.bucket}.s3.amazonaws.com/${key}`;
+    try {
+      const url = new URL(stored);
+      let path = url.pathname.replace(/^\/+/, '');
+      // path-style: o primeiro segmento é o nome do bucket.
+      if (path.startsWith(`${this.bucket}/`)) {
+        path = path.slice(this.bucket.length + 1);
+      }
+      return path;
+    } catch {
+      return stored;
+    }
   }
 }
 
