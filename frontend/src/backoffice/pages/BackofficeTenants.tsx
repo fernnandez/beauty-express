@@ -26,7 +26,7 @@ import {
   useUpdateTenant,
 } from '../hooks/useAdminTenants';
 import { getErrorMessage } from '../../utils/error.util';
-import { backofficeAccent } from '../utils/backoffice-theme.util';
+import { backofficeAccent, backofficeTableStyles } from '../utils/backoffice-theme.util';
 import type { CreateTenantDto, Tenant, UpdateTenantDto } from '../../types/admin.types';
 
 export function BackofficeTenants() {
@@ -163,10 +163,7 @@ export function BackofficeTenants() {
               highlightOnHover
               withTableBorder
               withColumnBorders
-              styles={{
-                th: { backgroundColor: '#1e293b', color: '#e2e8f0' },
-                td: { backgroundColor: '#0f172a', color: '#f1f5f9' },
-              }}
+              styles={backofficeTableStyles}
             >
               <Table.Thead>
                 <Table.Tr>

@@ -96,7 +96,7 @@ export function AdminLogin() {
             <ThemeIcon size={64} radius="md" color={backofficeAccent} variant="light">
               <IconCalendarEvent size={34} stroke={1.5} />
             </ThemeIcon>
-            <Title order={2} ta="center" c="white">
+            <Title order={2} ta="center" c="gray.1">
               {BACKOFFICE_NAME}
             </Title>
             <Text c="dimmed" size="sm" ta="center">

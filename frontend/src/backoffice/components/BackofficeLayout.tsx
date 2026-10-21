@@ -59,7 +59,8 @@ export function BackofficeLayout() {
       <DevEnvironmentBanner />
       <AppShell
       navbar={{ width: 80, breakpoint: 'sm' }}
-      footer={{ height: 35 }}
+      footer={{ height: 44 }}
+      padding="md"
       styles={{
         navbar: {
           top: devBannerOffset,
@@ -154,18 +155,17 @@ export function BackofficeLayout() {
           backgroundColor: backofficeColors.bg,
           width: '100%',
           maxWidth: '100%',
-          minHeight: '100vh',
         }}
-        pt="md"
       >
         <Outlet />
       </AppShell.Main>
 
       <AppShell.Footer
-        py="xs"
         style={{
           backgroundColor: backofficeColors.surface,
           borderTop: `1px solid ${backofficeColors.border}`,
+          display: 'flex',
+          alignItems: 'center',
         }}
       >
         <Group justify="center" align="center" gap="md">

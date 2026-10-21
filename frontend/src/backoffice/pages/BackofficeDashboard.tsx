@@ -23,7 +23,9 @@ import {
   IconScissors,
   IconUsers,
 } from "@tabler/icons-react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { DateTime } from "luxon";
 import { formatPrice, toMoney } from "../../utils/money.util";
 import { useAdminDashboard } from "../hooks/useAdminDashboard";
 import type { TenantDashboardRow } from "../../types/admin.types";
@@ -122,6 +124,42 @@ export function BackofficeDashboard() {
   const navigate = useNavigate();
   const { data: stats, isLoading } = useAdminDashboard();
 
+  const referenceLabels = useMemo(() => {
+    const now = DateTime.now().setLocale("pt-BR");
+    const month = now.toFormat("LLLL 'de' yyyy");
+    return {
+      today: now.toFormat("dd/MM/yyyy"),
+      month: month.charAt(0).toUpperCase() + month.slice(1),
+    };
+  }, []);
+
+  // Comparativo ordenado pela receita do mês (maior primeiro).
+  const sortedTenants = useMemo(
+    () =>
+      [...(stats?.byTenant ?? [])].sort(
+        (a, b) => toMoney(b.revenueThisMonth) - toMoney(a.revenueThisMonth),
+      ),
+    [stats?.byTenant],
+  );
+
+  // Linha de total do comparativo.
+  const totals = useMemo(() => {
+    const rows = stats?.byTenant ?? [];
+    return {
+      appointmentsToday: rows.reduce((s, r) => s + r.appointmentsToday, 0),
+      revenueThisMonth: rows.reduce(
+        (s, r) => s + toMoney(r.revenueThisMonth),
+        0,
+      ),
+      pendingCommissions: rows.reduce(
+        (s, r) => s + toMoney(r.pendingCommissions),
+        0,
+      ),
+      collaborators: rows.reduce((s, r) => s + r.collaborators, 0),
+      services: rows.reduce((s, r) => s + r.services, 0),
+    };
+  }, [stats?.byTenant]);
+
   return (
     <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
       <Stack gap="xl" mb="xl">
@@ -131,6 +169,10 @@ export function BackofficeDashboard() {
           </Title>
           <Text c="dimmed">
             {BACKOFFICE_TAGLINE} — visão geral de todas as filiais
+          </Text>
+          <Text size="sm" c="dimmed">
+            Referência: hoje {referenceLabels.today} · receita de{" "}
+            {referenceLabels.month}
           </Text>
         </Stack>
 
@@ -162,7 +204,7 @@ export function BackofficeDashboard() {
                         <Text size="sm" c="dimmed">
                           {card.title}
                         </Text>
-                        <Text size="xl" fw={700} c="white">
+                        <Text size="xl" fw={700} c="gray.1">
                           {formatStatValue(value, card.format)}
                         </Text>
                       </Stack>
@@ -204,7 +246,7 @@ export function BackofficeDashboard() {
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
-                    {stats?.byTenant.map((tenant: TenantDashboardRow) => (
+                    {sortedTenants.map((tenant: TenantDashboardRow) => (
                       <Table.Tr
                         key={tenant.tenantId}
                         style={{ cursor: "pointer" }}
@@ -254,6 +296,22 @@ export function BackofficeDashboard() {
                       </Table.Tr>
                     ))}
                   </Table.Tbody>
+                  <Table.Tfoot>
+                    <Table.Tr>
+                      <Table.Th>Total</Table.Th>
+                      <Table.Th />
+                      <Table.Th>{totals.appointmentsToday}</Table.Th>
+                      <Table.Th>
+                        {formatPrice(toMoney(totals.revenueThisMonth))}
+                      </Table.Th>
+                      <Table.Th>
+                        {formatPrice(toMoney(totals.pendingCommissions))}
+                      </Table.Th>
+                      <Table.Th>{totals.collaborators}</Table.Th>
+                      <Table.Th>{totals.services}</Table.Th>
+                      <Table.Th />
+                    </Table.Tr>
+                  </Table.Tfoot>
                 </Table>
               </ScrollArea>
             </Stack>
@@ -284,7 +342,7 @@ export function BackofficeDashboard() {
                           <Text size="sm" c="dimmed">
                             {card.title}
                           </Text>
-                          <Text size="xl" fw={700} c="white">
+                          <Text size="xl" fw={700} c="gray.1">
                             {count}
                           </Text>
                         </Stack>

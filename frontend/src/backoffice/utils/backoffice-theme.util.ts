@@ -2,26 +2,28 @@ export const BACKOFFICE_NAME = 'Agendor';
 export const BACKOFFICE_TAGLINE = 'Sistema de agendamentos e comissões';
 
 export const backofficeColors = {
-  bg: '#0f172a',
-  surface: '#1e293b',
-  surfaceMuted: '#293548',
-  inputBg: '#334155',
-  inputBgFocus: '#3d4f66',
-  border: '#334155',
-  borderStrong: '#475569',
-  navbar: '#1e293b',
-  navActiveBg: 'rgba(148, 163, 184, 0.18)',
-  navHoverBg: 'rgba(148, 163, 184, 0.1)',
-  navText: '#94a3b8',
-  navTextActive: '#f1f5f9',
-  textPrimary: '#f1f5f9',
-  textSecondary: '#cbd5e1',
-  textMuted: '#94a3b8',
-  placeholder: '#64748b',
-  tableHeader: '#1e293b',
-  tableHeaderText: '#e2e8f0',
-  tableCell: '#0f172a',
-  tableCellText: '#f1f5f9',
+  // Dark mode suave (grafite), com contraste reduzido para leitura confortável.
+  bg: '#1a1a1f',
+  surface: '#212128',
+  surfaceMuted: '#2a2a32',
+  inputBg: '#2a2a32',
+  inputBgFocus: '#32323b',
+  border: '#303039',
+  borderStrong: '#3c3c47',
+  navbar: '#1d1d23',
+  // Accent de marca (violeta) nas interações de navegação.
+  navActiveBg: 'rgba(168, 85, 247, 0.18)',
+  navHoverBg: 'rgba(255, 255, 255, 0.05)',
+  navText: '#9a9aa5',
+  navTextActive: '#ededf2',
+  textPrimary: '#e6e6ea',
+  textSecondary: '#b4b4bf',
+  textMuted: '#8a8a95',
+  placeholder: '#5e5e68',
+  tableHeader: '#2a2a32',
+  tableHeaderText: '#d6d6dd',
+  tableCell: '#212128',
+  tableCellText: '#d8d8df',
 } as const;
 
 export const backofficeCardStyle = {
@@ -41,10 +43,10 @@ export const backofficeTableStyles = {
 };
 
 export const backofficeLoginGradient =
-  'linear-gradient(145deg, #0f172a 0%, #1e293b 55%, #334155 100%)';
+  'linear-gradient(145deg, #0b0b0f 0%, #17171d 55%, #2a2440 100%)';
 
-/** Cor Mantine padrão do backoffice (neutra). */
-export const backofficeAccent = 'gray' as const;
+/** Cor Mantine padrão do backoffice (accent de marca: violeta). */
+export const backofficeAccent = 'violet' as const;
 
 const inputBaseStyles = {
   label: { color: backofficeColors.textSecondary, fontWeight: 500 },

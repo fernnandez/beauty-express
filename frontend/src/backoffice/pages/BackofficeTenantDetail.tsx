@@ -164,7 +164,7 @@ function TenantSummaryTab({ tenantId }: { tenantId: string }) {
                     <Text size="sm" c="dimmed">
                       {card.title}
                     </Text>
-                    <Text size="xl" fw={700} c="white">
+                    <Text size="xl" fw={700} c="gray.1">
                       {formatPrice(card.value)}
                     </Text>
                   </Stack>
@@ -580,7 +580,7 @@ export function BackofficeTenantDetail() {
               <Text size="xs" c="dimmed">
                 {card.label}
               </Text>
-              <Text size="lg" fw={700} c="white">
+              <Text size="lg" fw={700} c="gray.1">
                 {card.format === 'money'
                   ? formatPrice(toMoney(card.value))
                   : card.value}
