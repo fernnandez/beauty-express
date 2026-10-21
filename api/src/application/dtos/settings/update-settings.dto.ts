@@ -77,6 +77,11 @@ export class OperationalFeatureSettingsDto {
   @ValidateNested()
   @Type(() => PriceListDto)
   priceList?: PriceListDto;
+
+  @ApiProperty({ required: false, enum: ['compact', 'comfortable'] })
+  @IsOptional()
+  @IsIn(['compact', 'comfortable'])
+  chatDensity?: 'compact' | 'comfortable';
 }
 
 export class UpdateSettingsDto {

@@ -4,6 +4,9 @@ export type FinancialReportsMode = 'full' | 'revenue_only';
 
 export type PeriodMode = 'biweekly' | 'monthly';
 
+/** Densidade visual do inbox de WhatsApp. */
+export type ChatDensity = 'compact' | 'comfortable';
+
 /** Resposta rápida configurável do atendimento (WhatsApp). */
 export interface QuickReply {
   id?: string;
@@ -28,6 +31,8 @@ export interface TenantFeatureSettings {
   quickReplies?: QuickReply[];
   /** Mensagem de catálogo de preços configurável. */
   priceList?: PriceListSettings;
+  /** Densidade visual do inbox de WhatsApp. Default 'comfortable'. */
+  chatDensity?: ChatDensity;
 }
 
 export interface TenantSettings {

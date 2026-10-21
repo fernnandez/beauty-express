@@ -90,6 +90,13 @@ export function normalizeTenantSettings(
     };
   }
 
+  // Densidade da UI do atendimento (WhatsApp): 'compact' | 'comfortable'.
+  if (defaults.features.chatDensity === 'compact') {
+    features.chatDensity = 'compact';
+  } else if (defaults.features.chatDensity === 'comfortable') {
+    features.chatDensity = 'comfortable';
+  }
+
   return {
     branding: {
       displayName: defaults.branding.displayName?.trim() || fallbackDisplayName,
