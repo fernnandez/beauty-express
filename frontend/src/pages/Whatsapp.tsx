@@ -876,8 +876,7 @@ function ChatView({
       <ScrollArea
         style={{ flex: 1 }}
         viewportRef={viewport}
-        py="md"
-        px={compact ? "md" : "xl"}
+        p="md"
         classNames={{ viewport: "wa-chat-bg" }}
       >
         {isLoading && (
@@ -904,6 +903,8 @@ function ChatView({
                   alignSelf: outbound ? "flex-end" : "flex-start",
                   maxWidth: compact ? "85%" : "78%",
                   flexDirection: outbound ? "row-reverse" : "row",
+                  marginLeft: outbound ? undefined : compact ? 4 : 10,
+                  marginRight: outbound ? (compact ? 4 : 10) : undefined,
                 }}
                 className="wa-msg-row"
               >
