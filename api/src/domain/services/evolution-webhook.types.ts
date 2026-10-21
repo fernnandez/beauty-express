@@ -31,15 +31,45 @@ export interface EvolutionWebhookData {
   messageTimestamp?: number | string;
   message?: {
     conversation?: string;
-    extendedTextMessage?: { text?: string };
-    imageMessage?: { caption?: string; url?: string };
+    extendedTextMessage?: { text?: string; contextInfo?: EvolutionContextInfo };
+    imageMessage?: {
+      caption?: string;
+      url?: string;
+      contextInfo?: EvolutionContextInfo;
+    };
     stickerMessage?: { url?: string; mimetype?: string };
-    audioMessage?: { url?: string };
-    videoMessage?: { caption?: string; url?: string };
-    documentMessage?: { fileName?: string; url?: string };
+    audioMessage?: { url?: string; contextInfo?: EvolutionContextInfo };
+    videoMessage?: {
+      caption?: string;
+      url?: string;
+      contextInfo?: EvolutionContextInfo;
+    };
+    documentMessage?: {
+      fileName?: string;
+      url?: string;
+      contextInfo?: EvolutionContextInfo;
+    };
     reactionMessage?: {
       key?: { id?: string; fromMe?: boolean; remoteJid?: string };
       text?: string;
     };
+  };
+}
+
+/** Informação de contexto (citação/reply) presente nas submensagens. */
+export interface EvolutionContextInfo {
+  /** waMessageId da mensagem citada (a que está sendo respondida). */
+  stanzaId?: string;
+  /** JID de quem enviou a mensagem citada. */
+  participant?: string;
+  /** Conteúdo da mensagem citada (mesmo shape de uma message). */
+  quotedMessage?: {
+    conversation?: string;
+    extendedTextMessage?: { text?: string };
+    imageMessage?: { caption?: string };
+    videoMessage?: { caption?: string };
+    audioMessage?: Record<string, unknown>;
+    stickerMessage?: Record<string, unknown>;
+    documentMessage?: { fileName?: string };
   };
 }

@@ -105,6 +105,19 @@ export class WhatsappController {
     await this.whatsappService.markConversationRead(id);
   }
 
+  @Post('conversations/:id/sync')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Sincronizar o histórico recente da conversa a partir do aparelho',
+  })
+  async syncConversation(
+    @Param('id') id: string,
+    @Query('page') page?: string,
+  ) {
+    const parsed = page ? Number.parseInt(page, 10) : undefined;
+    return await this.whatsappService.syncConversation(id, parsed);
+  }
+
   @Get('price-list/preview')
   @ApiOperation({ summary: 'Gerar o texto do catálogo a partir dos serviços' })
   async priceListPreview() {

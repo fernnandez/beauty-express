@@ -57,6 +57,14 @@ export class Message {
   @Column({ type: 'varchar', nullable: true })
   reaction?: string | null;
 
+  /** waMessageId da mensagem citada, quando esta é uma resposta (reply). */
+  @Column({ type: 'varchar', nullable: true })
+  quotedWaMessageId?: string | null;
+
+  /** Prévia (texto/rotulo) da mensagem citada, para exibir acima da resposta. */
+  @Column({ type: 'varchar', nullable: true })
+  quotedPreview?: string | null;
+
   @Column({ type: 'varchar', default: MessageStatus.SENT })
   status: MessageStatus;
 

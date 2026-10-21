@@ -59,9 +59,12 @@ describe('WhatsappService', () => {
     createInstance: jest.fn(),
     setWebhook: jest.fn(),
     sendReaction: jest.fn(),
+    findMessages: jest.fn(),
+    getMediaBase64: jest.fn(),
   };
   const mockGateway = {
     emitInboxUpdate: jest.fn(),
+    emitConnectionUpdate: jest.fn(),
   };
   const mockMediaStorage = {
     store: jest
@@ -285,10 +288,14 @@ describe('WhatsappService', () => {
       expect(mockMessageRepository.save).not.toHaveBeenCalled();
     });
 
-    it('ignora eco (fromMe)', async () => {
+    it('pula o eco de mensagem já existente (dedupe)', async () => {
       mockInstanceRepository.findByInstanceName.mockResolvedValue({
         tenantId: TENANT_ID_MOCK,
         instanceName: 'salao-1',
+      });
+      // mensagem fromMe que já existe localmente (eco da nossa própria mensagem)
+      mockMessageRepository.findByWaMessageId.mockResolvedValue({
+        id: 'existing',
       });
       const result = await service.processInboundWebhook({
         ...basePayload,
@@ -298,6 +305,34 @@ describe('WhatsappService', () => {
         },
       });
       expect(result).toBeNull();
+      expect(mockMessageRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('captura mensagem enviada pelo celular (fromMe) como outbound', async () => {
+      mockInstanceRepository.findByInstanceName.mockResolvedValue({
+        tenantId: TENANT_ID_MOCK,
+        instanceName: 'salao-1',
+      });
+      mockMessageRepository.findByWaMessageId.mockResolvedValue(null);
+      mockMessageRepository.create.mockImplementation((v: unknown) => v);
+      mockConversationRepository.findByWaChatId?.mockResolvedValue?.(null);
+
+      await service.processInboundWebhook({
+        ...basePayload,
+        data: {
+          ...basePayload.data,
+          key: {
+            ...basePayload.data.key,
+            fromMe: true,
+            id: 'WA-FROMME-NEW',
+          },
+          message: { conversation: 'mandei do celular' },
+        },
+      });
+
+      const saved = mockMessageRepository.save.mock.calls.at(-1)?.[0];
+      expect(saved).toBeDefined();
+      expect(saved.direction).toBe('outbound');
     });
 
     it('faz dedupe por waMessageId', async () => {
@@ -458,6 +493,33 @@ describe('WhatsappService', () => {
       expect(result).toBeNull();
       const saved = mockInstanceRepository.save.mock.calls[0][0];
       expect(saved.status).toBe('connected');
+      // mudou de 'connecting' -> 'connected': avisa o front
+      expect(mockGateway.emitConnectionUpdate).toHaveBeenCalledWith(
+        TENANT_ID_MOCK,
+        'connected',
+      );
+    });
+
+    it('connection.update close marca desconectada e avisa o front', async () => {
+      const instance = {
+        tenantId: TENANT_ID_MOCK,
+        instanceName: 'salao-1',
+        status: 'connected',
+      };
+      mockInstanceRepository.findByInstanceName.mockResolvedValue(instance);
+
+      await service.processInboundWebhook({
+        instance: 'salao-1',
+        event: 'connection.update',
+        data: { state: 'close' },
+      });
+
+      const saved = mockInstanceRepository.save.mock.calls[0][0];
+      expect(saved.status).toBe('disconnected');
+      expect(mockGateway.emitConnectionUpdate).toHaveBeenCalledWith(
+        TENANT_ID_MOCK,
+        'disconnected',
+      );
     });
   });
 
@@ -609,6 +671,66 @@ describe('WhatsappService', () => {
       expect(result.find((c) => c.id === 'c1')?.category).toBe('lead');
       expect(result.find((c) => c.id === 'c2')?.category).toBe('scheduled');
       expect(result.find((c) => c.id === 'c3')?.category).toBe('client');
+    });
+  });
+
+  describe('syncConversation', () => {
+    beforeEach(() => {
+      mockConversationRepository.findById.mockResolvedValue({
+        id: 'conv-1',
+        tenantId: TENANT_ID_MOCK,
+        waChatId: '5581988887777@s.whatsapp.net',
+      });
+      mockInstanceRepository.findByTenant.mockResolvedValue({
+        tenantId: TENANT_ID_MOCK,
+        instanceName: 'salao-1',
+      });
+      mockMessageRepository.create.mockImplementation((v: unknown) => v);
+    });
+
+    it('importa mensagens novas (recebidas e enviadas pelo celular) e faz dedupe', async () => {
+      mockEvolution.findMessages.mockResolvedValue({
+        messages: {
+          total: 3,
+          pages: 1,
+          currentPage: 1,
+          records: [
+            {
+              key: { id: 'H1', fromMe: false },
+              messageTimestamp: 1700000001,
+              message: { conversation: 'recebida' },
+            },
+            {
+              key: { id: 'H2', fromMe: true },
+              messageTimestamp: 1700000002,
+              message: { conversation: 'enviada pelo celular' },
+            },
+            {
+              key: { id: 'H3', fromMe: false },
+              messageTimestamp: 1700000003,
+              message: { conversation: 'já existe' },
+            },
+          ],
+        },
+      });
+      // H3 já existe localmente -> dedupe
+      mockMessageRepository.findByWaMessageId.mockImplementation(
+        (waId: string) => Promise.resolve(waId === 'H3' ? { id: 'x' } : null),
+      );
+
+      const result = await service.syncConversation('conv-1');
+
+      expect(result.imported).toBe(2);
+      const saved = mockMessageRepository.save.mock.calls.map((c) => c[0]);
+      const h2 = saved.find((m) => m.waMessageId === 'H2');
+      expect(h2?.direction).toBe('outbound');
+      const h1 = saved.find((m) => m.waMessageId === 'H1');
+      expect(h1?.direction).toBe('inbound');
+    });
+
+    it('falha se não há instância conectada', async () => {
+      mockInstanceRepository.findByTenant.mockResolvedValue(null);
+      await expect(service.syncConversation('conv-1')).rejects.toThrow();
     });
   });
 });

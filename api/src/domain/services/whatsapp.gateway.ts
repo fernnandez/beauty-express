@@ -61,4 +61,11 @@ export class WhatsappGateway implements OnGatewayConnection {
     // server pode não estar pronto em testes; protege.
     this.server?.to(this.tenantRoom(tenantId)).emit('whatsapp:update', payload);
   }
+
+  /** Emite mudança de estado da conexão (conectado/desconectado) ao tenant. */
+  emitConnectionUpdate(tenantId: string, status: string): void {
+    this.server
+      ?.to(this.tenantRoom(tenantId))
+      .emit('whatsapp:connection', { status });
+  }
 }

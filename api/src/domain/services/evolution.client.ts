@@ -97,6 +97,22 @@ export class EvolutionClient {
     );
   }
 
+  /**
+   * Busca o histórico de mensagens de uma conversa (paginado).
+   * Retorna o envelope { messages: { total, pages, currentPage, records } }.
+   */
+  async findMessages(
+    instanceName: string,
+    remoteJid: string,
+    page = 1,
+  ): Promise<EvolutionFindMessagesResponse> {
+    return await this.request<EvolutionFindMessagesResponse>(
+      'POST',
+      `/chat/findMessages/${encodeURIComponent(instanceName)}`,
+      { where: { key: { remoteJid } }, page },
+    );
+  }
+
   /** Cria uma nova instância (um número) na Evolution. */
   async createInstance(
     instanceName: string,
@@ -183,4 +199,22 @@ export interface EvolutionMediaResponse {
   mimetype?: string;
   /** Conteúdo da mídia em base64 (sem o prefixo data URL). */
   base64?: string;
+}
+
+/** Um registro de mensagem retornado por findMessages. */
+export interface EvolutionHistoryMessage {
+  key?: { id?: string; fromMe?: boolean; remoteJid?: string };
+  pushName?: string;
+  messageType?: string;
+  message?: Record<string, unknown>;
+  messageTimestamp?: number | string;
+}
+
+export interface EvolutionFindMessagesResponse {
+  messages?: {
+    total?: number;
+    pages?: number;
+    currentPage?: number;
+    records?: EvolutionHistoryMessage[];
+  };
 }

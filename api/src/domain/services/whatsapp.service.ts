@@ -211,11 +211,135 @@ export class WhatsappService {
     if (!conversation) {
       throw new NotFoundException('Conversa não encontrada');
     }
-    return await this.messageRepository.listByConversation(
+    const messages = await this.messageRepository.listByConversation(
       conversationId,
       tenantId,
       limit,
     );
+
+    // Resolve a URL servível da mídia (presigned no S3) sob demanda.
+    await Promise.all(
+      messages.map(async (m) => {
+        if (m.mediaUrl) {
+          m.mediaUrl = await this.mediaStorage.resolveUrl(m.mediaUrl);
+        }
+      }),
+    );
+
+    return messages;
+  }
+
+  /**
+   * Importa o histórico recente de uma conversa a partir do aparelho (Evolution
+   * findMessages), gravando mensagens que ainda não existem localmente. Traz
+   * tanto recebidas quanto enviadas pelo celular (fromMe). Idempotente (dedupe
+   * por waMessageId). Baixa mídia visual sob demanda.
+   */
+  async syncConversation(
+    conversationId: string,
+    page = 1,
+  ): Promise<{ imported: number }> {
+    const tenantId = this.getTenantId();
+    const conversation = await this.conversationRepository.findById(
+      conversationId,
+      tenantId,
+    );
+    if (!conversation) {
+      throw new NotFoundException('Conversa não encontrada');
+    }
+    const instance = await this.instanceRepository.findByTenant(tenantId);
+    if (!instance) {
+      throw new BadRequestException(
+        'Nenhuma instância de WhatsApp conectada para este estabelecimento',
+      );
+    }
+
+    const result = await this.evolution.findMessages(
+      instance.instanceName,
+      conversation.waChatId,
+      page,
+    );
+    const records = result.messages?.records ?? [];
+
+    let imported = 0;
+    let latestTimestamp = conversation.lastMessageAt ?? null;
+    let latestPreview: string | null = null;
+
+    for (const record of records) {
+      const waMessageId = record.key?.id ?? null;
+      if (!waMessageId) continue;
+
+      const existing = await this.messageRepository.findByWaMessageId(
+        waMessageId,
+        tenantId,
+      );
+      if (existing) continue; // dedupe
+
+      // Os helpers de extração esperam o mesmo shape do webhook (.message /
+      // .messageTimestamp), que o registro do histórico também possui.
+      const data = record as unknown as NonNullable<
+        EvolutionWebhookPayload['data']
+      >;
+      const text = this.extractText(data);
+      const type = this.extractType(data);
+      const timestamp = this.extractTimestamp(data);
+      const quote = this.extractQuote(data);
+      const fromMe = record.key?.fromMe === true;
+
+      let mediaUrl: string | null = null;
+      const isDownloadableMedia =
+        type === MessageType.IMAGE ||
+        type === MessageType.STICKER ||
+        type === MessageType.AUDIO ||
+        type === MessageType.VIDEO ||
+        type === MessageType.DOCUMENT;
+      if (isDownloadableMedia) {
+        mediaUrl = await this.fetchMediaDataUrl(
+          instance.instanceName,
+          waMessageId,
+          tenantId,
+          type,
+        );
+      }
+
+      await this.messageRepository.save(
+        this.messageRepository.create({
+          tenantId,
+          conversationId: conversation.id,
+          waMessageId,
+          direction: fromMe
+            ? MessageDirection.OUTBOUND
+            : MessageDirection.INBOUND,
+          type,
+          content: text,
+          mediaUrl,
+          quotedWaMessageId: quote.quotedWaMessageId,
+          quotedPreview: quote.quotedPreview,
+          status: MessageStatus.DELIVERED,
+          timestamp,
+        }),
+      );
+      imported += 1;
+
+      if (!latestTimestamp || timestamp > latestTimestamp) {
+        latestTimestamp = timestamp;
+        latestPreview = text ?? this.mediaLabel(type);
+      }
+    }
+
+    if (imported > 0) {
+      if (latestTimestamp) conversation.lastMessageAt = latestTimestamp;
+      if (latestPreview) {
+        conversation.lastMessagePreview = latestPreview.slice(0, 120);
+      }
+      await this.conversationRepository.save(conversation);
+      this.gateway.emitInboxUpdate(tenantId, {
+        conversationId: conversation.id,
+        kind: 'sync',
+      });
+    }
+
+    return { imported };
   }
 
   /** Envia uma mensagem de texto numa conversa e grava o espelho outbound. */
@@ -570,11 +694,8 @@ export class WhatsappService {
       return null;
     }
 
-    // Ignora o eco das nossas próprias mensagens (outbound).
-    if (data.key?.fromMe) {
-      return null;
-    }
-
+    // Dedupe por waMessageId: pula tanto o eco das nossas mensagens enviadas
+    // pelo sistema quanto reprocessamento de webhooks.
     const waMessageId = data.key?.id ?? null;
     if (waMessageId) {
       const existing = await this.messageRepository.findByWaMessageId(
@@ -586,21 +707,35 @@ export class WhatsappService {
       }
     }
 
+    // fromMe = mensagem enviada pelo próprio aparelho (ex.: digitada no
+    // celular). Capturamos como OUTBOUND para espelhar o histórico real.
+    const fromMe = data.key?.fromMe === true;
+    const direction = fromMe
+      ? MessageDirection.OUTBOUND
+      : MessageDirection.INBOUND;
+
     const text = this.extractText(data);
+    const quote = this.extractQuote(data);
     const type = this.extractType(data);
     const phoneNormalized = normalizePhone(remoteJid.split('@')[0] ?? '');
     const timestamp = this.extractTimestamp(data);
 
-    // Mídia visual (imagem/figurinha): a URL do WhatsApp é criptografada,
-    // então pedimos à Evolution o conteúdo descriptografado em base64.
+    // Mídia com conteúdo binário (imagem/figurinha/áudio/vídeo/documento): a
+    // URL do WhatsApp é criptografada, então pedimos à Evolution o conteúdo
+    // descriptografado em base64.
     let mediaUrl: string | null = null;
-    const isVisualMedia =
-      type === MessageType.IMAGE || type === MessageType.STICKER;
-    if (isVisualMedia && waMessageId) {
+    const isDownloadableMedia =
+      type === MessageType.IMAGE ||
+      type === MessageType.STICKER ||
+      type === MessageType.AUDIO ||
+      type === MessageType.VIDEO ||
+      type === MessageType.DOCUMENT;
+    if (isDownloadableMedia && waMessageId) {
       mediaUrl = await this.fetchMediaDataUrl(
         instance.instanceName,
         waMessageId,
         tenantId,
+        type,
       );
     }
 
@@ -615,10 +750,12 @@ export class WhatsappService {
       tenantId,
       conversationId: conversation.id,
       waMessageId,
-      direction: MessageDirection.INBOUND,
+      direction,
       type,
       content: text,
       mediaUrl,
+      quotedWaMessageId: quote.quotedWaMessageId,
+      quotedPreview: quote.quotedPreview,
       status: MessageStatus.DELIVERED,
       timestamp,
     });
@@ -629,7 +766,11 @@ export class WhatsappService {
       120,
     );
     conversation.lastMessageAt = timestamp;
-    conversation.unreadCount = (conversation.unreadCount ?? 0) + 1;
+    // Só conta como não lida quando é uma mensagem recebida (não as que o
+    // próprio estabelecimento enviou pelo celular).
+    if (direction === MessageDirection.INBOUND) {
+      conversation.unreadCount = (conversation.unreadCount ?? 0) + 1;
+    }
     if (!conversation.contactName && data.pushName) {
       conversation.contactName = data.pushName;
     }
@@ -654,6 +795,7 @@ export class WhatsappService {
     if (!instance) return;
 
     const state = payload.data?.state?.toLowerCase();
+    const previous = instance.status;
     if (state === 'open') {
       instance.status = WhatsappInstanceStatus.CONNECTED;
     } else if (state === 'connecting') {
@@ -662,6 +804,12 @@ export class WhatsappService {
       instance.status = WhatsappInstanceStatus.DISCONNECTED;
     }
     await this.instanceRepository.save(instance);
+
+    // Avisa o front em tempo real quando o estado muda (ex.: queda do
+    // aparelho, logout pelo próprio WhatsApp), para dar feedback imediato.
+    if (instance.status !== previous) {
+      this.gateway.emitConnectionUpdate(instance.tenantId, instance.status);
+    }
   }
 
   /**
@@ -797,6 +945,7 @@ export class WhatsappService {
     instanceName: string,
     waMessageId: string,
     tenantId: string,
+    type: MessageType,
   ): Promise<string | null> {
     try {
       const media = await this.evolution.getMediaBase64(
@@ -804,7 +953,7 @@ export class WhatsappService {
         waMessageId,
       );
       if (!media?.base64) return null;
-      const mime = media.mimetype || 'image/webp';
+      const mime = media.mimetype || this.fallbackMimeFor(type);
       return await this.mediaStorage.store({
         base64: media.base64,
         mime,
@@ -814,6 +963,24 @@ export class WhatsappService {
     } catch (err) {
       this.logger.warn(`Falha ao baixar mídia ${waMessageId}: ${String(err)}`);
       return null;
+    }
+  }
+
+  /** Mime padrão por tipo, caso a Evolution não informe o mimetype. */
+  private fallbackMimeFor(type: MessageType): string {
+    switch (type) {
+      case MessageType.AUDIO:
+        return 'audio/ogg';
+      case MessageType.VIDEO:
+        return 'video/mp4';
+      case MessageType.IMAGE:
+        return 'image/jpeg';
+      case MessageType.STICKER:
+        return 'image/webp';
+      case MessageType.DOCUMENT:
+        return 'application/octet-stream';
+      default:
+        return 'application/octet-stream';
     }
   }
 
@@ -846,7 +1013,44 @@ export class WhatsappService {
     return MessageType.UNKNOWN;
   }
 
-  /** Rótulo amigável para prévia de mensagens de mídia. */
+  /**
+   * Extrai a citação (reply) de uma mensagem, se houver: o waMessageId da
+   * mensagem citada e uma prévia textual dela. Procura o contextInfo nas
+   * submensagens que o suportam.
+   */
+  private extractQuote(
+    data: NonNullable<EvolutionWebhookPayload['data']>,
+  ): { quotedWaMessageId: string | null; quotedPreview: string | null } {
+    const m = data.message;
+    const context =
+      m?.extendedTextMessage?.contextInfo ??
+      m?.imageMessage?.contextInfo ??
+      m?.videoMessage?.contextInfo ??
+      m?.audioMessage?.contextInfo ??
+      m?.documentMessage?.contextInfo;
+
+    if (!context?.stanzaId) {
+      return { quotedWaMessageId: null, quotedPreview: null };
+    }
+
+    const q = context.quotedMessage;
+    let preview: string | null = null;
+    if (q) {
+      if (q.conversation) preview = q.conversation;
+      else if (q.extendedTextMessage?.text) preview = q.extendedTextMessage.text;
+      else if (q.imageMessage) preview = q.imageMessage.caption || '[imagem]';
+      else if (q.videoMessage) preview = q.videoMessage.caption || '[vídeo]';
+      else if (q.audioMessage) preview = '[áudio]';
+      else if (q.stickerMessage) preview = '[figurinha]';
+      else if (q.documentMessage)
+        preview = q.documentMessage.fileName || '[arquivo]';
+    }
+
+    return {
+      quotedWaMessageId: context.stanzaId,
+      quotedPreview: preview ? preview.slice(0, 120) : null,
+    };
+  }
   private mediaLabel(type: MessageType): string {
     const labels: Partial<Record<MessageType, string>> = {
       [MessageType.IMAGE]: '[imagem]',
