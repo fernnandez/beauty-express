@@ -96,7 +96,7 @@ export function AdminLogin() {
             <ThemeIcon size={64} radius="md" color={backofficeAccent} variant="light">
               <IconCalendarEvent size={34} stroke={1.5} />
             </ThemeIcon>
-            <Title order={2} ta="center" c="gray.1">
+            <Title order={2} ta="center" c="gray.9">
               {BACKOFFICE_NAME}
             </Title>
             <Text c="dimmed" size="sm" ta="center">
@@ -146,7 +146,7 @@ export function AdminLogin() {
 
           <Text size="sm" ta="center" c="dimmed">
             App operacional?{' '}
-            <Anchor component={Link} to="/login" c="gray.4">
+            <Anchor component={Link} to="/login" c="gray.6">
               Fazer login na filial
             </Anchor>
           </Text>

@@ -45,7 +45,7 @@ export function BackofficeAuditLogs() {
     <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
       <Stack gap="md" mb="xl">
         <Stack gap="xs">
-          <Title order={1} c="gray.3">
+          <Title order={1} c="gray.8">
             Ações recentes
           </Title>
           <Text c="dimmed">

@@ -164,7 +164,7 @@ export function BackofficeDashboard() {
     <Container style={{ maxWidth: "95%" }} px={{ base: "xs", sm: "md" }}>
       <Stack gap="xl" mb="xl">
         <Stack gap="xs">
-          <Title order={1} c="gray.3">
+          <Title order={1} c="gray.8">
             Dashboard consolidado
           </Title>
           <Text c="dimmed">
@@ -204,7 +204,7 @@ export function BackofficeDashboard() {
                         <Text size="sm" c="dimmed">
                           {card.title}
                         </Text>
-                        <Text size="xl" fw={700} c="gray.1">
+                        <Text size="xl" fw={700} c="gray.9">
                           {formatStatValue(value, card.format)}
                         </Text>
                       </Stack>
@@ -223,7 +223,7 @@ export function BackofficeDashboard() {
             </SimpleGrid>
 
             <Stack gap="md">
-              <Title order={3} c="gray.3">
+              <Title order={3} c="gray.8">
                 Comparativo por filial
               </Title>
               <ScrollArea>
@@ -317,7 +317,7 @@ export function BackofficeDashboard() {
             </Stack>
 
             <Stack gap="md">
-              <Title order={3} c="gray.3">
+              <Title order={3} c="gray.8">
                 Inventário da plataforma
               </Title>
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
@@ -342,7 +342,7 @@ export function BackofficeDashboard() {
                           <Text size="sm" c="dimmed">
                             {card.title}
                           </Text>
-                          <Text size="xl" fw={700} c="gray.1">
+                          <Text size="xl" fw={700} c="gray.9">
                             {count}
                           </Text>
                         </Stack>

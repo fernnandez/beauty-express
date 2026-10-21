@@ -141,7 +141,7 @@ export function BackofficeTenants() {
     <Container style={{ maxWidth: '95%' }} px={{ base: 'xs', sm: 'md' }}>
       <Stack gap="md" mb="xl">
         <Group justify="space-between" wrap="wrap">
-          <Title order={1} c="gray.3">
+          <Title order={1} c="gray.8">
             Filiais
           </Title>
           <Button

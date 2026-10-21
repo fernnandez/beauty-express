@@ -164,7 +164,7 @@ function TenantSummaryTab({ tenantId }: { tenantId: string }) {
                     <Text size="sm" c="dimmed">
                       {card.title}
                     </Text>
-                    <Text size="xl" fw={700} c="gray.1">
+                    <Text size="xl" fw={700} c="gray.9">
                       {formatPrice(card.value)}
                     </Text>
                   </Stack>
@@ -561,7 +561,7 @@ export function BackofficeTenantDetail() {
               Voltar
             </Button>
             <Group gap="sm">
-              <Title order={1} c="gray.3">
+              <Title order={1} c="gray.8">
                 {tenant.name}
               </Title>
               <Badge color={tenant.isActive ? 'green' : 'gray'}>
@@ -580,7 +580,7 @@ export function BackofficeTenantDetail() {
               <Text size="xs" c="dimmed">
                 {card.label}
               </Text>
-              <Text size="lg" fw={700} c="gray.1">
+              <Text size="lg" fw={700} c="gray.9">
                 {card.format === 'money'
                   ? formatPrice(toMoney(card.value))
                   : card.value}

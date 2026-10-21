@@ -180,7 +180,7 @@ export function BackofficeLayout() {
               href="https://fernnandez-dev.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
-              c="gray.4"
+              c="gray.6"
               fw={500}
             >
               fernnnadez

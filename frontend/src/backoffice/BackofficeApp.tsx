@@ -14,12 +14,11 @@ import { backofficeAccent } from './utils/backoffice-theme.util';
 const backofficeTheme = {
   primaryColor: backofficeAccent,
   defaultRadius: 'md' as const,
-  colorScheme: 'dark' as const,
 };
 
 export function BackofficeApp() {
   return (
-    <MantineProvider theme={backofficeTheme} forceColorScheme="dark">
+    <MantineProvider theme={backofficeTheme} forceColorScheme="light">
       <AdminAuthProvider>
         <Routes>
           <Route path="login" element={<AdminLogin />} />

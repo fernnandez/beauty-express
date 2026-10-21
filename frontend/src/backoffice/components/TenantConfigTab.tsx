@@ -87,7 +87,7 @@ export function TenantConfigTab({ tenant }: { tenant: TenantDetail }) {
       <form onSubmit={handleSubmit}>
         <Stack gap="lg">
           <Stack gap="xs">
-            <Title order={3} c="gray.3">
+            <Title order={3} c="gray.8">
               Configuração da filial
             </Title>
             <Text size="sm" c="dimmed">

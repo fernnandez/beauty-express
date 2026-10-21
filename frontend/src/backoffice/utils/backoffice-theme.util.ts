@@ -2,28 +2,28 @@ export const BACKOFFICE_NAME = 'Agendor';
 export const BACKOFFICE_TAGLINE = 'Sistema de agendamentos e comissões';
 
 export const backofficeColors = {
-  // Dark mode suave (grafite), com contraste reduzido para leitura confortável.
-  bg: '#1a1a1f',
-  surface: '#212128',
-  surfaceMuted: '#2a2a32',
-  inputBg: '#2a2a32',
-  inputBgFocus: '#32323b',
-  border: '#303039',
-  borderStrong: '#3c3c47',
-  navbar: '#1d1d23',
+  // Light mode: base clara e suave, superfícies brancas, contraste confortável.
+  bg: '#f6f6f8',
+  surface: '#ffffff',
+  surfaceMuted: '#f1f1f4',
+  inputBg: '#ffffff',
+  inputBgFocus: '#ffffff',
+  border: '#e6e6ec',
+  borderStrong: '#d4d4dd',
+  navbar: '#ffffff',
   // Accent de marca (violeta) nas interações de navegação.
-  navActiveBg: 'rgba(168, 85, 247, 0.18)',
-  navHoverBg: 'rgba(255, 255, 255, 0.05)',
-  navText: '#9a9aa5',
-  navTextActive: '#ededf2',
-  textPrimary: '#e6e6ea',
-  textSecondary: '#b4b4bf',
-  textMuted: '#8a8a95',
-  placeholder: '#5e5e68',
-  tableHeader: '#2a2a32',
-  tableHeaderText: '#d6d6dd',
-  tableCell: '#212128',
-  tableCellText: '#d8d8df',
+  navActiveBg: 'rgba(124, 58, 237, 0.12)',
+  navHoverBg: 'rgba(0, 0, 0, 0.04)',
+  navText: '#6b6b76',
+  navTextActive: '#6d28d9',
+  textPrimary: '#1f1f29',
+  textSecondary: '#44444f',
+  textMuted: '#787884',
+  placeholder: '#9a9aa5',
+  tableHeader: '#f1f1f4',
+  tableHeaderText: '#44444f',
+  tableCell: '#ffffff',
+  tableCellText: '#2a2a33',
 } as const;
 
 export const backofficeCardStyle = {
@@ -43,7 +43,7 @@ export const backofficeTableStyles = {
 };
 
 export const backofficeLoginGradient =
-  'linear-gradient(145deg, #0b0b0f 0%, #17171d 55%, #2a2440 100%)';
+  'linear-gradient(145deg, #faf5ff 0%, #f3e8ff 55%, #ede9fe 100%)';
 
 /** Cor Mantine padrão do backoffice (accent de marca: violeta). */
 export const backofficeAccent = 'violet' as const;
@@ -51,14 +51,14 @@ export const backofficeAccent = 'violet' as const;
 const inputBaseStyles = {
   label: { color: backofficeColors.textSecondary, fontWeight: 500 },
   description: { color: backofficeColors.textMuted },
-  error: { color: '#fca5a5' },
+  error: { color: '#dc2626' },
   input: {
     color: backofficeColors.textPrimary,
     backgroundColor: backofficeColors.inputBg,
     borderColor: backofficeColors.borderStrong,
     '&::placeholder': { color: backofficeColors.placeholder },
     '&:focus': {
-      borderColor: '#64748b',
+      borderColor: '#8b5cf6',
       backgroundColor: backofficeColors.inputBgFocus,
     },
     '&:disabled': {
