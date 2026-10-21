@@ -1,15 +1,15 @@
 import {
   ActionIcon,
-  Badge,
   Button,
   Group,
+  SegmentedControl,
   Stack,
   TextInput,
   Title,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { RowActions } from "../components/RowActions";
@@ -35,6 +35,16 @@ export function Collaborators() {
   const [debouncedSearchTerm] = useDebouncedValue(searchTerm, 500);
   const { data: collaborators, isLoading } = useCollaborators(
     debouncedSearchTerm.trim() || undefined
+  );
+  const [statusTab, setStatusTab] = useState<"active" | "inactive">("active");
+
+  // Separa a lista pela aba selecionada (ativos x inativos).
+  const filteredCollaborators = useMemo(
+    () =>
+      (collaborators ?? []).filter((c) =>
+        statusTab === "active" ? c.isActive : !c.isActive,
+      ),
+    [collaborators, statusTab],
   );
   const { commissionsEnabled } = useOperationalBranding();
   const { data: alerts } = useCommissionAlerts(commissionsEnabled);
@@ -124,28 +134,42 @@ export function Collaborators() {
             onChange={(e) => setSearchTerm(e.currentTarget.value)}
             style={{ maxWidth: "100%" }}
           />
+
+          <SegmentedControl
+            value={statusTab}
+            onChange={(v) => setStatusTab(v as "active" | "inactive")}
+            data={[
+              {
+                value: "active",
+                label: `Ativos (${
+                  (collaborators ?? []).filter((c) => c.isActive).length
+                })`,
+              },
+              {
+                value: "inactive",
+                label: `Inativos (${
+                  (collaborators ?? []).filter((c) => !c.isActive).length
+                })`,
+              },
+            ]}
+          />
         </Stack>
       }
     >
       <DataTable
-        data={collaborators ?? []}
+        data={filteredCollaborators}
         loading={isLoading}
         rowKey={(c) => c.id}
-        emptyMessage="Nenhum colaborador encontrado."
+        emptyMessage={
+          statusTab === "active"
+            ? "Nenhum colaborador ativo."
+            : "Nenhum colaborador inativo."
+        }
         onRowClick={(c) => navigate(`/collaborators/${c.id}`)}
         columns={[
           { key: "name", header: "Nome", primary: true, render: (c) => c.name },
           { key: "area", header: "Área de Atuação", render: (c) => c.area },
           { key: "phone", header: "Telefone", render: (c) => c.phone },
-          {
-            key: "status",
-            header: "Status",
-            render: (c) => (
-              <Badge color={c.isActive ? "green" : "red"}>
-                {c.isActive ? "Ativo" : "Inativo"}
-              </Badge>
-            ),
-          },
           ...(commissionsEnabled
             ? [
                 {
