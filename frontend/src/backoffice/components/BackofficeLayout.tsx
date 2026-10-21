@@ -12,6 +12,7 @@ import {
 import {
   IconBuildingStore,
   IconCalendarEvent,
+  IconHistory,
   IconHome,
   IconLogout,
   IconUsers,
@@ -31,6 +32,7 @@ const navigationItems = [
   { icon: IconHome, label: 'Dashboard', path: '/backoffice' },
   { icon: IconBuildingStore, label: 'Filiais', path: '/backoffice/tenants' },
   { icon: IconUsers, label: 'Usuários', path: '/backoffice/users' },
+  { icon: IconHistory, label: 'Ações recentes', path: '/backoffice/audit-logs' },
 ];
 
 export function BackofficeLayout() {

@@ -1,6 +1,7 @@
 import { adminApi } from '../config/admin-api';
 import type { Appointment, Commission } from '../types';
 import type {
+  AdminAuditLog,
   AdminUser,
   CreateAdminUserDto,
   CreateTenantDto,
@@ -85,6 +86,13 @@ export const adminService = {
 
   updateUser: async (id: string, dto: UpdateAdminUserDto): Promise<AdminUser> => {
     const response = await adminApi.patch<AdminUser>(`/admin/users/${id}`, dto);
+    return response.data;
+  },
+
+  listAuditLogs: async (limit = 50): Promise<AdminAuditLog[]> => {
+    const response = await adminApi.get<AdminAuditLog[]>('/admin/audit-logs', {
+      params: { limit },
+    });
     return response.data;
   },
 };

@@ -92,3 +92,15 @@ export interface UpdateAdminUserDto {
   tenantId?: string;
   isActive?: boolean;
 }
+
+export interface AdminAuditLog {
+  id: string;
+  actorUserId: string;
+  actorEmail: string | null;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  metadata: Record<string, unknown> | null;
+  ipAddress: string | null;
+  createdAt: string;
+}

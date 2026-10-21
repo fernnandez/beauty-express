@@ -1,4 +1,5 @@
 import { AdminAuditLogRepository } from '@domain/repositories/admin-audit-log.repository';
+import { UserRepository } from '@domain/repositories/user.repository';
 import { AdminAuditService } from './admin-audit.service';
 
 describe('AdminAuditService', () => {
@@ -7,10 +8,15 @@ describe('AdminAuditService', () => {
     findRecent: jest.fn(),
   } as unknown as AdminAuditLogRepository;
 
-  const service = new AdminAuditService(repository);
+  const userRepository = {
+    find: jest.fn().mockResolvedValue([]),
+  } as unknown as UserRepository;
+
+  const service = new AdminAuditService(repository, userRepository);
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (userRepository.find as jest.Mock).mockResolvedValue([]);
   });
 
   it('registra ação de auditoria', async () => {
@@ -32,11 +38,18 @@ describe('AdminAuditService', () => {
     });
   });
 
-  it('lista logs recentes', async () => {
-    const logs = [{ id: 'log-1' }];
+  it('lista logs recentes com e-mail do ator', async () => {
+    const logs = [{ id: 'log-1', actorUserId: 'user-1' }];
     (repository.findRecent as jest.Mock).mockResolvedValue(logs);
+    (userRepository.find as jest.Mock).mockResolvedValue([
+      { id: 'user-1', email: 'owner@x.com' },
+    ]);
 
-    await expect(service.listRecent(10)).resolves.toEqual(logs);
+    const result = await service.listRecent(10);
+
     expect(repository.findRecent).toHaveBeenCalledWith(10);
+    expect(result).toEqual([
+      { id: 'log-1', actorUserId: 'user-1', actorEmail: 'owner@x.com' },
+    ]);
   });
 });

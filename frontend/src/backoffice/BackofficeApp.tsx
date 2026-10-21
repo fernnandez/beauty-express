@@ -8,6 +8,7 @@ import { BackofficeDashboard } from './pages/BackofficeDashboard';
 import { BackofficeTenants } from './pages/BackofficeTenants';
 import { BackofficeTenantDetail } from './pages/BackofficeTenantDetail';
 import { BackofficeUsers } from './pages/BackofficeUsers';
+import { BackofficeAuditLogs } from './pages/BackofficeAuditLogs';
 import { backofficeAccent } from './utils/backoffice-theme.util';
 
 const backofficeTheme = {
@@ -33,6 +34,7 @@ export function BackofficeApp() {
             <Route path="tenants" element={<BackofficeTenants />} />
             <Route path="tenants/:id" element={<BackofficeTenantDetail />} />
             <Route path="users" element={<BackofficeUsers />} />
+            <Route path="audit-logs" element={<BackofficeAuditLogs />} />
           </Route>
         </Routes>
       </AdminAuthProvider>

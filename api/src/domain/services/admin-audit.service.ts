@@ -1,5 +1,7 @@
 import { AdminAuditLogRepository } from '@domain/repositories/admin-audit-log.repository';
+import { UserRepository } from '@domain/repositories/user.repository';
 import { Injectable } from '@nestjs/common';
+import { In } from 'typeorm';
 
 export interface AdminAuditContext {
   actorUserId: string;
@@ -10,6 +12,7 @@ export interface AdminAuditContext {
 export class AdminAuditService {
   constructor(
     private readonly auditLogRepository: AdminAuditLogRepository,
+    private readonly userRepository: UserRepository,
   ) {}
 
   async log(
@@ -29,7 +32,22 @@ export class AdminAuditService {
     });
   }
 
+  /** Lista as ações recentes, incluindo o e-mail do ator (resolvido em lote). */
   async listRecent(limit = 50) {
-    return await this.auditLogRepository.findRecent(limit);
+    const logs = await this.auditLogRepository.findRecent(limit);
+
+    const actorIds = [...new Set(logs.map((l) => l.actorUserId))];
+    const actors = actorIds.length
+      ? await this.userRepository.find({
+          where: { id: In(actorIds) },
+          select: { id: true, email: true },
+        })
+      : [];
+    const emailById = new Map(actors.map((a) => [a.id, a.email]));
+
+    return logs.map((log) => ({
+      ...log,
+      actorEmail: emailById.get(log.actorUserId) ?? null,
+    }));
   }
 }
