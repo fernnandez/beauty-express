@@ -2,6 +2,7 @@ import { Badge, Tooltip } from "@mantine/core";
 import { IconAlertTriangle, IconCircleCheck } from "@tabler/icons-react";
 import type { CollaboratorCommissionAlert } from "../../types";
 import { formatPrice } from "../../utils/money.util";
+import { countLabel, pluralize } from "../../utils/plural.util";
 
 interface CommissionAlertBadgeProps {
   alert?: CollaboratorCommissionAlert;
@@ -16,7 +17,11 @@ export function CommissionAlertBadge({ alert }: CommissionAlertBadgeProps) {
   if (alert?.status === "overdue") {
     return (
       <Tooltip
-        label={`${alert.overdueCount} comissão(ões) vencida(s) não paga(s)`}
+        label={`${countLabel(
+          alert.overdueCount,
+          "comissão vencida",
+          "comissões vencidas",
+        )} não paga${pluralize(alert.overdueCount, "", "s")}`}
         withArrow
       >
         <Badge

@@ -15,6 +15,7 @@ import type { Appointment } from "../../types";
 import { AppointmentStatus } from "../../types";
 import { formatDate, formatPrice } from "../../utils/appointment.utils";
 import { formatPhoneDisplay } from "../../utils/phone.util";
+import { countLabel } from "../../utils/plural.util";
 import { RowActions } from "../RowActions";
 
 interface AppointmentListViewProps {
@@ -140,7 +141,11 @@ export function AppointmentListView({
                 <Text size="sm" c="dimmed">
                   {appointment.scheduledServices &&
                   appointment.scheduledServices.length > 0
-                    ? `${appointment.scheduledServices.length} serviço(s)`
+                    ? countLabel(
+                        appointment.scheduledServices.length,
+                        "serviço",
+                        "serviços",
+                      )
                     : "Sem serviços"}
                 </Text>
 
@@ -201,7 +206,11 @@ export function AppointmentListView({
                   <Table.Td>
                     {appointment.scheduledServices &&
                     appointment.scheduledServices.length > 0
-                      ? `${appointment.scheduledServices.length} serviço(s)`
+                      ? countLabel(
+                          appointment.scheduledServices.length,
+                          "serviço",
+                          "serviços",
+                        )
                       : "-"}
                   </Table.Td>
                   <Table.Td>{formatPrice(getTotalPrice(appointment))}</Table.Td>
