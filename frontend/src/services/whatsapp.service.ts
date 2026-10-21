@@ -65,6 +65,15 @@ export const whatsappService = {
     await api.post(`/whatsapp/conversations/${conversationId}/read`);
   },
 
+  syncConversation: async (
+    conversationId: string,
+  ): Promise<{ imported: number }> => {
+    const response = await api.post<{ imported: number }>(
+      `/whatsapp/conversations/${conversationId}/sync`,
+    );
+    return response.data;
+  },
+
   getPriceListPreview: async (): Promise<{ message: string }> => {
     const response = await api.get<{ message: string }>(
       "/whatsapp/price-list/preview",

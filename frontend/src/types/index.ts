@@ -320,6 +320,8 @@ export interface WhatsappMessage {
   content?: string | null;
   mediaUrl?: string | null;
   reaction?: string | null;
+  quotedWaMessageId?: string | null;
+  quotedPreview?: string | null;
   status: MessageStatus;
   sentByUserId?: string | null;
   timestamp: string;

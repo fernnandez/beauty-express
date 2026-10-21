@@ -5,6 +5,7 @@ import type {
   PeriodMode,
   QuickReply,
   PriceListSettings,
+  ChatDensity,
 } from "../types/tenant-settings.types";
 
 export interface UpdateSettingsDto {
@@ -14,6 +15,7 @@ export interface UpdateSettingsDto {
     commissionPayoutDays?: number[];
     quickReplies?: QuickReply[];
     priceList?: PriceListSettings;
+    chatDensity?: ChatDensity;
   };
 }
 

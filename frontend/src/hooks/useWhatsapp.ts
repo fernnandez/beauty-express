@@ -45,13 +45,18 @@ export const useWhatsappUnreadCount = (enabled = true) => {
   });
 };
 
-/** Status da instância; faz polling enquanto não estiver conectada. */
+/** Status da instância; polling rápido enquanto conecta, leve quando conectada. */
 export const useWhatsappInstance = (poll = true) => {
   return useQuery<WhatsappInstanceState>({
     queryKey: INSTANCE_KEY,
     queryFn: () => whatsappService.getInstance(),
-    refetchInterval: (query) =>
-      poll && query.state.data?.status !== "connected" ? 4000 : false,
+    refetchInterval: (query) => {
+      if (!poll) return false;
+      // Enquanto não está conectada, poll rápido (parear/reconectar).
+      // Já conectada, mantém um poll leve como rede de segurança contra
+      // quedas que o socket possa não entregar.
+      return query.state.data?.status === "connected" ? 30000 : 4000;
+    },
   });
 };
 
@@ -146,6 +151,20 @@ export const useMarkConversationRead = () => {
   });
 };
 
+export const useSyncConversation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (conversationId: string) =>
+      whatsappService.syncConversation(conversationId),
+    onSuccess: (_data, conversationId) => {
+      queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp", "messages", conversationId],
+      });
+    },
+  });
+};
+
 export const useImportPriceList = () => {
   return useMutation({
     mutationFn: () => whatsappService.getPriceListPreview(),
@@ -236,14 +255,22 @@ export const useWhatsappSocket = (enabled: boolean) => {
       }
     };
 
+    // Mudança de estado da conexão (conectou / caiu / logout pelo celular):
+    // atualiza o status da instância na hora.
+    const onConnection = () => {
+      queryClient.invalidateQueries({ queryKey: INSTANCE_KEY });
+    };
+
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("whatsapp:update", onUpdate);
+    socket.on("whatsapp:connection", onConnection);
 
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("whatsapp:update", onUpdate);
+      socket.off("whatsapp:connection", onConnection);
       socket.disconnect();
       setWhatsappSocketConnected(false);
     };

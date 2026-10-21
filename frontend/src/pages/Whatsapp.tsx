@@ -38,6 +38,7 @@ import {
   IconMessage2,
   IconMoodSmile,
   IconPlugConnectedX,
+  IconRefresh,
   IconReportMoney,
   IconSearch,
   IconSend,
@@ -54,6 +55,7 @@ import {
   useReactToMessage,
   useSendMessage,
   useStartConversation,
+  useSyncConversation,
   useWhatsappInstance,
   useWhatsappQr,
   useWhatsappSocket,
@@ -71,6 +73,8 @@ import { TodayAppointmentsModal } from "../components/whatsapp/TodayAppointments
 import { WhatsappConfigPanel } from "../components/whatsapp/WhatsappConfigPanel";
 import { UnofficialApiNotice } from "../components/whatsapp/UnofficialApiNotice";
 import { useSettings } from "../hooks/useSettings";
+import { useNotifications } from "../hooks/useNotifications";
+import { countLabel } from "../utils/plural.util";
 import { formatBrazilianPhone } from "../utils/phone.util";
 
 const WA_GREEN = "#25D366";
@@ -139,6 +143,26 @@ function initials(name: string): string {
 export function Whatsapp() {
   const { data: instance, isLoading } = useWhatsappInstance();
   const connected = instance?.status === "connected";
+  const { showError } = useNotifications();
+  const wasConnected = useRef(false);
+
+  // Detecta a queda da conexão (estava conectado e caiu / logout pelo celular)
+  // para avisar o atendente, já que a tela volta ao pareamento.
+  useEffect(() => {
+    const status = instance?.status;
+    if (status === "connected") {
+      wasConnected.current = true;
+    } else if (
+      wasConnected.current &&
+      (status === "disconnected" || status === "connecting")
+    ) {
+      wasConnected.current = false;
+      showError(
+        null,
+        "O WhatsApp foi desconectado. Reconecte escaneando o QR Code.",
+      );
+    }
+  }, [instance?.status, showError]);
 
   if (isLoading) {
     return (
@@ -667,7 +691,14 @@ function ChatView({
   const sendMessage = useSendMessage();
   const linkConversation = useLinkConversation();
   const reactToMessage = useReactToMessage(conversation.id);
+  const syncMutation = useSyncConversation();
+  const { showSuccess, showError } = useNotifications();
   const { data: settings } = useSettings();
+  const density = settings?.features?.chatDensity ?? "comfortable";
+  const compact = density === "compact";
+  const msgFontSize = compact ? 13 : 15;
+  const msgPad = compact ? 6 : 10;
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const quickReplies = settings?.features?.quickReplies ?? [];
   const priceList = settings?.features?.priceList;
   const [linkOpened, { open: openLink, close: closeLink }] =
@@ -688,6 +719,19 @@ function ChatView({
       { conversationId: conversation.id, text: trimmed },
       { onSuccess: () => setText("") },
     );
+  };
+
+  const handleSync = () => {
+    syncMutation.mutate(conversation.id, {
+      onSuccess: (data) => {
+        showSuccess(
+          data.imported > 0
+            ? `${countLabel(data.imported, "mensagem sincronizada", "mensagens sincronizadas")}.`
+            : "Nenhuma mensagem nova para sincronizar.",
+        );
+      },
+      onError: (err) => showError(err, "Erro ao sincronizar mensagens"),
+    });
   };
 
   const handleLink = (client: Client) => {
@@ -742,6 +786,17 @@ function ChatView({
           </Text>
         </div>
         <Box style={{ flex: 1 }} />
+        <Tooltip label="Sincronizar mensagens do aparelho" withArrow>
+          <ActionIcon
+            variant="light"
+            color="gray"
+            onClick={handleSync}
+            loading={syncMutation.isPending}
+            aria-label="Sincronizar mensagens"
+          >
+            <IconRefresh size={20} />
+          </ActionIcon>
+        </Tooltip>
         {!isClient && (
           <Tooltip label="Vincular a um cliente" withArrow>
             <ActionIcon
@@ -821,8 +876,9 @@ function ChatView({
       <ScrollArea
         style={{ flex: 1 }}
         viewportRef={viewport}
-        p="md"
-        bg="var(--mantine-color-gray-0)"
+        py="md"
+        px={compact ? "md" : "xl"}
+        classNames={{ viewport: "wa-chat-bg" }}
       >
         {isLoading && (
           <Center p="xl">
@@ -832,8 +888,12 @@ function ChatView({
         <Stack gap={6}>
           {messages.map((m) => {
             const outbound = m.direction === "outbound";
-            const isMedia =
+            const isImage =
               m.mediaUrl && (m.type === "image" || m.type === "sticker");
+            const isAudio = m.mediaUrl && m.type === "audio";
+            const isVideo = m.mediaUrl && m.type === "video";
+            const isDocument = m.mediaUrl && m.type === "document";
+            const isMedia = isImage || isAudio || isVideo || isDocument;
             return (
               <Group
                 key={m.id}
@@ -842,7 +902,7 @@ function ChatView({
                 align="center"
                 style={{
                   alignSelf: outbound ? "flex-end" : "flex-start",
-                  maxWidth: "85%",
+                  maxWidth: compact ? "85%" : "78%",
                   flexDirection: outbound ? "row-reverse" : "row",
                 }}
                 className="wa-msg-row"
@@ -855,22 +915,72 @@ function ChatView({
                   }}
                 >
                 <Paper
-                  p={isMedia ? 4 : "xs"}
-                  px={isMedia ? 4 : "sm"}
+                  p={isMedia ? 4 : msgPad}
+                  px={isMedia ? 4 : msgPad + 2}
                   radius="lg"
                   shadow="xs"
                   bg={outbound ? "teal.1" : "white"}
                 >
-                  {isMedia ? (
+                  {m.quotedPreview && (
+                    <Box
+                      mb={6}
+                      pl="xs"
+                      py={4}
+                      style={{
+                        borderLeft: `3px solid ${WA_GREEN}`,
+                        background: "rgba(0,0,0,0.04)",
+                        borderRadius: 4,
+                      }}
+                    >
+                      <Text size="xs" c="dimmed" lineClamp={2}>
+                        {m.quotedPreview}
+                      </Text>
+                    </Box>
+                  )}
+                  {isImage ? (
                     <Image
                       src={m.mediaUrl as string}
                       alt={m.type === "sticker" ? "Figurinha" : "Imagem"}
                       w={m.type === "sticker" ? 120 : 220}
                       fit="contain"
                       radius="md"
+                      onClick={
+                        m.type === "image"
+                          ? () => setPreviewImage(m.mediaUrl as string)
+                          : undefined
+                      }
+                      style={{
+                        cursor: m.type === "image" ? "pointer" : undefined,
+                      }}
                     />
+                  ) : isAudio ? (
+                    <audio
+                      controls
+                      src={m.mediaUrl as string}
+                      style={{ maxWidth: 240, height: 40 }}
+                    />
+                  ) : isVideo ? (
+                    <video
+                      controls
+                      src={m.mediaUrl as string}
+                      style={{ maxWidth: 240, borderRadius: 8 }}
+                    />
+                  ) : isDocument ? (
+                    <Text
+                      size="sm"
+                      component="a"
+                      href={m.mediaUrl as string}
+                      target="_blank"
+                      rel="noreferrer"
+                      c="blue"
+                      td="underline"
+                    >
+                      {m.content || "Abrir arquivo"}
+                    </Text>
                   ) : (
-                    <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
+                    <Text
+                      style={{ whiteSpace: "pre-wrap", fontSize: msgFontSize }}
+                    >
                       {m.content || mediaLabel(m.type)}
                     </Text>
                   )}
@@ -987,6 +1097,26 @@ function ChatView({
         loading={linkConversation.isPending}
         onSelect={handleLink}
       />
+
+      <Modal
+        opened={previewImage !== null}
+        onClose={() => setPreviewImage(null)}
+        size="lg"
+        centered
+        withCloseButton={false}
+        padding={0}
+        styles={{ body: { padding: 0 } }}
+      >
+        {previewImage && (
+          <Image
+            src={previewImage}
+            alt="Imagem ampliada"
+            fit="contain"
+            style={{ maxHeight: "80vh", cursor: "zoom-out" }}
+            onClick={() => setPreviewImage(null)}
+          />
+        )}
+      </Modal>
     </Stack>
   );
 }

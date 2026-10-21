@@ -7,6 +7,7 @@ import {
   Loader,
   Center,
   Stack,
+  SegmentedControl,
   Switch,
   Text,
   Textarea,
@@ -23,7 +24,7 @@ import {
 import { useSettings, useUpdateSettings } from "../../hooks/useSettings";
 import { useImportPriceList } from "../../hooks/useWhatsapp";
 import { useNotifications } from "../../hooks/useNotifications";
-import type { QuickReply } from "../../types/tenant-settings.types";
+import type { ChatDensity, QuickReply } from "../../types/tenant-settings.types";
 
 /**
  * Configurações de conteúdo do atendimento (dentro da engrenagem do inbox):
@@ -47,6 +48,7 @@ export function WhatsappConfigPanel() {
       initialQuickReplies={settings?.features?.quickReplies ?? []}
       initialPriceEnabled={settings?.features?.priceList?.enabled ?? false}
       initialPriceMessage={settings?.features?.priceList?.message ?? ""}
+      initialDensity={settings?.features?.chatDensity ?? "comfortable"}
     />
   );
 }
@@ -55,10 +57,12 @@ function WhatsappConfigEditor({
   initialQuickReplies,
   initialPriceEnabled,
   initialPriceMessage,
+  initialDensity,
 }: {
   initialQuickReplies: QuickReply[];
   initialPriceEnabled: boolean;
   initialPriceMessage: string;
+  initialDensity: ChatDensity;
 }) {
   const updateMutation = useUpdateSettings();
   const importPriceList = useImportPriceList();
@@ -66,6 +70,7 @@ function WhatsappConfigEditor({
 
   const [priceEnabled, setPriceEnabled] = useState(initialPriceEnabled);
   const [priceMessage, setPriceMessage] = useState(initialPriceMessage);
+  const [density, setDensity] = useState<ChatDensity>(initialDensity);
   const [items, setItems] = useState<QuickReply[]>(initialQuickReplies);
   // Índices em modo de edição (expandido). Vazios/novos começam editando.
   const [editing, setEditing] = useState<Set<number>>(new Set());
@@ -109,6 +114,7 @@ function WhatsappConfigEditor({
         features: {
           quickReplies: cleaned,
           priceList: { enabled: priceEnabled, message: priceMessage.trim() },
+          chatDensity: density,
         },
       },
       {
@@ -120,6 +126,25 @@ function WhatsappConfigEditor({
 
   return (
     <Stack gap="lg">
+      {/* Aparência do atendimento */}
+      <Stack gap="xs">
+        <Title order={5}>Aparência</Title>
+        <Text size="xs" c="dimmed">
+          Densidade das conversas. "Compacta" mostra mais mensagens com texto
+          menor; "Confortável" usa texto maior.
+        </Text>
+        <SegmentedControl
+          value={density}
+          onChange={(v) => setDensity(v as ChatDensity)}
+          data={[
+            { value: "compact", label: "Compacta" },
+            { value: "comfortable", label: "Confortável" },
+          ]}
+        />
+      </Stack>
+
+      <Divider />
+
       {/* Catálogo de preços */}
       <Stack gap="xs">
         <Group justify="space-between">

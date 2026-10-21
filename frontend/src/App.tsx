@@ -8,6 +8,7 @@ import "@mantine/dates/styles.css";
 import "@mantine/charts/styles.css";
 import "@mantine/notifications/styles.css";
 import { LoginThemeProvider } from "./components/LoginThemeProvider";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -43,25 +44,27 @@ function App() {
           <PwaInstallPrompt />
           <AuthProvider>
             <BrowserRouter>
-              <Routes>
-                <Route
-                  path="/login"
-                  element={
-                    <LoginThemeProvider>
-                      <Login />
-                    </LoginThemeProvider>
-                  }
-                />
-                <Route path="/backoffice/*" element={<BackofficeApp />} />
-                <Route
-                  path="/*"
-                  element={
-                    <ProtectedRoute>
-                      <OperationalEntry />
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
+              <ErrorBoundary>
+                <Routes>
+                  <Route
+                    path="/login"
+                    element={
+                      <LoginThemeProvider>
+                        <Login />
+                      </LoginThemeProvider>
+                    }
+                  />
+                  <Route path="/backoffice/*" element={<BackofficeApp />} />
+                  <Route
+                    path="/*"
+                    element={
+                      <ProtectedRoute>
+                        <OperationalEntry />
+                      </ProtectedRoute>
+                    }
+                  />
+                </Routes>
+              </ErrorBoundary>
             </BrowserRouter>
           </AuthProvider>
         </DatesProvider>
