@@ -4,10 +4,12 @@ import {
   Button,
   Card,
   Checkbox,
+  Divider,
   Group,
   MultiSelect,
   Pagination,
   Paper,
+  SegmentedControl,
   Select,
   Stack,
   Table,
@@ -17,14 +19,17 @@ import {
 import { useDebouncedValue, useMediaQuery } from "@mantine/hooks";
 import {
   IconCalendar,
+  IconCalendarEvent,
   IconCheck,
   IconCurrencyDollar,
   IconFilter,
   IconFilterOff,
+  IconLayoutList,
   IconSearch,
   IconUser,
   IconX,
 } from "@tabler/icons-react";
+import { DateTime } from "luxon";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ConfirmModal } from "../ConfirmModal";
 import { PeriodFilter } from "../PeriodFilter";
@@ -45,6 +50,10 @@ import {
   type Period,
 } from "../../utils/period.util";
 import { useOperationalBranding } from "../../hooks/useOperationalBranding";
+
+/** Limite de itens carregados no modo "por dia" (período inteiro, sem paginar). */
+const DAILY_VIEW_LIMIT = 500;
+const ZONE = "America/Sao_Paulo";
 
 interface CommissionsPanelProps {
   /**
@@ -89,6 +98,8 @@ export function CommissionsPanel({
   const [period, setPeriod] = useState<Period>(() =>
     initialPeriodForMode(periodMode),
   );
+  /** Modo de exibição da lista: comissão a comissão ou agrupada por dia. */
+  const [viewMode, setViewMode] = useState<"list" | "daily">("list");
   const [markAsPaidModalOpened, setMarkAsPaidModalOpened] = useState(false);
   const [markAsUnpaidModalOpened, setMarkAsUnpaidModalOpened] = useState(false);
 
@@ -100,7 +111,13 @@ export function CommissionsPanel({
     period,
     collaboratorFilter,
     debouncedSearchTerm,
+    viewMode,
   ]);
+
+  // No modo "por dia" carregamos o período inteiro (sem paginar) para que os
+  // subtotais diários fiquem corretos. O volume por período/colaborador é baixo.
+  const effectiveLimit =
+    viewMode === "daily" ? DAILY_VIEW_LIMIT : COMMISSIONS_PAGE_SIZE;
 
   // Prepara os filtros para enviar ao backend
   const filters = useMemo(() => {
@@ -115,8 +132,8 @@ export function CommissionsPanel({
       page: number;
       limit: number;
     } = {
-      page,
-      limit: COMMISSIONS_PAGE_SIZE,
+      page: viewMode === "daily" ? 1 : page,
+      limit: effectiveLimit,
       startDate,
       endDate,
     };
@@ -146,6 +163,8 @@ export function CommissionsPanel({
     debouncedSearchTerm,
     page,
     fixedCollaboratorId,
+    viewMode,
+    effectiveLimit,
   ]);
 
   const {
@@ -158,12 +177,62 @@ export function CommissionsPanel({
   const markAsUnpaidMutation = useMarkCommissionsAsUnpaid();
   const { showSuccess, showError } = useNotifications();
 
-  const commissionsToShow = commissionsData?.items ?? [];
+  const commissionsToShow = useMemo(
+    () => commissionsData?.items ?? [],
+    [commissionsData?.items],
+  );
   const totals = commissionsData?.summary ?? {
     totalAmount: 0,
     pendingAmount: 0,
     paidAmount: 0,
   };
+
+  // Agrupa as comissões por dia (data do agendamento), para a visão diária.
+  // Ordena do dia mais recente para o mais antigo; cada dia traz subtotais.
+  const dailyGroups = useMemo(() => {
+    if (viewMode !== "daily") return [];
+
+    const map = new Map<
+      string,
+      {
+        dateKey: string;
+        servicesCount: number;
+        totalAmount: number;
+        paidAmount: number;
+        pendingAmount: number;
+      }
+    >();
+
+    for (const c of commissionsToShow) {
+      const rawDate = c.scheduledService?.appointment?.date;
+      const dateKey = rawDate
+        ? DateTime.fromISO(rawDate, { zone: ZONE }).toFormat("yyyy-MM-dd")
+        : "sem-data";
+
+      const group =
+        map.get(dateKey) ??
+        {
+          dateKey,
+          servicesCount: 0,
+          totalAmount: 0,
+          paidAmount: 0,
+          pendingAmount: 0,
+        };
+
+      const amount = toMoney(c.amount);
+      group.servicesCount += 1;
+      group.totalAmount += amount;
+      if (c.paid) group.paidAmount += amount;
+      else group.pendingAmount += amount;
+
+      map.set(dateKey, group);
+    }
+
+    return Array.from(map.values()).sort((a, b) =>
+      b.dateKey.localeCompare(a.dateKey),
+    );
+  }, [viewMode, commissionsToShow]);
+
   const totalPages = Math.max(
     1,
     Math.ceil((commissionsData?.total ?? 0) / COMMISSIONS_PAGE_SIZE),
@@ -357,6 +426,34 @@ export function CommissionsPanel({
           </Group>
         )}
 
+        {/* Alternância de visualização: lista x agrupado por dia */}
+        <SegmentedControl
+          size="sm"
+          value={viewMode}
+          onChange={(v) => setViewMode(v as "list" | "daily")}
+          data={[
+            {
+              value: "list",
+              label: (
+                <Group gap={6} wrap="nowrap">
+                  <IconLayoutList size={16} />
+                  <span>Lista</span>
+                </Group>
+              ),
+            },
+            {
+              value: "daily",
+              label: (
+                <Group gap={6} wrap="nowrap">
+                  <IconCalendarEvent size={16} />
+                  <span>Por dia</span>
+                </Group>
+              ),
+            },
+          ]}
+          style={{ alignSelf: isMobile ? "stretch" : "flex-start" }}
+        />
+
         {/* Totais */}
         {showTotals && (
           <Group>
@@ -427,6 +524,64 @@ export function CommissionsPanel({
     </Stack>
   );
 
+  const dailyBody = (
+    <Stack gap="sm">
+      {dailyGroups.map((day) => {
+        const label =
+          day.dateKey === "sem-data"
+            ? "Sem data"
+            : DateTime.fromISO(day.dateKey, { zone: ZONE })
+                .setLocale("pt-BR")
+                .toFormat("cccc, dd 'de' LLLL");
+        return (
+          <Card key={day.dateKey} withBorder radius="md" padding="md">
+            <Group justify="space-between" wrap="nowrap" align="flex-start">
+              <Group gap={8} wrap="nowrap">
+                <IconCalendarEvent
+                  size={18}
+                  color="var(--mantine-color-brand-6)"
+                />
+                <div>
+                  <Text fw={600} size="sm" tt="capitalize">
+                    {label}
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    {day.servicesCount} serviço(s)
+                  </Text>
+                </div>
+              </Group>
+              <div style={{ textAlign: "right" }}>
+                <Text fw={700} c="brand">
+                  {formatPrice(day.totalAmount)}
+                </Text>
+                <Group gap={6} justify="flex-end">
+                  {day.pendingAmount > 0 && (
+                    <Text size="xs" c="yellow.7">
+                      {formatPrice(day.pendingAmount)} pend.
+                    </Text>
+                  )}
+                  {day.paidAmount > 0 && (
+                    <Text size="xs" c="green.7">
+                      {formatPrice(day.paidAmount)} pago
+                    </Text>
+                  )}
+                </Group>
+              </div>
+            </Group>
+          </Card>
+        );
+      })}
+      <Divider my={4} />
+      <Group justify="flex-end" mb="sm">
+        <Text size="sm" c="dimmed">
+          {commissionsToShow.length} comissão(ões) em {dailyGroups.length}{" "}
+          dia(s)
+          {isFetching ? " · atualizando..." : ""}
+        </Text>
+      </Group>
+    </Stack>
+  );
+
   const body = (
     <>
       {isLoading ? (
@@ -435,6 +590,8 @@ export function CommissionsPanel({
         <Text c="dimmed" ta="center" py="xl">
           Nenhuma comissão encontrada
         </Text>
+      ) : viewMode === "daily" ? (
+        dailyBody
       ) : (
         <>
           {isMobile ? (
