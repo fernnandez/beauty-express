@@ -1,30 +1,24 @@
 import {
   ActionIcon,
+  Accordion,
   Badge,
   Button,
-  Card,
   Checkbox,
   Divider,
   Group,
   MultiSelect,
-  Pagination,
   Paper,
-  SegmentedControl,
   Select,
   Stack,
-  Table,
   Text,
   TextInput,
 } from "@mantine/core";
 import { useDebouncedValue, useMediaQuery } from "@mantine/hooks";
 import {
-  IconCalendar,
   IconCalendarEvent,
   IconCheck,
-  IconCurrencyDollar,
   IconFilter,
   IconFilterOff,
-  IconLayoutList,
   IconSearch,
   IconUser,
   IconX,
@@ -36,14 +30,13 @@ import { PeriodFilter } from "../PeriodFilter";
 import { TablePage } from "../TablePage";
 import { useCollaborators } from "../../hooks/useCollaborators";
 import {
-  COMMISSIONS_PAGE_SIZE,
   useCommissions,
   useMarkCommissionsAsPaid,
   useMarkCommissionsAsUnpaid,
 } from "../../hooks/useCommissions";
 import { useNotifications } from "../../hooks/useNotifications";
-import { formatDate } from "../../utils/appointment.utils";
 import { formatPrice, toMoney } from "../../utils/money.util";
+import { countLabel, pluralize } from "../../utils/plural.util";
 import {
   initialPeriodForMode,
   periodToDateRange,
@@ -91,35 +84,22 @@ export function CommissionsPanel({
   const [collaboratorFilter, setCollaboratorFilter] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [debouncedSearchTerm] = useDebouncedValue(searchTerm, 500);
-  const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<"pending" | "paid" | "all">(
     "pending",
   );
   const [period, setPeriod] = useState<Period>(() =>
     initialPeriodForMode(periodMode),
   );
-  /** Modo de exibição da lista: comissão a comissão ou agrupada por dia. */
-  const [viewMode, setViewMode] = useState<"list" | "daily">("list");
   const [markAsPaidModalOpened, setMarkAsPaidModalOpened] = useState(false);
   const [markAsUnpaidModalOpened, setMarkAsUnpaidModalOpened] = useState(false);
 
   useEffect(() => {
-    setPage(1);
     setSelectedCommissions(new Set());
-  }, [
-    statusFilter,
-    period,
-    collaboratorFilter,
-    debouncedSearchTerm,
-    viewMode,
-  ]);
+  }, [statusFilter, period, collaboratorFilter, debouncedSearchTerm]);
 
-  // No modo "por dia" carregamos o período inteiro (sem paginar) para que os
-  // subtotais diários fiquem corretos. O volume por período/colaborador é baixo.
-  const effectiveLimit =
-    viewMode === "daily" ? DAILY_VIEW_LIMIT : COMMISSIONS_PAGE_SIZE;
-
-  // Prepara os filtros para enviar ao backend
+  // Prepara os filtros para enviar ao backend. A visão é sempre agregada por
+  // dia, então carregamos o período inteiro (sem paginar) para os subtotais
+  // diários ficarem corretos. O volume por período/colaborador é baixo.
   const filters = useMemo(() => {
     const { startDate, endDate } = periodToDateRange(period);
 
@@ -132,8 +112,8 @@ export function CommissionsPanel({
       page: number;
       limit: number;
     } = {
-      page: viewMode === "daily" ? 1 : page,
-      limit: effectiveLimit,
+      page: 1,
+      limit: DAILY_VIEW_LIMIT,
       startDate,
       endDate,
     };
@@ -161,10 +141,7 @@ export function CommissionsPanel({
     period,
     collaboratorFilter,
     debouncedSearchTerm,
-    page,
     fixedCollaboratorId,
-    viewMode,
-    effectiveLimit,
   ]);
 
   const {
@@ -190,8 +167,6 @@ export function CommissionsPanel({
   // Agrupa as comissões por dia (data do agendamento), para a visão diária.
   // Ordena do dia mais recente para o mais antigo; cada dia traz subtotais.
   const dailyGroups = useMemo(() => {
-    if (viewMode !== "daily") return [];
-
     const map = new Map<
       string,
       {
@@ -200,6 +175,7 @@ export function CommissionsPanel({
         totalAmount: number;
         paidAmount: number;
         pendingAmount: number;
+        items: typeof commissionsToShow;
       }
     >();
 
@@ -217,6 +193,7 @@ export function CommissionsPanel({
           totalAmount: 0,
           paidAmount: 0,
           pendingAmount: 0,
+          items: [] as typeof commissionsToShow,
         };
 
       const amount = toMoney(c.amount);
@@ -224,6 +201,7 @@ export function CommissionsPanel({
       group.totalAmount += amount;
       if (c.paid) group.paidAmount += amount;
       else group.pendingAmount += amount;
+      group.items.push(c);
 
       map.set(dateKey, group);
     }
@@ -231,32 +209,12 @@ export function CommissionsPanel({
     return Array.from(map.values()).sort((a, b) =>
       b.dateKey.localeCompare(a.dateKey),
     );
-  }, [viewMode, commissionsToShow]);
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil((commissionsData?.total ?? 0) / COMMISSIONS_PAGE_SIZE),
-  );
+  }, [commissionsToShow]);
 
   const hasActiveFilters =
     statusFilter !== "pending" ||
     period.fortnight !== "full" ||
     (!isScoped && collaboratorFilter.length > 0);
-
-  // Seleção
-  const allSelected =
-    commissionsToShow.length > 0 &&
-    commissionsToShow.every((c) => selectedCommissions.has(c.id));
-  const someSelected =
-    commissionsToShow.some((c) => selectedCommissions.has(c.id)) && !allSelected;
-
-  const handleSelectAll = () => {
-    if (allSelected) {
-      setSelectedCommissions(new Set());
-    } else {
-      setSelectedCommissions(new Set(commissionsToShow.map((c) => c.id)));
-    }
-  };
 
   const handleSelectCommission = (id: string) => {
     const newSelected = new Set(selectedCommissions);
@@ -268,12 +226,26 @@ export function CommissionsPanel({
     setSelectedCommissions(newSelected);
   };
 
+  // Marca/desmarca todos os serviços de um dia de uma vez.
+  const handleSelectDay = (ids: string[], select: boolean) => {
+    const newSelected = new Set(selectedCommissions);
+    for (const id of ids) {
+      if (select) newSelected.add(id);
+      else newSelected.delete(id);
+    }
+    setSelectedCommissions(newSelected);
+  };
+
   const handleMarkAsPaid = async () => {
     if (selectedCommissions.size === 0) return;
     try {
       await markAsPaidMutation.mutateAsync(Array.from(selectedCommissions));
       showSuccess(
-        `${selectedCommissions.size} comissão(ões) marcada(s) como paga(s)!`,
+        `${countLabel(
+          selectedCommissions.size,
+          "comissão marcada",
+          "comissões marcadas",
+        )} como paga${pluralize(selectedCommissions.size, "", "s")}!`,
       );
       setSelectedCommissions(new Set());
       setMarkAsPaidModalOpened(false);
@@ -287,7 +259,11 @@ export function CommissionsPanel({
     try {
       await markAsUnpaidMutation.mutateAsync(Array.from(selectedCommissions));
       showSuccess(
-        `${selectedCommissions.size} comissão(ões) marcada(s) como não paga(s)!`,
+        `${countLabel(
+          selectedCommissions.size,
+          "comissão marcada",
+          "comissões marcadas",
+        )} como não paga${pluralize(selectedCommissions.size, "", "s")}!`,
       );
       setSelectedCommissions(new Set());
       setMarkAsUnpaidModalOpened(false);
@@ -314,7 +290,7 @@ export function CommissionsPanel({
             />
             {!isScoped && (
               <MultiSelect
-                placeholder="Colaborador(es)"
+                placeholder="Colaboradores"
                 data={
                   collaborators
                     ?.filter((c) => c.isActive)
@@ -368,7 +344,7 @@ export function CommissionsPanel({
           <Group align="flex-end" gap="sm" wrap="wrap">
             {!isScoped && (
               <MultiSelect
-                placeholder="Filtrar por colaborador(es)"
+                placeholder="Filtrar por colaboradores"
                 data={
                   collaborators
                     ?.filter((c) => c.isActive)
@@ -426,34 +402,6 @@ export function CommissionsPanel({
           </Group>
         )}
 
-        {/* Alternância de visualização: lista x agrupado por dia */}
-        <SegmentedControl
-          size="sm"
-          value={viewMode}
-          onChange={(v) => setViewMode(v as "list" | "daily")}
-          data={[
-            {
-              value: "list",
-              label: (
-                <Group gap={6} wrap="nowrap">
-                  <IconLayoutList size={16} />
-                  <span>Lista</span>
-                </Group>
-              ),
-            },
-            {
-              value: "daily",
-              label: (
-                <Group gap={6} wrap="nowrap">
-                  <IconCalendarEvent size={16} />
-                  <span>Por dia</span>
-                </Group>
-              ),
-            },
-          ]}
-          style={{ alignSelf: isMobile ? "stretch" : "flex-start" }}
-        />
-
         {/* Totais */}
         {showTotals && (
           <Group>
@@ -488,7 +436,11 @@ export function CommissionsPanel({
         {canManagePayments && selectedCommissions.size > 0 && (
           <Group>
             <Text size="sm" c="dimmed">
-              {selectedCommissions.size} comissão(ões) selecionada(s)
+              {countLabel(
+                selectedCommissions.size,
+                "comissão selecionada",
+                "comissões selecionadas",
+              )}
             </Text>
             <Button
               size="sm"
@@ -526,56 +478,150 @@ export function CommissionsPanel({
 
   const dailyBody = (
     <Stack gap="sm">
-      {dailyGroups.map((day) => {
-        const label =
-          day.dateKey === "sem-data"
-            ? "Sem data"
-            : DateTime.fromISO(day.dateKey, { zone: ZONE })
-                .setLocale("pt-BR")
-                .toFormat("cccc, dd 'de' LLLL");
-        return (
-          <Card key={day.dateKey} withBorder radius="md" padding="md">
-            <Group justify="space-between" wrap="nowrap" align="flex-start">
-              <Group gap={8} wrap="nowrap">
-                <IconCalendarEvent
-                  size={18}
-                  color="var(--mantine-color-brand-6)"
-                />
-                <div>
-                  <Text fw={600} size="sm" tt="capitalize">
-                    {label}
-                  </Text>
-                  <Text size="xs" c="dimmed">
-                    {day.servicesCount} serviço(s)
-                  </Text>
-                </div>
-              </Group>
-              <div style={{ textAlign: "right" }}>
-                <Text fw={700} c="brand">
-                  {formatPrice(day.totalAmount)}
-                </Text>
-                <Group gap={6} justify="flex-end">
-                  {day.pendingAmount > 0 && (
-                    <Text size="xs" c="yellow.7">
-                      {formatPrice(day.pendingAmount)} pend.
+      <Accordion variant="separated" radius="md" multiple>
+        {dailyGroups.map((day) => {
+          const label =
+            day.dateKey === "sem-data"
+              ? "Sem data"
+              : DateTime.fromISO(day.dateKey, { zone: ZONE })
+                  .setLocale("pt-BR")
+                  .toFormat("cccc, dd 'de' LLLL");
+          return (
+            <Accordion.Item key={day.dateKey} value={day.dateKey}>
+              <Accordion.Control
+                icon={
+                  <IconCalendarEvent
+                    size={18}
+                    color="var(--mantine-color-brand-6)"
+                  />
+                }
+              >
+                <Group
+                  justify="space-between"
+                  wrap="nowrap"
+                  align="flex-start"
+                  pr="sm"
+                >
+                  <Group gap="sm" wrap="nowrap" align="flex-start">
+                    {canManagePayments &&
+                      (() => {
+                        const dayIds = day.items.map((c) => c.id);
+                        const selectedCount = dayIds.filter((id) =>
+                          selectedCommissions.has(id),
+                        ).length;
+                        const allDaySelected =
+                          selectedCount === dayIds.length && dayIds.length > 0;
+                        return (
+                          <Checkbox
+                            aria-label="Selecionar o dia inteiro"
+                            checked={allDaySelected}
+                            indeterminate={
+                              selectedCount > 0 && !allDaySelected
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={() =>
+                              handleSelectDay(dayIds, !allDaySelected)
+                            }
+                            mt={2}
+                          />
+                        );
+                      })()}
+                    <div>
+                      <Text fw={600} size="sm" tt="capitalize">
+                        {label}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {countLabel(
+                          day.servicesCount,
+                          "serviço",
+                          "serviços",
+                        )}
+                      </Text>
+                    </div>
+                  </Group>
+                  <div style={{ textAlign: "right" }}>
+                    <Text fw={700} c="brand">
+                      {formatPrice(day.totalAmount)}
                     </Text>
-                  )}
-                  {day.paidAmount > 0 && (
-                    <Text size="xs" c="green.7">
-                      {formatPrice(day.paidAmount)} pago
-                    </Text>
-                  )}
+                    <Group gap={6} justify="flex-end">
+                      {day.pendingAmount > 0 && (
+                        <Text size="xs" c="yellow.7">
+                          {formatPrice(day.pendingAmount)} pend.
+                        </Text>
+                      )}
+                      {day.paidAmount > 0 && (
+                        <Text size="xs" c="green.7">
+                          {formatPrice(day.paidAmount)} pago
+                        </Text>
+                      )}
+                    </Group>
+                  </div>
                 </Group>
-              </div>
-            </Group>
-          </Card>
-        );
-      })}
+              </Accordion.Control>
+              <Accordion.Panel>
+                <Stack gap="xs">
+                  {day.items.map((c) => (
+                    <Group
+                      key={c.id}
+                      justify="space-between"
+                      wrap="nowrap"
+                      align="flex-start"
+                    >
+                      <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+                        {canManagePayments && (
+                          <Checkbox
+                            aria-label="Selecionar comissão"
+                            checked={selectedCommissions.has(c.id)}
+                            onChange={() => handleSelectCommission(c.id)}
+                            mt={2}
+                          />
+                        )}
+                        <div style={{ minWidth: 0 }}>
+                          <Text size="sm" fw={500} truncate>
+                            {c.scheduledService?.service?.name ?? "Serviço"}
+                          </Text>
+                          <Text size="xs" c="dimmed" truncate>
+                            {c.scheduledService?.appointment?.clientName ??
+                              "Cliente"}
+                            {!isScoped && c.collaborator?.name
+                              ? ` · ${c.collaborator.name}`
+                              : ""}
+                          </Text>
+                        </div>
+                      </Group>
+                      <Group gap={8} wrap="nowrap" align="center">
+                        <Badge
+                          size="sm"
+                          color={c.paid ? "green" : "yellow"}
+                          variant="light"
+                        >
+                          {c.paid ? "Pago" : "Pendente"}
+                        </Badge>
+                        <Text
+                          size="sm"
+                          fw={600}
+                          style={{ whiteSpace: "nowrap" }}
+                        >
+                          {formatPrice(c.amount)}
+                        </Text>
+                      </Group>
+                    </Group>
+                  ))}
+                </Stack>
+              </Accordion.Panel>
+            </Accordion.Item>
+          );
+        })}
+      </Accordion>
       <Divider my={4} />
       <Group justify="flex-end" mb="sm">
         <Text size="sm" c="dimmed">
-          {commissionsToShow.length} comissão(ões) em {dailyGroups.length}{" "}
-          dia(s)
+          {countLabel(
+            commissionsToShow.length,
+            "comissão",
+            "comissões",
+          )}{" "}
+          em {countLabel(dailyGroups.length, "dia", "dias")}
           {isFetching ? " · atualizando..." : ""}
         </Text>
       </Group>
@@ -590,195 +636,12 @@ export function CommissionsPanel({
         <Text c="dimmed" ta="center" py="xl">
           Nenhuma comissão encontrada
         </Text>
-      ) : viewMode === "daily" ? (
-        dailyBody
       ) : (
-        <>
-          {isMobile ? (
-            <Stack gap="sm">
-              {commissionsToShow.map((commission) => (
-                <Card
-                  key={commission.id}
-                  withBorder
-                  radius="md"
-                  padding="md"
-                  style={{ opacity: commission.paid ? 0.7 : 1 }}
-                >
-                  <Stack gap={8}>
-                    <Group justify="space-between" wrap="nowrap">
-                      <Group gap="xs" wrap="nowrap">
-                        {canManagePayments && (
-                          <Checkbox
-                            checked={selectedCommissions.has(commission.id)}
-                            onChange={() =>
-                              handleSelectCommission(commission.id)
-                            }
-                          />
-                        )}
-                        <Text fw={600} size="sm">
-                          {commission.scheduledService?.service?.name || "-"}
-                        </Text>
-                      </Group>
-                      <Badge
-                        color={commission.paid ? "green" : "yellow"}
-                        variant="light"
-                      >
-                        {commission.paid ? "Pago" : "Pendente"}
-                      </Badge>
-                    </Group>
-                    {!isScoped && (
-                      <Group gap={6}>
-                        <IconUser size={14} />
-                        <Text size="sm" c="dimmed">
-                          {commission.collaborator?.name || "-"}
-                        </Text>
-                      </Group>
-                    )}
-                    {commission.scheduledService?.appointment && (
-                      <Group gap={6}>
-                        <IconCalendar size={14} />
-                        <Text size="sm" c="dimmed">
-                          {formatDate(
-                            commission.scheduledService.appointment?.date || "",
-                          )}
-                          {commission.scheduledService.appointment?.clientName
-                            ? ` · ${commission.scheduledService.appointment.clientName}`
-                            : ""}
-                        </Text>
-                      </Group>
-                    )}
-                    <Group justify="space-between">
-                      <Text size="xs" c="dimmed">
-                        {toMoney(commission.percentage)}% de{" "}
-                        {formatPrice(commission.scheduledService?.price ?? 0)}
-                      </Text>
-                      <Group gap={4}>
-                        <IconCurrencyDollar size={14} />
-                        <Text fw={700}>{formatPrice(commission.amount)}</Text>
-                      </Group>
-                    </Group>
-                  </Stack>
-                </Card>
-              ))}
-            </Stack>
-          ) : (
-          <Table striped highlightOnHover miw={isScoped ? 640 : 720}>
-            <Table.Thead>
-              <Table.Tr>
-                {canManagePayments && (
-                  <Table.Th style={{ width: 50 }}>
-                    <Checkbox
-                      checked={allSelected}
-                      indeterminate={someSelected}
-                      onChange={handleSelectAll}
-                    />
-                  </Table.Th>
-                )}
-                <Table.Th>Status</Table.Th>
-                {!isScoped && <Table.Th>Colaborador</Table.Th>}
-                <Table.Th>Serviço</Table.Th>
-                <Table.Th>Agendamento</Table.Th>
-                <Table.Th>Percentual</Table.Th>
-                <Table.Th>Valor do serviço</Table.Th>
-                <Table.Th>Comissão</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {commissionsToShow.map((commission) => (
-                <Table.Tr
-                  key={commission.id}
-                  style={{ opacity: commission.paid ? 0.7 : 1 }}
-                >
-                  {canManagePayments && (
-                    <Table.Td>
-                      <Checkbox
-                        checked={selectedCommissions.has(commission.id)}
-                        onChange={() => handleSelectCommission(commission.id)}
-                      />
-                    </Table.Td>
-                  )}
-                  <Table.Td>
-                    <Badge
-                      color={commission.paid ? "green" : "yellow"}
-                      variant="light"
-                    >
-                      {commission.paid ? "Pago" : "Pendente"}
-                    </Badge>
-                  </Table.Td>
-                  {!isScoped && (
-                    <Table.Td>
-                      <Group gap="xs">
-                        <IconUser size={14} />
-                        <Text size="sm">
-                          {commission.collaborator?.name || "-"}
-                        </Text>
-                      </Group>
-                    </Table.Td>
-                  )}
-                  <Table.Td>
-                    <Text size="sm">
-                      {commission.scheduledService?.service?.name || "-"}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    {commission.scheduledService?.appointment ? (
-                      <Group gap="xs">
-                        <IconCalendar size={14} />
-                        <div>
-                          <Text size="sm">
-                            {formatDate(
-                              commission.scheduledService.appointment?.date ||
-                                "",
-                            )}
-                          </Text>
-                          <Text size="xs" c="dimmed">
-                            {commission.scheduledService.appointment
-                              ?.clientName || "-"}
-                          </Text>
-                        </div>
-                      </Group>
-                    ) : (
-                      "-"
-                    )}
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm">{toMoney(commission.percentage)}%</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {formatPrice(commission.scheduledService?.price ?? 0)}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group gap="xs">
-                      <IconCurrencyDollar size={14} />
-                      <Text size="sm" fw={500}>
-                        {formatPrice(commission.amount)}
-                      </Text>
-                    </Group>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-          )}
-          <Group
-            justify={isMobile ? "center" : "space-between"}
-            mt="md"
-            mb="sm"
-            wrap="wrap"
-            gap="sm"
-          >
-            <Text size="sm" c="dimmed" ta={isMobile ? "center" : undefined} w={isMobile ? "100%" : undefined}>
-              {commissionsData?.total ?? 0} comissão(ões) encontrada(s)
-              {isFetching ? " · atualizando..." : ""}
-            </Text>
-            <Pagination total={totalPages} value={page} onChange={setPage} />
-          </Group>
-        </>
+        dailyBody
       )}
     </>
   );
+
 
   const modals = (
     <>
@@ -787,7 +650,11 @@ export function CommissionsPanel({
         onClose={() => setMarkAsPaidModalOpened(false)}
         onConfirm={handleMarkAsPaid}
         title="Marcar como Pago"
-        message={`Tem certeza que deseja marcar ${selectedCommissions.size} comissão(ões) como paga(s)?`}
+        message={`Tem certeza que deseja marcar ${countLabel(
+          selectedCommissions.size,
+          "comissão",
+          "comissões",
+        )} como paga${pluralize(selectedCommissions.size, "", "s")}?`}
         confirmLabel="Marcar como Pago"
         confirmColor="green"
         loading={markAsPaidMutation.isPending}
@@ -797,7 +664,11 @@ export function CommissionsPanel({
         onClose={() => setMarkAsUnpaidModalOpened(false)}
         onConfirm={handleMarkAsUnpaid}
         title="Marcar como Não Pago"
-        message={`Tem certeza que deseja marcar ${selectedCommissions.size} comissão(ões) como não paga(s)?`}
+        message={`Tem certeza que deseja marcar ${countLabel(
+          selectedCommissions.size,
+          "comissão",
+          "comissões",
+        )} como não paga${pluralize(selectedCommissions.size, "", "s")}?`}
         confirmLabel="Marcar como Não Pago"
         confirmColor="red"
         loading={markAsUnpaidMutation.isPending}
