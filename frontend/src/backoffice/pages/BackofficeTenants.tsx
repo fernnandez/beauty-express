@@ -37,6 +37,7 @@ export function BackofficeTenants() {
   const [createOpened, setCreateOpened] = useState(false);
   const [editOpened, setEditOpened] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<Tenant | null>(null);
 
   const createForm = useForm<CreateTenantDto>({
     initialValues: { slug: '', name: '', isActive: true },
@@ -74,7 +75,7 @@ export function BackofficeTenants() {
     setEditOpened(true);
   };
 
-  const handleToggleActive = async (tenant: Tenant) => {
+  const applyToggle = async (tenant: Tenant) => {
     try {
       await updateMutation.mutateAsync({
         id: tenant.id,
@@ -91,6 +92,18 @@ export function BackofficeTenants() {
         message: getErrorMessage(error),
         color: 'red',
       });
+    } finally {
+      setDeactivateTarget(null);
+    }
+  };
+
+  // Desativar uma filial bloqueia o acesso de todos os seus usuários — pede
+  // confirmação. Reativar é seguro e aplica direto.
+  const handleToggleActive = (tenant: Tenant) => {
+    if (tenant.isActive) {
+      setDeactivateTarget(tenant);
+    } else {
+      void applyToggle(tenant);
     }
   };
 
@@ -293,6 +306,33 @@ export function BackofficeTenants() {
             </Group>
           </Stack>
         </form>
+      </Modal>
+
+      <Modal
+        opened={deactivateTarget !== null}
+        onClose={() => setDeactivateTarget(null)}
+        title="Desativar filial"
+        centered
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Ao desativar <strong>{deactivateTarget?.name}</strong>, todos os
+            usuários dessa filial perdem o acesso ao sistema até que ela seja
+            reativada. As informações são preservadas.
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setDeactivateTarget(null)}>
+              Cancelar
+            </Button>
+            <Button
+              color="red"
+              loading={updateMutation.isPending}
+              onClick={() => deactivateTarget && applyToggle(deactivateTarget)}
+            >
+              Desativar filial
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
     </Container>
   );

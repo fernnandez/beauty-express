@@ -118,6 +118,26 @@ export function BackofficeUsers() {
     setEditOpened(true);
   };
 
+  const handleToggleActive = async (user: AdminUser) => {
+    try {
+      await updateMutation.mutateAsync({
+        id: user.id,
+        data: { isActive: !user.isActive },
+      });
+      notifications.show({
+        title: 'Usuário atualizado',
+        message: user.isActive ? 'Usuário desativado' : 'Usuário ativado',
+        color: backofficeAccent,
+      });
+    } catch (error) {
+      notifications.show({
+        title: 'Erro',
+        message: getErrorMessage(error),
+        color: 'red',
+      });
+    }
+  };
+
   const handleCreate = createForm.onSubmit(async (values) => {
     try {
       await createMutation.mutateAsync(values);
@@ -209,6 +229,7 @@ export function BackofficeUsers() {
                   <Table.Th>Papel</Table.Th>
                   <Table.Th>Filial</Table.Th>
                   <Table.Th>Status</Table.Th>
+                  <Table.Th w={100}>Ativo</Table.Th>
                   <Table.Th w={60} />
                 </Table.Tr>
               </Table.Thead>
@@ -232,6 +253,20 @@ export function BackofficeUsers() {
                       <Badge color={user.isActive ? 'green' : 'gray'}>
                         {user.isActive ? 'Ativo' : 'Inativo'}
                       </Badge>
+                    </Table.Td>
+                    <Table.Td>
+                      {user.role === 'super_admin' ? (
+                        <Text c="dimmed" size="sm">
+                          —
+                        </Text>
+                      ) : (
+                        <Switch
+                          checked={user.isActive}
+                          color={backofficeAccent}
+                          disabled={updateMutation.isPending}
+                          onChange={() => handleToggleActive(user)}
+                        />
+                      )}
                     </Table.Td>
                     <Table.Td>
                       <Tooltip label="Editar">
