@@ -81,6 +81,23 @@ export const whatsappService = {
     return response.data;
   },
 
+  sendMedia: async (
+    conversationId: string,
+    payload: {
+      base64: string;
+      mime: string;
+      type: "image" | "audio" | "video" | "document";
+      fileName?: string;
+      caption?: string;
+    },
+  ): Promise<WhatsappMessage> => {
+    const response = await api.post<WhatsappMessage>(
+      `/whatsapp/conversations/${conversationId}/media`,
+      payload,
+    );
+    return response.data;
+  },
+
   getPriceListPreview: async (): Promise<{ message: string }> => {
     const response = await api.get<{ message: string }>(
       "/whatsapp/price-list/preview",

@@ -83,6 +83,48 @@ export class EvolutionClient {
   }
 
   /**
+   * Envia mídia (imagem/vídeo/documento) em base64 para um número.
+   * Áudio usa um endpoint próprio (sendWhatsAppAudio).
+   */
+  async sendMedia(
+    instanceName: string,
+    phoneNormalized: string,
+    input: {
+      mediatype: 'image' | 'video' | 'document';
+      mimetype: string;
+      base64: string;
+      fileName: string;
+      caption?: string;
+    },
+  ): Promise<EvolutionSendResponse> {
+    return await this.request<EvolutionSendResponse>(
+      'POST',
+      `/message/sendMedia/${encodeURIComponent(instanceName)}`,
+      {
+        number: phoneNormalized,
+        mediatype: input.mediatype,
+        mimetype: input.mimetype,
+        media: input.base64,
+        fileName: input.fileName,
+        caption: input.caption,
+      },
+    );
+  }
+
+  /** Envia um áudio (base64) como mensagem de voz. */
+  async sendWhatsAppAudio(
+    instanceName: string,
+    phoneNormalized: string,
+    base64: string,
+  ): Promise<EvolutionSendResponse> {
+    return await this.request<EvolutionSendResponse>(
+      'POST',
+      `/message/sendWhatsAppAudio/${encodeURIComponent(instanceName)}`,
+      { number: phoneNormalized, audio: base64 },
+    );
+  }
+
+  /**
    * Baixa e descriptografa a mídia de uma mensagem, retornando base64.
    * Usado para figurinhas/imagens, cuja URL do WhatsApp é criptografada.
    */

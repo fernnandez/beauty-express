@@ -18,6 +18,8 @@ import {
   StartConversationDto,
 } from '../dtos/whatsapp/conversation-link.dto';
 import { ReactMessageDto } from '../dtos/whatsapp/react-message.dto';
+import { SendMediaDto } from '../dtos/whatsapp/send-media.dto';
+import { MessageType } from '@domain/entities/whatsapp-enums';
 
 @ApiTags('WhatsApp')
 @Controller('whatsapp')
@@ -96,6 +98,19 @@ export class WhatsappController {
   @ApiOperation({ summary: 'Enviar mensagem numa conversa' })
   async sendMessage(@Param('id') id: string, @Body() dto: SendMessageDto) {
     return await this.whatsappService.sendMessage(id, dto.text);
+  }
+
+  @Post('conversations/:id/media')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Enviar mídia (imagem/áudio/vídeo/documento)' })
+  async sendMedia(@Param('id') id: string, @Body() dto: SendMediaDto) {
+    return await this.whatsappService.sendMediaMessage(id, {
+      base64: dto.base64,
+      mime: dto.mime,
+      type: dto.type as unknown as MessageType,
+      fileName: dto.fileName,
+      caption: dto.caption,
+    });
   }
 
   @Post('conversations/:id/read')

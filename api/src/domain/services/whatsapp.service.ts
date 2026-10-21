@@ -22,6 +22,7 @@ import { ClientRepository } from '../repositories/client.repository';
 import { ServiceRepository } from '../repositories/service.repository';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { EvolutionClient } from './evolution.client';
+import type { EvolutionSendResponse } from './evolution.client';
 import { WhatsappGateway } from './whatsapp.gateway';
 import { WhatsappRateLimiter } from './whatsapp-rate-limiter.service';
 import { EvolutionWebhookPayload } from './evolution-webhook.types';
@@ -459,7 +460,155 @@ export class WhatsappService {
     return saved;
   }
 
-  /** Gera o texto do catálogo a partir dos serviços (para importar/preencher). */
+  /**
+   * Envia mídia (imagem/áudio/vídeo/documento) numa conversa: valida, respeita
+   * o rate limit, envia pela Evolution, persiste a mídia no storage e grava a
+   * mensagem outbound.
+   */
+  async sendMediaMessage(
+    conversationId: string,
+    input: {
+      base64: string;
+      mime: string;
+      type: MessageType;
+      fileName?: string;
+      caption?: string;
+    },
+  ): Promise<Message> {
+    const tenantId = this.getTenantId();
+    if (!input.base64) {
+      throw new BadRequestException('Arquivo vazio');
+    }
+
+    // Limite de tamanho (mesmo do recebimento).
+    const approxBytes = Math.floor((input.base64.length * 3) / 4);
+    const maxBytes = this.mediaMaxBytes();
+    if (maxBytes > 0 && approxBytes > maxBytes) {
+      throw new BadRequestException(
+        `Arquivo excede o limite de ${Math.round(maxBytes / 1024 / 1024)}MB`,
+      );
+    }
+
+    const conversation = await this.conversationRepository.findById(
+      conversationId,
+      tenantId,
+    );
+    if (!conversation) {
+      throw new NotFoundException('Conversa não encontrada');
+    }
+    const instance = await this.instanceRepository.findByTenant(tenantId);
+    if (!instance) {
+      throw new BadRequestException(
+        'Nenhuma instância de WhatsApp conectada para este estabelecimento',
+      );
+    }
+
+    this.rateLimiter.check(tenantId);
+
+    const caption = input.caption?.trim() || undefined;
+    const fileName = input.fileName || `arquivo.${this.extFor(input.mime)}`;
+
+    let status = MessageStatus.SENT;
+    let waMessageId: string | null = null;
+    try {
+      let result: EvolutionSendResponse;
+      if (input.type === MessageType.AUDIO) {
+        result = await this.evolution.sendWhatsAppAudio(
+          instance.instanceName,
+          conversation.phoneNormalized,
+          input.base64,
+        );
+      } else {
+        const mediatype =
+          input.type === MessageType.VIDEO
+            ? 'video'
+            : input.type === MessageType.DOCUMENT
+              ? 'document'
+              : 'image';
+        result = await this.evolution.sendMedia(
+          instance.instanceName,
+          conversation.phoneNormalized,
+          {
+            mediatype,
+            mimetype: input.mime,
+            base64: input.base64,
+            fileName,
+            caption,
+          },
+        );
+      }
+      waMessageId = result?.key?.id ?? null;
+    } catch (err) {
+      this.logger.error(
+        `Falha ao enviar mídia (conversa ${conversationId}): ${String(err)}`,
+      );
+      status = MessageStatus.FAILED;
+    }
+
+    // Persiste a mídia enviada no storage (para reexibir no histórico).
+    let mediaUrl: string | null = null;
+    if (status !== MessageStatus.FAILED) {
+      try {
+        mediaUrl = await this.mediaStorage.store({
+          base64: input.base64,
+          mime: input.mime,
+          tenantId,
+          waMessageId: waMessageId ?? `out-${Date.now()}`,
+        });
+      } catch (err) {
+        this.logger.warn(`Falha ao armazenar mídia enviada: ${String(err)}`);
+      }
+    }
+
+    const saved = await this.messageRepository.save(
+      this.messageRepository.create({
+        tenantId,
+        conversationId,
+        waMessageId,
+        direction: MessageDirection.OUTBOUND,
+        type: input.type,
+        content: caption ?? null,
+        mediaUrl,
+        status,
+        sentByUserId: this.tenantContext.getUserId(),
+        timestamp: new Date(),
+      }),
+    );
+
+    conversation.lastMessagePreview = (
+      caption ?? this.mediaLabel(input.type)
+    ).slice(0, 120);
+    conversation.lastMessageAt = saved.timestamp;
+    await this.conversationRepository.save(conversation);
+
+    this.gateway.emitInboxUpdate(tenantId, {
+      conversationId,
+      kind: 'outbound',
+    });
+
+    if (status === MessageStatus.FAILED) {
+      throw new BadRequestException('Não foi possível enviar a mídia');
+    }
+    // Resolve a URL servível (presigned) antes de devolver.
+    if (saved.mediaUrl) {
+      saved.mediaUrl = await this.mediaStorage.resolveUrl(saved.mediaUrl);
+    }
+    return saved;
+  }
+
+  /** Extensão padrão por mime (para nome de arquivo de envio). */
+  private extFor(mime: string): string {
+    const map: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'video/mp4': 'mp4',
+      'audio/ogg': 'ogg',
+      'audio/mpeg': 'mp3',
+      'application/pdf': 'pdf',
+    };
+    return map[mime] ?? 'bin';
+  }
   async buildPriceListText(): Promise<string> {
     const tenantId = this.getTenantId();
     const services = await this.serviceRepository.find({

@@ -37,6 +37,7 @@ import {
   IconMessagePlus,
   IconMessage2,
   IconMoodSmile,
+  IconPaperclip,
   IconPlugConnectedX,
   IconRefresh,
   IconReportMoney,
@@ -53,6 +54,7 @@ import {
   useMarkConversationRead,
   useMessages,
   useReactToMessage,
+  useSendMedia,
   useSendMessage,
   useStartConversation,
   useSyncConversation,
@@ -693,6 +695,7 @@ function ChatView({
   const linkConversation = useLinkConversation();
   const reactToMessage = useReactToMessage(conversation.id);
   const syncMutation = useSyncConversation();
+  const sendMedia = useSendMedia();
   const { showSuccess, showError } = useNotifications();
   const { data: settings } = useSettings();
   const density = settings?.features?.chatDensity ?? "comfortable";
@@ -733,6 +736,54 @@ function ChatView({
       },
       onError: (err) => showError(err, "Erro ao sincronizar mensagens"),
     });
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Classifica o arquivo escolhido no tipo de mídia do WhatsApp.
+  const mediaTypeOf = (
+    mime: string,
+  ): "image" | "audio" | "video" | "document" => {
+    if (mime.startsWith("image/")) return "image";
+    if (mime.startsWith("audio/")) return "audio";
+    if (mime.startsWith("video/")) return "video";
+    return "document";
+  };
+
+  const handlePickFile = () => fileInputRef.current?.click();
+
+  const handleFileSelected = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite reescolher o mesmo arquivo
+    if (!file) return;
+    // lê como base64 (sem o prefixo data:)
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result);
+        resolve(result.includes(",") ? result.split(",")[1] : result);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    sendMedia.mutate(
+      {
+        conversationId: conversation.id,
+        payload: {
+          base64,
+          mime: file.type || "application/octet-stream",
+          type: mediaTypeOf(file.type || ""),
+          fileName: file.name,
+          caption: text.trim() || undefined,
+        },
+      },
+      {
+        onSuccess: () => setText(""),
+        onError: (err) => showError(err, "Erro ao enviar arquivo"),
+      },
+    );
   };
 
   const handleLink = (client: Client) => {
@@ -1025,6 +1076,26 @@ function ChatView({
         align="flex-end"
         style={{ borderTop: "1px solid var(--mantine-color-gray-2)" }}
       >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,audio/*,video/*,application/pdf"
+          style={{ display: "none" }}
+          onChange={handleFileSelected}
+        />
+        <Tooltip label="Anexar arquivo" withArrow>
+          <ActionIcon
+            size={38}
+            radius="xl"
+            variant="subtle"
+            color="gray"
+            onClick={handlePickFile}
+            loading={sendMedia.isPending}
+            aria-label="Anexar arquivo"
+          >
+            <IconPaperclip size={20} />
+          </ActionIcon>
+        </Tooltip>
         <Textarea
           style={{ flex: 1 }}
           radius="lg"

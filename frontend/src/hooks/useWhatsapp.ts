@@ -151,6 +151,31 @@ export const useMarkConversationRead = () => {
   });
 };
 
+export const useSendMedia = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      conversationId,
+      payload,
+    }: {
+      conversationId: string;
+      payload: {
+        base64: string;
+        mime: string;
+        type: "image" | "audio" | "video" | "document";
+        fileName?: string;
+        caption?: string;
+      };
+    }) => whatsappService.sendMedia(conversationId, payload),
+    onSuccess: (_data, { conversationId }) => {
+      queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY });
+      queryClient.invalidateQueries({
+        queryKey: ["whatsapp", "messages", conversationId],
+      });
+    },
+  });
+};
+
 export const useSyncConversation = () => {
   const queryClient = useQueryClient();
   return useMutation({
