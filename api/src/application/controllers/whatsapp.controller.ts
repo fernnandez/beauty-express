@@ -139,4 +139,12 @@ export class WhatsappController {
   async reactToMessage(@Param('id') id: string, @Body() dto: ReactMessageDto) {
     return await this.whatsappService.reactToMessage(id, dto.emoji);
   }
+
+  @Get('messages/:id/media')
+  @ApiOperation({
+    summary: 'Baixa (sob demanda) e retorna a URL da mídia de uma mensagem',
+  })
+  async resolveMessageMedia(@Param('id') id: string) {
+    return await this.whatsappService.resolveMessageMedia(id);
+  }
 }

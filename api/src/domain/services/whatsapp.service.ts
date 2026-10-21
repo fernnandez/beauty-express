@@ -230,6 +230,55 @@ export class WhatsappService {
   }
 
   /**
+   * Baixa a mídia de uma mensagem sob demanda (lazy), persiste e retorna a URL
+   * servível (presigned). Usado para mídias importadas pelo sync, que não são
+   * baixadas em massa. Idempotente: se já tem mediaUrl, apenas re-resolve.
+   */
+  async resolveMessageMedia(
+    messageId: string,
+  ): Promise<{ url: string | null }> {
+    const tenantId = this.getTenantId();
+    const message = await this.messageRepository.findById(messageId, tenantId);
+    if (!message) {
+      throw new NotFoundException('Mensagem não encontrada');
+    }
+
+    // Já baixada: só re-assina a URL.
+    if (message.mediaUrl) {
+      return { url: await this.mediaStorage.resolveUrl(message.mediaUrl) };
+    }
+
+    const isDownloadableMedia =
+      message.type === MessageType.IMAGE ||
+      message.type === MessageType.STICKER ||
+      message.type === MessageType.AUDIO ||
+      message.type === MessageType.VIDEO ||
+      message.type === MessageType.DOCUMENT;
+    if (!isDownloadableMedia || !message.waMessageId) {
+      return { url: null };
+    }
+
+    const instance = await this.instanceRepository.findByTenant(tenantId);
+    if (!instance) {
+      return { url: null };
+    }
+
+    const stored = await this.fetchMediaDataUrl(
+      instance.instanceName,
+      message.waMessageId,
+      tenantId,
+      message.type,
+    );
+    if (!stored) {
+      return { url: null };
+    }
+
+    message.mediaUrl = stored;
+    await this.messageRepository.save(message);
+    return { url: await this.mediaStorage.resolveUrl(stored) };
+  }
+
+  /**
    * Importa o histórico recente de uma conversa a partir do aparelho (Evolution
    * findMessages), gravando mensagens que ainda não existem localmente. Traz
    * tanto recebidas quanto enviadas pelo celular (fromMe). Idempotente (dedupe
@@ -266,6 +315,21 @@ export class WhatsappService {
     let latestPreview: string | null = null;
 
     for (const record of records) {
+      const data = record as unknown as NonNullable<
+        EvolutionWebhookPayload['data']
+      >;
+
+      // Reação no histórico: aplica à mensagem-alvo em vez de gravar como msg.
+      const reaction = data.message?.reactionMessage;
+      if (reaction) {
+        await this.applyReaction(
+          tenantId,
+          reaction.key?.id ?? null,
+          reaction.text ?? '',
+        );
+        continue;
+      }
+
       const waMessageId = record.key?.id ?? null;
       if (!waMessageId) continue;
 
@@ -277,31 +341,14 @@ export class WhatsappService {
 
       // Os helpers de extração esperam o mesmo shape do webhook (.message /
       // .messageTimestamp), que o registro do histórico também possui.
-      const data = record as unknown as NonNullable<
-        EvolutionWebhookPayload['data']
-      >;
       const text = this.extractText(data);
       const type = this.extractType(data);
       const timestamp = this.extractTimestamp(data);
       const quote = this.extractQuote(data);
       const fromMe = record.key?.fromMe === true;
 
-      let mediaUrl: string | null = null;
-      const isDownloadableMedia =
-        type === MessageType.IMAGE ||
-        type === MessageType.STICKER ||
-        type === MessageType.AUDIO ||
-        type === MessageType.VIDEO ||
-        type === MessageType.DOCUMENT;
-      if (isDownloadableMedia) {
-        mediaUrl = await this.fetchMediaDataUrl(
-          instance.instanceName,
-          waMessageId,
-          tenantId,
-          type,
-        );
-      }
-
+      // Importação não baixa mídia (evita rajada de downloads/uploads e custo):
+      // a mídia é baixada sob demanda ao abrir a conversa (resolveMessageMedia).
       await this.messageRepository.save(
         this.messageRepository.create({
           tenantId,
@@ -312,7 +359,7 @@ export class WhatsappService {
             : MessageDirection.INBOUND,
           type,
           content: text,
-          mediaUrl,
+          mediaUrl: null,
           quotedWaMessageId: quote.quotedWaMessageId,
           quotedPreview: quote.quotedPreview,
           status: MessageStatus.DELIVERED,
@@ -953,6 +1000,19 @@ export class WhatsappService {
         waMessageId,
       );
       if (!media?.base64) return null;
+
+      // Limite de tamanho: evita armazenar arquivos muito grandes (custo/ban).
+      const approxBytes = Math.floor((media.base64.length * 3) / 4);
+      const maxBytes = this.mediaMaxBytes();
+      if (maxBytes > 0 && approxBytes > maxBytes) {
+        this.logger.warn(
+          `Mídia ${waMessageId} ignorada: ${Math.round(
+            approxBytes / 1024 / 1024,
+          )}MB excede o limite de ${Math.round(maxBytes / 1024 / 1024)}MB`,
+        );
+        return null;
+      }
+
       const mime = media.mimetype || this.fallbackMimeFor(type);
       return await this.mediaStorage.store({
         base64: media.base64,
@@ -964,6 +1024,13 @@ export class WhatsappService {
       this.logger.warn(`Falha ao baixar mídia ${waMessageId}: ${String(err)}`);
       return null;
     }
+  }
+
+  /** Limite de tamanho de mídia em bytes (0 = sem limite). Default 16MB. */
+  private mediaMaxBytes(): number {
+    const mb = Number(process.env.WHATSAPP_MEDIA_MAX_MB);
+    const effective = Number.isFinite(mb) && mb >= 0 ? mb : 16;
+    return Math.floor(effective * 1024 * 1024);
   }
 
   /** Mime padrão por tipo, caso a Evolution não informe o mimetype. */
@@ -1018,9 +1085,10 @@ export class WhatsappService {
    * mensagem citada e uma prévia textual dela. Procura o contextInfo nas
    * submensagens que o suportam.
    */
-  private extractQuote(
-    data: NonNullable<EvolutionWebhookPayload['data']>,
-  ): { quotedWaMessageId: string | null; quotedPreview: string | null } {
+  private extractQuote(data: NonNullable<EvolutionWebhookPayload['data']>): {
+    quotedWaMessageId: string | null;
+    quotedPreview: string | null;
+  } {
     const m = data.message;
     const context =
       m?.extendedTextMessage?.contextInfo ??
@@ -1037,7 +1105,8 @@ export class WhatsappService {
     let preview: string | null = null;
     if (q) {
       if (q.conversation) preview = q.conversation;
-      else if (q.extendedTextMessage?.text) preview = q.extendedTextMessage.text;
+      else if (q.extendedTextMessage?.text)
+        preview = q.extendedTextMessage.text;
       else if (q.imageMessage) preview = q.imageMessage.caption || '[imagem]';
       else if (q.videoMessage) preview = q.videoMessage.caption || '[vídeo]';
       else if (q.audioMessage) preview = '[áudio]';

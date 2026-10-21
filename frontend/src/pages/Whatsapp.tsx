@@ -72,6 +72,7 @@ import { ClientPickerModal } from "../components/client/ClientPickerModal";
 import { TodayAppointmentsModal } from "../components/whatsapp/TodayAppointmentsModal";
 import { WhatsappConfigPanel } from "../components/whatsapp/WhatsappConfigPanel";
 import { UnofficialApiNotice } from "../components/whatsapp/UnofficialApiNotice";
+import { WhatsappMedia } from "../components/whatsapp/WhatsappMedia";
 import { useSettings } from "../hooks/useSettings";
 import { useNotifications } from "../hooks/useNotifications";
 import { countLabel } from "../utils/plural.util";
@@ -887,12 +888,12 @@ function ChatView({
         <Stack gap={6}>
           {messages.map((m) => {
             const outbound = m.direction === "outbound";
-            const isImage =
-              m.mediaUrl && (m.type === "image" || m.type === "sticker");
-            const isAudio = m.mediaUrl && m.type === "audio";
-            const isVideo = m.mediaUrl && m.type === "video";
-            const isDocument = m.mediaUrl && m.type === "document";
-            const isMedia = isImage || isAudio || isVideo || isDocument;
+            const isMedia =
+              m.type === "image" ||
+              m.type === "sticker" ||
+              m.type === "audio" ||
+              m.type === "video" ||
+              m.type === "document";
             return (
               <Group
                 key={m.id}
@@ -938,46 +939,11 @@ function ChatView({
                       </Text>
                     </Box>
                   )}
-                  {isImage ? (
-                    <Image
-                      src={m.mediaUrl as string}
-                      alt={m.type === "sticker" ? "Figurinha" : "Imagem"}
-                      w={m.type === "sticker" ? 120 : 220}
-                      fit="contain"
-                      radius="md"
-                      onClick={
-                        m.type === "image"
-                          ? () => setPreviewImage(m.mediaUrl as string)
-                          : undefined
-                      }
-                      style={{
-                        cursor: m.type === "image" ? "pointer" : undefined,
-                      }}
+                  {isMedia ? (
+                    <WhatsappMedia
+                      message={m}
+                      onPreview={(url) => setPreviewImage(url)}
                     />
-                  ) : isAudio ? (
-                    <audio
-                      controls
-                      src={m.mediaUrl as string}
-                      style={{ maxWidth: 240, height: 40 }}
-                    />
-                  ) : isVideo ? (
-                    <video
-                      controls
-                      src={m.mediaUrl as string}
-                      style={{ maxWidth: 240, borderRadius: 8 }}
-                    />
-                  ) : isDocument ? (
-                    <Text
-                      size="sm"
-                      component="a"
-                      href={m.mediaUrl as string}
-                      target="_blank"
-                      rel="noreferrer"
-                      c="blue"
-                      td="underline"
-                    >
-                      {m.content || "Abrir arquivo"}
-                    </Text>
                   ) : (
                     <Text
                       style={{ whiteSpace: "pre-wrap", fontSize: msgFontSize }}

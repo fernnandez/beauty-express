@@ -74,6 +74,13 @@ export const whatsappService = {
     return response.data;
   },
 
+  resolveMedia: async (messageId: string): Promise<{ url: string | null }> => {
+    const response = await api.get<{ url: string | null }>(
+      `/whatsapp/messages/${messageId}/media`,
+    );
+    return response.data;
+  },
+
   getPriceListPreview: async (): Promise<{ message: string }> => {
     const response = await api.get<{ message: string }>(
       "/whatsapp/price-list/preview",
