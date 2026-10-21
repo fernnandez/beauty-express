@@ -58,6 +58,26 @@ export const useUpdateScheduledService = () => {
   });
 };
 
+export const useCompleteScheduledService = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => scheduledServiceService.complete(id),
+    onSuccess: async (data) => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["commissions"] });
+      if (data.appointmentId) {
+        queryClient.invalidateQueries({
+          queryKey: ["appointments", data.appointmentId],
+        });
+        await queryClient.refetchQueries({
+          queryKey: ["appointments", data.appointmentId],
+        });
+      }
+    },
+  });
+};
+
 export const useCancelScheduledService = () => {
   const queryClient = useQueryClient();
 

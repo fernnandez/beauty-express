@@ -34,5 +34,12 @@ export const scheduledServiceService = {
     );
     return response.data;
   },
+
+  complete: async (id: string): Promise<ScheduledService> => {
+    const response = await api.put<ScheduledService>(
+      `/scheduled-services/${id}/complete`,
+    );
+    return response.data;
+  },
 };
 

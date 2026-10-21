@@ -20,14 +20,19 @@ import {
 } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import { useMemo, useState } from "react";
-import {
-  useAppointments,
-  useCompleteAppointment,
-} from "../../hooks/useAppointments";
+import { useAppointments } from "../../hooks/useAppointments";
+import { useCompleteScheduledService } from "../../hooks/useScheduledServices";
 import { useNotifications } from "../../hooks/useNotifications";
 import { useAuth } from "../../contexts/AuthContext";
-import { AppointmentStatus, type Appointment } from "../../types";
+import { ConfirmModal } from "../../components/ConfirmModal";
+import {
+  AppointmentStatus,
+  ScheduledServiceStatus,
+  type Appointment,
+  type ScheduledService,
+} from "../../types";
 import { calcCommission, formatPrice, toMoney } from "../../utils/money.util";
+import { countLabel } from "../../utils/plural.util";
 
 const ZONE = "America/Sao_Paulo";
 
@@ -43,26 +48,37 @@ const statusLabels: Record<AppointmentStatus, string> = {
   cancelado: "Cancelado",
 };
 
-/** Comissão estimada de um agendamento, só dos serviços do colaborador. */
-function appointmentCommission(
+/** Serviços deste colaborador no agendamento. */
+function myServices(
   appointment: Appointment,
   collaboratorId?: string | null,
-): number {
-  return (appointment.scheduledServices ?? [])
-    .filter((ss) => !collaboratorId || ss.collaboratorId === collaboratorId)
-    .reduce((acc, ss) => {
-      return acc + calcCommission(ss.price, ss.service?.commissionPercentage);
-    }, 0);
+): ScheduledService[] {
+  return (appointment.scheduledServices ?? []).filter(
+    (ss) => !collaboratorId || ss.collaboratorId === collaboratorId,
+  );
+}
+
+/** Comissão do colaborador no agendamento (só os serviços dele). */
+function myCommission(services: ScheduledService[]): number {
+  return services.reduce(
+    (acc, ss) => acc + calcCommission(ss.price, ss.service?.commissionPercentage),
+    0,
+  );
 }
 
 export function CollaboratorAgenda() {
   const { user } = useAuth();
+  const collaboratorId = user?.collaboratorId ?? undefined;
   const [date, setDate] = useState<string>(() =>
     DateTime.now().setZone(ZONE).toFormat("yyyy-MM-dd"),
   );
   const { data: appointments, isLoading } = useAppointments(date);
-  const completeMutation = useCompleteAppointment();
+  const completeService = useCompleteScheduledService();
   const { showSuccess, showError } = useNotifications();
+
+  // Confirmação quando a conclusão vai fechar o agendamento inteiro.
+  const [confirmAppointment, setConfirmAppointment] =
+    useState<Appointment | null>(null);
 
   const today = DateTime.now().setZone(ZONE).toFormat("yyyy-MM-dd");
   const isToday = date === today;
@@ -81,15 +97,6 @@ export function CollaboratorAgenda() {
     );
   };
 
-  const handleComplete = async (appointment: Appointment) => {
-    try {
-      await completeMutation.mutateAsync(appointment.id);
-      showSuccess("Atendimento concluído!");
-    } catch (error) {
-      showError(error, "Erro ao concluir atendimento");
-    }
-  };
-
   const sorted = useMemo(
     () =>
       [...(appointments ?? [])]
@@ -98,28 +105,22 @@ export function CollaboratorAgenda() {
     [appointments],
   );
 
-  // Resumo do dia: nº de atendimentos, total a realizar e comissão estimada.
-  const collaboratorId = user?.collaboratorId ?? undefined;
+  // Resumo do dia: nº de atendimentos, total e comissão — só do colaborador.
   const summary = useMemo(() => {
     const count = sorted.length;
     const total = sorted.reduce(
       (acc, a) =>
         acc +
-        (a.scheduledServices ?? [])
-          .filter(
-            (ss) => !collaboratorId || ss.collaboratorId === collaboratorId,
-          )
-          .reduce((s, ss) => s + toMoney(ss.price), 0),
+        myServices(a, collaboratorId).reduce((s, ss) => s + toMoney(ss.price), 0),
       0,
     );
     const commission = sorted.reduce(
-      (acc, a) => acc + appointmentCommission(a, collaboratorId),
+      (acc, a) => acc + myCommission(myServices(a, collaboratorId)),
       0,
     );
     return { count, total, commission };
   }, [sorted, collaboratorId]);
 
-  // Primeiro nome do colaborador (preferindo o nome real; fallback no e-mail).
   const firstName = useMemo(() => {
     const real = (user?.collaboratorName ?? "").trim().split(/\s+/)[0];
     if (real) return real;
@@ -127,6 +128,56 @@ export function CollaboratorAgenda() {
     if (!local) return "";
     return local.charAt(0).toUpperCase() + local.slice(1);
   }, [user?.collaboratorName, user?.email]);
+
+  /** Serviços pendentes do colaborador em um agendamento. */
+  const myPendingServices = (appointment: Appointment): ScheduledService[] =>
+    myServices(appointment, collaboratorId).filter(
+      (ss) => ss.status === ScheduledServiceStatus.PENDING,
+    );
+
+  /**
+   * Concluir os meus serviços fecha o agendamento? Verdadeiro quando, além dos
+   * meus pendentes, não há nenhum outro serviço pendente (entre os não
+   * cancelados) no agendamento.
+   */
+  const willCloseAppointment = (appointment: Appointment): boolean => {
+    const nonCancelled = (appointment.scheduledServices ?? []).filter(
+      (ss) => ss.status !== ScheduledServiceStatus.CANCELLED,
+    );
+    const otherPending = nonCancelled.filter(
+      (ss) =>
+        ss.status === ScheduledServiceStatus.PENDING &&
+        ss.collaboratorId !== collaboratorId,
+    );
+    return otherPending.length === 0;
+  };
+
+  const runComplete = async (appointment: Appointment) => {
+    const pending = myPendingServices(appointment);
+    try {
+      for (const ss of pending) {
+        await completeService.mutateAsync(ss.id);
+      }
+      showSuccess(
+        pending.length > 1
+          ? "Seus serviços foram concluídos!"
+          : "Serviço concluído!",
+      );
+    } catch (error) {
+      showError(error, "Erro ao concluir");
+    } finally {
+      setConfirmAppointment(null);
+    }
+  };
+
+  const handleCompleteClick = (appointment: Appointment) => {
+    // Se for fechar o agendamento, confirma (lembrete de pagamento).
+    if (willCloseAppointment(appointment)) {
+      setConfirmAppointment(appointment);
+    } else {
+      void runComplete(appointment);
+    }
+  };
 
   return (
     <Stack gap="md" pb={80}>
@@ -221,9 +272,14 @@ export function CollaboratorAgenda() {
         </Stack>
       ) : (
         sorted.map((appointment) => {
+          const mine = myServices(appointment, collaboratorId);
+          const pending = mine.filter(
+            (ss) => ss.status === ScheduledServiceStatus.PENDING,
+          );
+          const commission = myCommission(mine);
           const canComplete =
-            appointment.status === AppointmentStatus.SCHEDULED;
-          const commission = appointmentCommission(appointment, collaboratorId);
+            appointment.status === AppointmentStatus.SCHEDULED &&
+            pending.length > 0;
           return (
             <Card key={appointment.id} withBorder radius="md" padding="md">
               <Stack gap="xs">
@@ -242,12 +298,20 @@ export function CollaboratorAgenda() {
 
                 <Text fw={600}>{appointment.clientName || "Cliente"}</Text>
 
+                {/* Apenas os serviços do colaborador, com o valor dele */}
                 <Stack gap={2}>
-                  {appointment.scheduledServices?.map((ss) => (
+                  {mine.map((ss) => (
                     <Group key={ss.id} justify="space-between" gap="xs">
-                      <Text size="sm" c="dimmed">
-                        {ss.service?.name ?? "Serviço"}
-                      </Text>
+                      <Group gap={6} wrap="nowrap">
+                        <Text size="sm" c="dimmed">
+                          {ss.service?.name ?? "Serviço"}
+                        </Text>
+                        {ss.status === ScheduledServiceStatus.COMPLETED && (
+                          <Badge size="xs" color="green" variant="light">
+                            Concluído
+                          </Badge>
+                        )}
+                      </Group>
                       <Text size="sm">{formatPrice(ss.price)}</Text>
                     </Group>
                   ))}
@@ -275,11 +339,13 @@ export function CollaboratorAgenda() {
                     color="green"
                     variant="light"
                     leftSection={<IconCheck size={16} />}
-                    loading={completeMutation.isPending}
-                    onClick={() => handleComplete(appointment)}
+                    loading={completeService.isPending}
+                    onClick={() => handleCompleteClick(appointment)}
                     fullWidth
                   >
-                    Concluir atendimento
+                    {pending.length > 1
+                      ? `Concluir ${countLabel(pending.length, "serviço", "serviços")}`
+                      : "Concluir meu serviço"}
                   </Button>
                 )}
               </Stack>
@@ -287,6 +353,20 @@ export function CollaboratorAgenda() {
           );
         })
       )}
+
+      {/* Confirmação quando a conclusão fecha o agendamento inteiro */}
+      <ConfirmModal
+        opened={confirmAppointment !== null}
+        onClose={() => setConfirmAppointment(null)}
+        onConfirm={() => {
+          if (confirmAppointment) void runComplete(confirmAppointment);
+        }}
+        title="Concluir atendimento"
+        message="Este é o último serviço pendente — ao concluir, o atendimento será finalizado. Confirme que o cliente já efetuou o pagamento."
+        confirmLabel="Concluir atendimento"
+        confirmColor="green"
+        loading={completeService.isPending}
+      />
     </Stack>
   );
 }
