@@ -2,6 +2,7 @@ import { CreateScheduledServiceDto } from '@application/dtos/scheduled-service/c
 import { UpdateScheduledServiceDto } from '@application/dtos/scheduled-service/update-scheduled-service.dto';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   Scope,
@@ -292,7 +293,10 @@ export class ScheduledServiceService {
     return updatedService;
   }
 
-  async completeScheduledService(id: string): Promise<ScheduledService> {
+  async completeScheduledService(
+    id: string,
+    scopedCollaboratorId?: string | null,
+  ): Promise<ScheduledService> {
     const tenantId = this.getTenantId();
     const scheduledService = await this.scheduledServiceRepository.findById(
       id,
@@ -314,13 +318,63 @@ export class ScheduledServiceService {
       );
     }
 
+    // Colaborador só pode concluir o próprio serviço.
+    if (
+      scopedCollaboratorId &&
+      scheduledService.collaboratorId !== scopedCollaboratorId
+    ) {
+      throw new ForbiddenException(
+        'You can only complete services assigned to you',
+      );
+    }
+
     scheduledService.status = ScheduledServiceStatus.COMPLETED;
     const savedService =
       await this.scheduledServiceRepository.save(scheduledService);
 
     await this.syncCommissionForCompletedService(savedService);
 
+    // Fecha o agendamento automaticamente quando este foi o último serviço
+    // pendente (todos os não-cancelados já concluídos).
+    await this.completeAppointmentIfAllServicesDone(
+      scheduledService.appointmentId,
+      tenantId,
+    );
+
     return savedService;
+  }
+
+  /**
+   * Conclui o agendamento se não restar nenhum serviço pendente
+   * (considerando apenas os não cancelados). Idempotente.
+   */
+  private async completeAppointmentIfAllServicesDone(
+    appointmentId: string,
+    tenantId: string,
+  ): Promise<void> {
+    const appointment = await this.appointmentRepository.findById(
+      appointmentId,
+      tenantId,
+    );
+    if (!appointment || appointment.status !== AppointmentStatus.SCHEDULED) {
+      return;
+    }
+
+    const services = await this.scheduledServiceRepository.findByAppointmentId(
+      appointmentId,
+      tenantId,
+    );
+    const nonCancelled = services.filter(
+      (s) => s.status !== ScheduledServiceStatus.CANCELLED,
+    );
+    const hasPending = nonCancelled.some(
+      (s) => s.status === ScheduledServiceStatus.PENDING,
+    );
+
+    if (nonCancelled.length > 0 && !hasPending) {
+      appointment.status = AppointmentStatus.COMPLETED;
+      await this.appointmentRepository.save(appointment);
+    }
   }
 
   async reopenScheduledService(id: string): Promise<ScheduledService> {
