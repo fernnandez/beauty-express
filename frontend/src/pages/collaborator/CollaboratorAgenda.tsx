@@ -48,13 +48,15 @@ const statusLabels: Record<AppointmentStatus, string> = {
   cancelado: "Cancelado",
 };
 
-/** Serviços deste colaborador no agendamento. */
+/** Serviços (não cancelados) deste colaborador no agendamento. */
 function myServices(
   appointment: Appointment,
   collaboratorId?: string | null,
 ): ScheduledService[] {
   return (appointment.scheduledServices ?? []).filter(
-    (ss) => !collaboratorId || ss.collaboratorId === collaboratorId,
+    (ss) =>
+      ss.status !== ScheduledServiceStatus.CANCELLED &&
+      (!collaboratorId || ss.collaboratorId === collaboratorId),
   );
 }
 
