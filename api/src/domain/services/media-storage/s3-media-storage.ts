@@ -124,9 +124,9 @@ export class S3MediaStorage implements MediaStorage, OnModuleInit {
   /**
    * Persiste um asset público (ex.: logo) e devolve uma URL estável.
    *
-   * Monta a URL pública a partir de S3_PUBLIC_URL (ou do endpoint + bucket),
-   * sem presigned — o objeto precisa ficar acessível publicamente. Objetos
-   * sob o prefixo público não são afetados pelo lifecycle de TTL das mídias.
+   * O objeto é gravado PRIVADO (sem ACL pública) e retornamos a *chave*. A URL
+   * servível é gerada sob demanda via resolveUrl (presigned), igual às mídias —
+   * o bucket nunca é exposto publicamente.
    */
   async storePublic(input: StorePublicInput): Promise<string> {
     const ext = MIME_EXTENSIONS[input.mime] ?? 'bin';
@@ -139,28 +139,10 @@ export class S3MediaStorage implements MediaStorage, OnModuleInit {
         Key: key,
         Body: input.buffer,
         ContentType: input.mime,
-        CacheControl: 'public, max-age=31536000, immutable',
-        // Apenas assets de branding são públicos; as mídias de WhatsApp
-        // continuam privadas (servidas via presigned em resolveUrl).
-        ACL: 'public-read',
       }),
     );
 
-    return this.buildPublicUrl(key);
-  }
-
-  /** URL pública estável do objeto (sem presigned). */
-  private buildPublicUrl(key: string): string {
-    const base = process.env.S3_PUBLIC_URL?.replace(/\/+$/, '');
-    if (base) {
-      return `${base}/${key}`;
-    }
-    // Fallback: endpoint + bucket (path-style) ou host do bucket.
-    if (this.endpoint) {
-      const ep = this.endpoint.replace(/\/+$/, '');
-      return `${ep}/${this.bucket}/${key}`;
-    }
-    return `https://${this.bucket}.s3.amazonaws.com/${key}`;
+    return key;
   }
 
   /**

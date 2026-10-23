@@ -631,8 +631,10 @@ export class AdminService {
   }
 
   /**
-   * Recebe o upload da logo de uma filial, persiste no storage público
-   * (S3 em produção; data URL em dev) e retorna a URL pública resultante.
+   * Recebe o upload da logo de uma filial. O objeto é gravado privado no
+   * storage; a URL retornada aponta para o endpoint /media/branding, que gera
+   * presigned fresca a cada carregamento (o bucket nunca é público). Em dev
+   * (inline) o storage devolve um data URL, usado diretamente.
    */
   async uploadTenantLogo(
     tenantId: string,
@@ -659,14 +661,29 @@ export class AdminService {
       throw new BadRequestException('A logo deve ter no máximo 2 MB.');
     }
 
-    const url = await this.mediaStorage.storePublic({
+    const stored = await this.mediaStorage.storePublic({
       buffer: file.buffer,
       mime: file.mimetype,
       prefix: 'branding',
       tenantId,
     });
 
-    return { url };
+    // Dev/inline: o storage já devolve um data URL servível diretamente.
+    if (stored.startsWith('data:')) {
+      return { url: stored };
+    }
+
+    // S3: `stored` é a chave do objeto (branding/<tenant>/<arquivo>). Servimos
+    // via endpoint público de redirect, mantendo o bucket privado.
+    const base = (
+      process.env.PUBLIC_API_URL ||
+      process.env.EVOLUTION_WEBHOOK_PUBLIC_URL ||
+      (process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : '')
+    ).replace(/\/+$/, '');
+    const path = stored.replace(/^branding\//, '');
+    return { url: `${base}/media/branding/${path}` };
   }
 
   async getTenantAppointments(
