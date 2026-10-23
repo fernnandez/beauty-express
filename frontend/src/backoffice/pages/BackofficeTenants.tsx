@@ -68,6 +68,7 @@ export function BackofficeTenants() {
         slug: selectedTenant.slug,
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- editForm é estável; preenche ao abrir o modal
   }, [selectedTenant, editOpened]);
 
   const handleEdit = (tenant: Tenant) => {

@@ -103,6 +103,7 @@ export function BackofficeUsers() {
         isActive: selectedUser.isActive,
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- editForm é estável; preenche ao abrir o modal
   }, [selectedUser, editOpened]);
 
   const tenantOptions =

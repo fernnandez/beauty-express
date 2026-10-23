@@ -39,6 +39,7 @@ export function useOperationalBranding(): {
       commissionsEnabled: settings.features.commissionsEnabled,
       periodMode: settings.features.periodMode === 'monthly' ? 'monthly' : 'biweekly',
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- depende dos campos primitivos de tenantSettings, não do objeto inteiro
   }, [
     user?.id,
     user?.tenantSettings?.branding.displayName,

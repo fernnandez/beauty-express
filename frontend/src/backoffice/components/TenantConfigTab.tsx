@@ -58,6 +58,7 @@ export function TenantConfigTab({ tenant }: { tenant: TenantDetail }) {
 
   useEffect(() => {
     form.setValues(toFormValues(tenant));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- sincroniza o form apenas com os campos do tenant; incluir "form"/"tenant" dispararia a cada render
   }, [tenant.id, tenant.name, tenant.slug, tenant.settings]);
 
   const handleSubmit = form.onSubmit(async (values) => {

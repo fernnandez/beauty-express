@@ -24,6 +24,7 @@ export function useDocumentBranding(
     return () => {
       resetDocumentBranding();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- depende dos campos primitivos do branding, não do objeto inteiro
   }, [
     enabled,
     branding.displayName,
