@@ -120,6 +120,33 @@ function formatStatValue(
   return format === "money" ? formatPrice(toMoney(value)) : String(value);
 }
 
+type WhatsappStatus = "connected" | "connecting" | "disconnected" | "none";
+
+/** Rótulo e cor do badge de status do WhatsApp da filial. */
+function whatsappBadge(status: WhatsappStatus): {
+  label: string;
+  color: string;
+} {
+  switch (status) {
+    case "connected":
+      return { label: "Conectado", color: "green" };
+    case "connecting":
+      return { label: "Conectando", color: "yellow" };
+    case "disconnected":
+      return { label: "Desconectado", color: "red" };
+    default:
+      return { label: "Não configurado", color: "gray" };
+  }
+}
+
+/** Última atividade em formato relativo (ex.: "há 3 dias"), ou "—". */
+function formatLastActivity(iso: string | null): string {
+  if (!iso) return "—";
+  const dt = DateTime.fromISO(iso).setLocale("pt-BR");
+  if (!dt.isValid) return "—";
+  return dt.toRelative() ?? dt.toFormat("dd/MM/yyyy");
+}
+
 export function BackofficeDashboard() {
   const navigate = useNavigate();
   const { data: stats, isLoading } = useAdminDashboard();
@@ -157,6 +184,7 @@ export function BackofficeDashboard() {
       ),
       collaborators: rows.reduce((s, r) => s + r.collaborators, 0),
       services: rows.reduce((s, r) => s + r.services, 0),
+      users: rows.reduce((s, r) => s + r.users, 0),
     };
   }, [stats?.byTenant]);
 
@@ -237,11 +265,14 @@ export function BackofficeDashboard() {
                     <Table.Tr>
                       <Table.Th>Filial</Table.Th>
                       <Table.Th>Status</Table.Th>
+                      <Table.Th>WhatsApp</Table.Th>
                       <Table.Th>Hoje</Table.Th>
                       <Table.Th>Receita do mês</Table.Th>
                       <Table.Th>Comissões pendentes</Table.Th>
                       <Table.Th>Colaboradores</Table.Th>
+                      <Table.Th>Usuários</Table.Th>
                       <Table.Th>Serviços</Table.Th>
+                      <Table.Th>Última atividade</Table.Th>
                       <Table.Th w={60} />
                     </Table.Tr>
                   </Table.Thead>
@@ -269,6 +300,14 @@ export function BackofficeDashboard() {
                             {tenant.isActive ? "Ativa" : "Inativa"}
                           </Badge>
                         </Table.Td>
+                        <Table.Td>
+                          <Badge
+                            variant="light"
+                            color={whatsappBadge(tenant.whatsappStatus).color}
+                          >
+                            {whatsappBadge(tenant.whatsappStatus).label}
+                          </Badge>
+                        </Table.Td>
                         <Table.Td>{tenant.appointmentsToday}</Table.Td>
                         <Table.Td>
                           {formatPrice(toMoney(tenant.revenueThisMonth))}
@@ -277,7 +316,13 @@ export function BackofficeDashboard() {
                           {formatPrice(toMoney(tenant.pendingCommissions))}
                         </Table.Td>
                         <Table.Td>{tenant.collaborators}</Table.Td>
+                        <Table.Td>{tenant.users}</Table.Td>
                         <Table.Td>{tenant.services}</Table.Td>
+                        <Table.Td>
+                          <Text size="sm" c="gray.7">
+                            {formatLastActivity(tenant.lastActivityAt)}
+                          </Text>
+                        </Table.Td>
                         <Table.Td onClick={(event) => event.stopPropagation()}>
                           <Tooltip label="Ver detalhes">
                             <ActionIcon
@@ -300,6 +345,7 @@ export function BackofficeDashboard() {
                     <Table.Tr>
                       <Table.Th>Total</Table.Th>
                       <Table.Th />
+                      <Table.Th />
                       <Table.Th>{totals.appointmentsToday}</Table.Th>
                       <Table.Th>
                         {formatPrice(toMoney(totals.revenueThisMonth))}
@@ -308,7 +354,9 @@ export function BackofficeDashboard() {
                         {formatPrice(toMoney(totals.pendingCommissions))}
                       </Table.Th>
                       <Table.Th>{totals.collaborators}</Table.Th>
+                      <Table.Th>{totals.users}</Table.Th>
                       <Table.Th>{totals.services}</Table.Th>
+                      <Table.Th />
                       <Table.Th />
                     </Table.Tr>
                   </Table.Tfoot>

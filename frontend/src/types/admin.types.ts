@@ -31,6 +31,9 @@ export interface TenantDashboardRow {
   pendingCommissions: number;
   collaborators: number;
   services: number;
+  users: number;
+  whatsappStatus: 'connected' | 'connecting' | 'disconnected' | 'none';
+  lastActivityAt: string | null;
 }
 
 export interface TenantCommissionsFilters {

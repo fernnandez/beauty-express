@@ -8,6 +8,7 @@ import { UserRepository } from '../repositories/user.repository';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
+import { WhatsappInstanceRepository } from '../repositories/whatsapp-instance.repository';
 import { Collaborator } from '../entities/collaborator.entity';
 import { Service } from '../entities/service.entity';
 import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
@@ -74,6 +75,11 @@ describe('AdminService', () => {
 
   const mockAppointmentRepo = {
     count: jest.fn(),
+    findOne: jest.fn(),
+  };
+
+  const mockWhatsappInstanceRepository = {
+    findByTenant: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -91,6 +97,10 @@ describe('AdminService', () => {
         {
           provide: ScheduledServiceRepository,
           useValue: mockScheduledServiceRepository,
+        },
+        {
+          provide: WhatsappInstanceRepository,
+          useValue: mockWhatsappInstanceRepository,
         },
         {
           provide: getRepositoryToken(Collaborator),
@@ -176,6 +186,14 @@ describe('AdminService', () => {
       mockAppointmentRepo.count.mockResolvedValue(12);
       mockTenantRepository.find.mockResolvedValue([mockTenant, tenantTwo]);
 
+      // WhatsApp e última atividade por filial (ordem: paulista, recife)
+      mockWhatsappInstanceRepository.findByTenant
+        .mockResolvedValueOnce({ status: 'connected' })
+        .mockResolvedValueOnce(null);
+      mockAppointmentRepo.findOne
+        .mockResolvedValueOnce({ id: 'a1', date: new Date('2026-10-20T12:00:00Z') })
+        .mockResolvedValueOnce(null);
+
       const metricsSnapshotSpy = jest
         .spyOn(service, 'getTenantMetricsSnapshot')
         .mockResolvedValueOnce({
@@ -218,6 +236,9 @@ describe('AdminService', () => {
             pendingCommissions: 50,
             collaborators: 3,
             services: 4,
+            users: 4,
+            whatsappStatus: "connected",
+            lastActivityAt: "2026-10-20T12:00:00.000Z",
           },
           {
             tenantId: 'tenant-2',
@@ -229,6 +250,9 @@ describe('AdminService', () => {
             pendingCommissions: 20,
             collaborators: 2,
             services: 3,
+            users: 4,
+            whatsappStatus: "none",
+            lastActivityAt: null,
           },
         ],
       });

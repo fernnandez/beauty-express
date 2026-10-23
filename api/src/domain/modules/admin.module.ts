@@ -7,12 +7,14 @@ import { ScheduledService } from '@domain/entities/scheduled-service.entity';
 import { Service } from '@domain/entities/service.entity';
 import { Tenant } from '@domain/entities/tenant.entity';
 import { User } from '@domain/entities/user.entity';
+import { WhatsappInstance } from '@domain/entities/whatsapp-instance.entity';
 import { AdminAuditLogRepository } from '@domain/repositories/admin-audit-log.repository';
 import { AppointmentRepository } from '@domain/repositories/appointment.repository';
 import { CommissionRepository } from '@domain/repositories/commission.repository';
 import { ScheduledServiceRepository } from '@domain/repositories/scheduled-service.repository';
 import { TenantRepository } from '@domain/repositories/tenant.repository';
 import { UserRepository } from '@domain/repositories/user.repository';
+import { WhatsappInstanceRepository } from '@domain/repositories/whatsapp-instance.repository';
 import { AdminAuditService } from '@domain/services/admin-audit.service';
 import { AdminService } from '@domain/services/admin.service';
 import { Module } from '@nestjs/common';
@@ -31,6 +33,7 @@ import { AuthModule } from './auth.module';
       Commission,
       ScheduledService,
       AdminAuditLog,
+      WhatsappInstance,
     ]),
   ],
   controllers: [AdminController],
@@ -43,6 +46,7 @@ import { AuthModule } from './auth.module';
     ScheduledServiceRepository,
     TenantRepository,
     UserRepository,
+    WhatsappInstanceRepository,
   ],
 })
 export class AdminModule {}

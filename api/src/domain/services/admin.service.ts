@@ -16,6 +16,8 @@ import { CommissionRepository } from '@domain/repositories/commission.repository
 import { ScheduledServiceRepository } from '@domain/repositories/scheduled-service.repository';
 import { TenantRepository } from '@domain/repositories/tenant.repository';
 import { UserRepository } from '@domain/repositories/user.repository';
+import { WhatsappInstanceRepository } from '@domain/repositories/whatsapp-instance.repository';
+import { WhatsappInstanceStatus } from '@domain/entities/whatsapp-enums';
 import { AdminAuditContext, AdminAuditService } from './admin-audit.service';
 import { Collaborator } from '@domain/entities/collaborator.entity';
 import { Service } from '@domain/entities/service.entity';
@@ -57,6 +59,9 @@ export interface TenantDashboardRow {
   pendingCommissions: number;
   collaborators: number;
   services: number;
+  users: number;
+  whatsappStatus: WhatsappInstanceStatus | 'none';
+  lastActivityAt: string | null;
 }
 
 export interface DashboardStats {
@@ -85,6 +90,7 @@ export class AdminService {
     private readonly appointmentRepository: AppointmentRepository,
     private readonly commissionRepository: CommissionRepository,
     private readonly scheduledServiceRepository: ScheduledServiceRepository,
+    private readonly whatsappInstanceRepository: WhatsappInstanceRepository,
     @InjectRepository(Collaborator)
     private readonly collaboratorRepo: Repository<Collaborator>,
     @InjectRepository(Service)
@@ -360,7 +366,13 @@ export class AdminService {
 
     const byTenant = await Promise.all(
       allTenants.map(async (tenant) => {
-        const metrics = await this.getTenantMetricsSnapshot(tenant.id);
+        const [metrics, userCount, whatsappStatus, lastActivityAt] =
+          await Promise.all([
+            this.getTenantMetricsSnapshot(tenant.id),
+            this.userRepository.count({ where: { tenantId: tenant.id } }),
+            this.getWhatsappStatus(tenant.id),
+            this.getLastActivityAt(tenant.id),
+          ]);
         return {
           tenantId: tenant.id,
           tenantName: tenant.name,
@@ -371,6 +383,9 @@ export class AdminService {
           pendingCommissions: metrics.pendingCommissions,
           collaborators: metrics.collaborators,
           services: metrics.services,
+          users: userCount,
+          whatsappStatus,
+          lastActivityAt,
         };
       }),
     );
@@ -425,6 +440,24 @@ export class AdminService {
         status: Not(AppointmentStatus.CANCELLED),
       },
     });
+  }
+
+  /** Status da instância de WhatsApp da filial ('none' se não configurada). */
+  async getWhatsappStatus(
+    tenantId: string,
+  ): Promise<WhatsappInstanceStatus | 'none'> {
+    const instance = await this.whatsappInstanceRepository.findByTenant(tenantId);
+    return (instance?.status as WhatsappInstanceStatus) ?? 'none';
+  }
+
+  /** Data do agendamento mais recente da filial (proxy de última atividade). */
+  async getLastActivityAt(tenantId: string): Promise<string | null> {
+    const latest = await this.appointmentRepo.findOne({
+      where: { tenantId },
+      order: { date: 'DESC' },
+      select: { id: true, date: true },
+    });
+    return latest?.date ? latest.date.toISOString() : null;
   }
 
   async getPendingCommissionsSum(tenantId: string): Promise<number> {
