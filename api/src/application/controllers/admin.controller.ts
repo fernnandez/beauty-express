@@ -87,6 +87,12 @@ export class AdminController {
     return await this.adminService.getTenantDetail(id);
   }
 
+  @Get('tenants/:id/collaborators')
+  @ApiOperation({ summary: 'Descritivo de colaboradores de uma filial' })
+  async getTenantCollaborators(@Param('id') id: string) {
+    return await this.adminService.getTenantCollaborators(id);
+  }
+
   @Get('tenants/:id/appointments')
   @ApiOperation({ summary: 'Agendamentos de uma filial' })
   @ApiQuery({ name: 'date', required: false, type: String })

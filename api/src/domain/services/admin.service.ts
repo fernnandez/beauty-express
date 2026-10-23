@@ -27,7 +27,7 @@ import {
 } from '@domain/entities/appointment.entity';
 import { Commission } from '@domain/entities/commission.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Not, Repository } from 'typeorm';
+import { Between, In, Not, Repository } from 'typeorm';
 import { DateTime } from 'luxon';
 import { endOfDay, parseDateString } from '../../utils/date.util';
 import {
@@ -38,6 +38,7 @@ import {
 import {
   defaultTenantSettings,
   mergeTenantSettingsForSave,
+  normalizeTenantSettings,
 } from './tenant-settings.util';
 
 export interface TenantMetricsSnapshot {
@@ -75,6 +76,25 @@ export interface DashboardStats {
   revenueThisMonth: number;
   pendingCommissions: number;
   byTenant: TenantDashboardRow[];
+}
+
+export interface TenantCollaboratorRow {
+  id: string;
+  name: string;
+  phone: string;
+  isActive: boolean;
+  servicesCount: number;
+  hasOwnProfile: boolean;
+  profileActive: boolean;
+}
+
+export interface TenantCollaboratorsReport {
+  commissionsEnabled: boolean;
+  periodMode: 'biweekly' | 'monthly';
+  total: number;
+  active: number;
+  withProfile: number;
+  collaborators: TenantCollaboratorRow[];
 }
 
 export interface TenantDetail extends Tenant {
@@ -550,6 +570,57 @@ export class AdminService {
     const tenant = await this.resolveTenantOrThrow(id);
     const metrics = await this.getTenantMetricsSnapshot(id);
     return { ...tenant, metrics };
+  }
+
+  /**
+   * Descritivo de colaboradores da filial: lista com serviços associados,
+   * indicação de perfil próprio (login) e o regime de comissões da filial.
+   */
+  async getTenantCollaborators(
+    tenantId: string,
+  ): Promise<TenantCollaboratorsReport> {
+    const tenant = await this.resolveTenantOrThrow(tenantId);
+    const features = normalizeTenantSettings(tenant.settings, tenant.name)
+      .features;
+
+    const collaborators = await this.collaboratorRepo.find({
+      where: { tenantId },
+      relations: { services: true },
+      order: { name: 'ASC' },
+    });
+
+    // Usuários (perfil próprio) vinculados a esses colaboradores.
+    const collaboratorIds = collaborators.map((c) => c.id);
+    const profileUsers = collaboratorIds.length
+      ? await this.userRepository.find({
+          where: { collaboratorId: In(collaboratorIds) },
+        })
+      : [];
+    const profileByCollaborator = new Map(
+      profileUsers.map((u) => [u.collaboratorId as string, u]),
+    );
+
+    const rows: TenantCollaboratorRow[] = collaborators.map((c) => {
+      const profile = profileByCollaborator.get(c.id);
+      return {
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        isActive: c.isActive,
+        servicesCount: c.services?.length ?? 0,
+        hasOwnProfile: Boolean(profile),
+        profileActive: Boolean(profile?.isActive),
+      };
+    });
+
+    return {
+      commissionsEnabled: features.commissionsEnabled,
+      periodMode: features.periodMode === 'monthly' ? 'monthly' : 'biweekly',
+      total: rows.length,
+      active: rows.filter((r) => r.isActive).length,
+      withProfile: rows.filter((r) => r.hasOwnProfile).length,
+      collaborators: rows,
+    };
   }
 
   async getTenantAppointments(

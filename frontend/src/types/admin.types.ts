@@ -107,3 +107,22 @@ export interface AdminAuditLog {
   ipAddress: string | null;
   createdAt: string;
 }
+
+export interface TenantCollaboratorRow {
+  id: string;
+  name: string;
+  phone: string;
+  isActive: boolean;
+  servicesCount: number;
+  hasOwnProfile: boolean;
+  profileActive: boolean;
+}
+
+export interface TenantCollaboratorsReport {
+  commissionsEnabled: boolean;
+  periodMode: 'biweekly' | 'monthly';
+  total: number;
+  active: number;
+  withProfile: number;
+  collaborators: TenantCollaboratorRow[];
+}

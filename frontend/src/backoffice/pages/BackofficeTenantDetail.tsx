@@ -25,7 +25,10 @@ import {
   IconReceipt,
   IconTrendingDown,
   IconTrendingUp,
-} from '@tabler/icons-react';
+  IconUsers,
+  IconUserCheck,
+  IconId,
+} from "@tabler/icons-react";
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppointmentStatus, type Appointment } from '../../types';
@@ -36,6 +39,7 @@ import {
   useAdminTenantCommissions,
   useAdminTenantDetail,
   useAdminTenantSummary,
+  useAdminTenantCollaborators,
 } from '../hooks/useAdminTenantDetail';
 import { TenantConfigTab } from '../components/TenantConfigTab';
 import {
@@ -176,6 +180,125 @@ function TenantSummaryTab({ tenantId }: { tenantId: string }) {
             );
           })}
         </SimpleGrid>
+      )}
+    </Stack>
+  );
+}
+
+function TenantCollaboratorsTab({ tenantId }: { tenantId: string }) {
+  const { data: report, isLoading } = useAdminTenantCollaborators(tenantId);
+
+  if (isLoading) {
+    return (
+      <Group justify="center" py="xl">
+        <Loader color="violet" />
+      </Group>
+    );
+  }
+
+  if (!report) {
+    return (
+      <Text c="gray.6" ta="center" py="xl">
+        Não foi possível carregar os colaboradores.
+      </Text>
+    );
+  }
+
+  const summaryCards = [
+    { title: 'Colaboradores', value: String(report.total), icon: IconUsers },
+    { title: 'Ativos', value: String(report.active), icon: IconUserCheck },
+    {
+      title: 'Com perfil próprio',
+      value: `${report.withProfile} de ${report.total}`,
+      icon: IconId,
+    },
+    {
+      title: 'Comissões',
+      value: report.commissionsEnabled
+        ? report.periodMode === 'monthly'
+          ? 'Ativas · mensal'
+          : 'Ativas · quinzenal'
+        : 'Desativadas',
+      icon: IconCurrencyDollar,
+    },
+  ];
+
+  return (
+    <Stack gap="lg">
+      <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+        {summaryCards.map((card) => (
+          <Card key={card.title} withBorder radius="md" padding="md">
+            <Group gap="sm" wrap="nowrap">
+              <ThemeIcon variant="light" color="violet" size="lg" radius="md">
+                <card.icon size={18} />
+              </ThemeIcon>
+              <Stack gap={0}>
+                <Text size="xs" c="gray.6">
+                  {card.title}
+                </Text>
+                <Text fw={700} c="gray.9">
+                  {card.value}
+                </Text>
+              </Stack>
+            </Group>
+          </Card>
+        ))}
+      </SimpleGrid>
+
+      {report.collaborators.length === 0 ? (
+        <Text c="gray.6" ta="center" py="xl">
+          Esta filial ainda não tem colaboradores cadastrados.
+        </Text>
+      ) : (
+        <ScrollArea>
+          <Table striped highlightOnHover verticalSpacing="sm">
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Colaborador</Table.Th>
+                <Table.Th>Telefone</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.Th>Serviços</Table.Th>
+                <Table.Th>Perfil próprio</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {report.collaborators.map((c) => (
+                <Table.Tr key={c.id}>
+                  <Table.Td>
+                    <Text size="sm" fw={500} c="gray.9">
+                      {c.name}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm" c="gray.7">
+                      {c.phone || '—'}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge color={c.isActive ? 'green' : 'gray'} variant="light">
+                      {c.isActive ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>{c.servicesCount}</Table.Td>
+                  <Table.Td>
+                    {c.hasOwnProfile ? (
+                      <Badge
+                        color={c.profileActive ? 'violet' : 'orange'}
+                        variant="light"
+                      >
+                        {c.profileActive ? 'Com acesso' : 'Acesso inativo'}
+                      </Badge>
+                    ) : (
+                      <Badge color="gray" variant="light">
+                        Sem perfil
+                      </Badge>
+                    )}
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </ScrollArea>
       )}
     </Stack>
   );
@@ -593,6 +716,7 @@ export function BackofficeTenantDetail() {
           <Tabs.List>
             <Tabs.Tab value="config">Configuração</Tabs.Tab>
             <Tabs.Tab value="summary">Resumo financeiro</Tabs.Tab>
+            <Tabs.Tab value="collaborators">Colaboradores</Tabs.Tab>
             <Tabs.Tab value="appointments">Agendamentos</Tabs.Tab>
             <Tabs.Tab value="commissions">Comissões</Tabs.Tab>
           </Tabs.List>
@@ -602,6 +726,9 @@ export function BackofficeTenantDetail() {
           </Tabs.Panel>
           <Tabs.Panel value="summary" pt="lg">
             <TenantSummaryTab tenantId={id} />
+          </Tabs.Panel>
+          <Tabs.Panel value="collaborators" pt="lg">
+            <TenantCollaboratorsTab tenantId={id} />
           </Tabs.Panel>
           <Tabs.Panel value="appointments" pt="lg">
             <TenantAppointmentsTab tenantId={id} />

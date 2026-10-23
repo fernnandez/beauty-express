@@ -1,6 +1,7 @@
 import { adminApi } from '../config/admin-api';
 import type { Appointment, Commission } from '../types';
 import type {
+  TenantCollaboratorsReport,
   AdminAuditLog,
   AdminUser,
   CreateAdminUserDto,
@@ -60,6 +61,15 @@ export const adminService = {
     const response = await adminApi.get<TenantFinancialReport>(
       `/admin/tenants/${id}/summary`,
       { params: { year, month } },
+    );
+    return response.data;
+  },
+
+  getTenantCollaborators: async (
+    id: string,
+  ): Promise<TenantCollaboratorsReport> => {
+    const response = await adminApi.get<TenantCollaboratorsReport>(
+      `/admin/tenants/${id}/collaborators`,
     );
     return response.data;
   },

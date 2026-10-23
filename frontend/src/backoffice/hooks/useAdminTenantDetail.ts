@@ -44,3 +44,11 @@ export const useAdminTenantSummary = (
     enabled: Boolean(tenantId),
   });
 };
+
+export const useAdminTenantCollaborators = (tenantId: string | undefined) => {
+  return useQuery({
+    queryKey: ['admin', 'tenants', tenantId, 'collaborators'],
+    queryFn: () => adminService.getTenantCollaborators(tenantId!),
+    enabled: Boolean(tenantId),
+  });
+};
