@@ -76,18 +76,24 @@ export function PwaInstallPrompt() {
   const [iosSafari] = useState<boolean>(isIosSafari);
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
-  const [visible, setVisible] = useState(false);
+  // Visibilidade inicial calculada no mount (lazy): iOS não emite
+  // beforeinstallprompt, então mostramos as instruções direto, sem setState
+  // síncrono dentro do effect.
+  const [visible, setVisible] = useState(() => {
+    if (isStandalone() || localStorage.getItem(DISMISS_KEY) === "1") {
+      return false;
+    }
+    return detectPlatform() === "ios";
+  });
 
   useEffect(() => {
     if (isStandalone() || localStorage.getItem(DISMISS_KEY) === "1") {
       return;
     }
 
-    const current = detectPlatform();
-
-    // iOS não emite beforeinstallprompt: mostramos as instruções direto.
-    if (current === "ios") {
-      setVisible(true);
+    // iOS já é tratado na inicialização do estado; aqui só registramos os
+    // listeners para plataformas que emitem beforeinstallprompt.
+    if (detectPlatform() === "ios") {
       return;
     }
 

@@ -11,7 +11,7 @@ import {
   Title,
 } from '@mantine/core';
 import type { UseFormReturnType } from '@mantine/form';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { LoginBranding } from '../../types/branding.types';
 import { createLoginBackground } from '../../utils/theme.util';
 import {
@@ -70,10 +70,13 @@ function resolveLogoSrc(logoUrl?: string | null): string {
 function LoginBrandingPreview({ branding }: { branding: LoginBranding }) {
   const logoSrc = resolveLogoSrc(branding.logoUrl);
   const [logoFailed, setLogoFailed] = useState(false);
-
-  useEffect(() => {
+  // Ajusta estado derivado durante o render ao trocar o logo, sem useEffect
+  // (padrão recomendado pelo React para "resetar estado quando a prop muda").
+  const [lastLogoSrc, setLastLogoSrc] = useState(logoSrc);
+  if (logoSrc !== lastLogoSrc) {
+    setLastLogoSrc(logoSrc);
     setLogoFailed(false);
-  }, [logoSrc]);
+  }
 
   return (
     <Center>

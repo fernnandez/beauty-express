@@ -24,7 +24,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { DateTime } from "luxon";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ConfirmModal } from "../ConfirmModal";
 import { PeriodFilter } from "../PeriodFilter";
 import { TablePage } from "../TablePage";
@@ -93,9 +93,14 @@ export function CommissionsPanel({
   const [markAsPaidModalOpened, setMarkAsPaidModalOpened] = useState(false);
   const [markAsUnpaidModalOpened, setMarkAsUnpaidModalOpened] = useState(false);
 
-  useEffect(() => {
+  // Reseta a seleção quando qualquer filtro muda, ajustando o estado durante o
+  // render (padrão recomendado pelo React, sem useEffect/renders em cascata).
+  const filtersKey = `${statusFilter}|${JSON.stringify(period)}|${collaboratorFilter}|${debouncedSearchTerm}`;
+  const [lastFiltersKey, setLastFiltersKey] = useState(filtersKey);
+  if (filtersKey !== lastFiltersKey) {
+    setLastFiltersKey(filtersKey);
     setSelectedCommissions(new Set());
-  }, [statusFilter, period, collaboratorFilter, debouncedSearchTerm]);
+  }
 
   // Prepara os filtros para enviar ao backend. A visão é sempre agregada por
   // dia, então carregamos o período inteiro (sem paginar) para os subtotais

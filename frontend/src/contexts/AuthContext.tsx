@@ -1,3 +1,6 @@
+/* eslint-disable react-refresh/only-export-components --
+   Provider e hook convivem no mesmo arquivo (padrão idiomático de Context).
+   A regra afeta apenas o hot-reload em dev, não o build de produção. */
 import {
   createContext,
   useCallback,
@@ -26,27 +29,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(authStorage.getUser());
   const [isLoading, setIsLoading] = useState(authStorage.hasSession());
 
-  const bootstrap = useCallback(async () => {
+  useEffect(() => {
+    // Valida a sessão no servidor apenas quando há tokens. Sem sessão, o
+    // estado inicial já reflete isLoading=false (useState(hasSession())).
     if (!authStorage.hasSession()) {
-      setIsLoading(false);
       return;
     }
-
-    try {
-      const profile = await authService.me();
-      setUser(profile);
-      authStorage.setUser(profile);
-    } catch {
-      authStorage.clear();
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
+    let active = true;
+    authService
+      .me()
+      .then((profile) => {
+        if (!active) return;
+        setUser(profile);
+        authStorage.setUser(profile);
+      })
+      .catch(() => {
+        if (!active) return;
+        authStorage.clear();
+        setUser(null);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
-
-  useEffect(() => {
-    bootstrap();
-  }, [bootstrap]);
 
   const login = useCallback(async (dto: LoginDto) => {
     const response = await authService.login(dto);

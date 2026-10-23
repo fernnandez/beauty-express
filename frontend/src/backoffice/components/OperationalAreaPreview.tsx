@@ -14,7 +14,7 @@ import {
   IconScissors,
   IconUsers,
 } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { LoginBranding } from '../../types/branding.types';
 import { getNavbarBackground } from '../../utils/theme.util';
 
@@ -57,10 +57,12 @@ export function OperationalAreaPreview({ branding }: { branding: LoginBranding }
   const [logoFailed, setLogoFailed] = useState(false);
   const navbarBg = getNavbarBackground(branding.accentColor);
   const activeBg = withAlpha(branding.primaryColor, 0.14);
-
-  useEffect(() => {
+  // Reseta o fallback ao trocar o logo durante o render (sem useEffect).
+  const [lastLogoSrc, setLastLogoSrc] = useState(logoSrc);
+  if (logoSrc !== lastLogoSrc) {
+    setLastLogoSrc(logoSrc);
     setLogoFailed(false);
-  }, [logoSrc]);
+  }
 
   return (
     <Paper

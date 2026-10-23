@@ -1,3 +1,6 @@
+/* eslint-disable react-refresh/only-export-components --
+   Provider e hook convivem no mesmo arquivo (padrão idiomático de Context).
+   A regra afeta apenas o hot-reload em dev, não o build de produção. */
 import {
   createContext,
   useCallback,
@@ -25,30 +28,33 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(adminAuthStorage.getUser());
   const [isLoading, setIsLoading] = useState(adminAuthStorage.hasSession());
 
-  const bootstrap = useCallback(async () => {
+  useEffect(() => {
     if (!adminAuthStorage.hasSession()) {
-      setIsLoading(false);
       return;
     }
-
-    try {
-      const profile = await adminAuthService.me();
-      if (profile.role !== 'super_admin') {
-        throw new Error('Acesso negado');
-      }
-      setUser(profile);
-      adminAuthStorage.setUser(profile);
-    } catch {
-      adminAuthStorage.clear();
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
+    let active = true;
+    adminAuthService
+      .me()
+      .then((profile) => {
+        if (!active) return;
+        if (profile.role !== 'super_admin') {
+          throw new Error('Acesso negado');
+        }
+        setUser(profile);
+        adminAuthStorage.setUser(profile);
+      })
+      .catch(() => {
+        if (!active) return;
+        adminAuthStorage.clear();
+        setUser(null);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
-
-  useEffect(() => {
-    bootstrap();
-  }, [bootstrap]);
 
   const login = useCallback(async (dto: AdminLoginDto) => {
     const response = await adminAuthService.login(dto);
