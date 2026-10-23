@@ -35,7 +35,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
-      message: typeof message === 'string' ? message : (message as any).message,
+      message:
+        typeof message === 'string'
+          ? message
+          : ((message as { message?: unknown }).message ?? 'Error'),
     };
 
     // Log do erro para debug (em produção, usar logger apropriado)

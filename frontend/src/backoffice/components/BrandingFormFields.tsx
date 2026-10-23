@@ -21,9 +21,8 @@ import {
 } from '../utils/backoffice-theme.util';
 import { OperationalAreaPreview } from './OperationalAreaPreview';
 
-interface BrandingFormFieldsProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: UseFormReturnType<any>;
+interface BrandingFormFieldsProps<T> {
+  form: UseFormReturnType<T>;
   prefix?: string;
   showPreview?: boolean;
   /** login = tela de login; operational = área logada da filial */
@@ -121,12 +120,12 @@ function LoginBrandingPreview({ branding }: { branding: LoginBranding }) {
   );
 }
 
-export function BrandingFormFields({
+export function BrandingFormFields<T>({
   form,
   prefix,
   showPreview = true,
-  previewVariant = 'login',
-}: BrandingFormFieldsProps) {
+  previewVariant = "login",
+}: BrandingFormFieldsProps<T>) {
   const displayNamePath = getFieldPath(prefix, 'displayName');
   const logoUrlPath = getFieldPath(prefix, 'logoUrl');
   const primaryColorPath = getFieldPath(prefix, 'primaryColor');

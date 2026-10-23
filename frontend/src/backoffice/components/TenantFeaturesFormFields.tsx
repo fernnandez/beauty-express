@@ -5,16 +5,15 @@ import {
   backofficeSwitchStyles,
 } from '../utils/backoffice-theme.util';
 
-interface TenantFeaturesFormFieldsProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: UseFormReturnType<any>;
+interface TenantFeaturesFormFieldsProps<T> {
+  form: UseFormReturnType<T>;
   prefix?: string;
 }
 
-export function TenantFeaturesFormFields({
+export function TenantFeaturesFormFields<T>({
   form,
-  prefix = 'features',
-}: TenantFeaturesFormFieldsProps) {
+  prefix = "features",
+}: TenantFeaturesFormFieldsProps<T>) {
   return (
     <Stack gap="md">
       <Text size="sm" c="dimmed">
