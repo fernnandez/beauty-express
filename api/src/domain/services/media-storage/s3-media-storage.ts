@@ -6,7 +6,11 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { MediaStorage, StoreMediaInput } from './media-storage.interface';
+import {
+  MediaStorage,
+  StoreMediaInput,
+  StorePublicInput,
+} from './media-storage.interface';
 
 /** Validade da URL assinada servida ao cliente. */
 const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hora
@@ -17,6 +21,7 @@ const MIME_EXTENSIONS: Record<string, string> = {
   'image/jpg': 'jpg',
   'image/png': 'png',
   'image/gif': 'gif',
+  'image/svg+xml': 'svg',
   'video/mp4': 'mp4',
   'audio/ogg': 'ogg',
   'audio/mpeg': 'mp3',
@@ -114,6 +119,45 @@ export class S3MediaStorage implements MediaStorage, OnModuleInit {
     // Persistimos a *chave* do objeto; a URL servível é assinada sob demanda
     // em resolveUrl (o bucket é privado).
     return key;
+  }
+
+  /**
+   * Persiste um asset público (ex.: logo) e devolve uma URL estável.
+   *
+   * Monta a URL pública a partir de S3_PUBLIC_URL (ou do endpoint + bucket),
+   * sem presigned — o objeto precisa ficar acessível publicamente. Objetos
+   * sob o prefixo público não são afetados pelo lifecycle de TTL das mídias.
+   */
+  async storePublic(input: StorePublicInput): Promise<string> {
+    const ext = MIME_EXTENSIONS[input.mime] ?? 'bin';
+    const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const key = `${input.prefix}/${input.tenantId}/${unique}.${ext}`;
+
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: input.buffer,
+        ContentType: input.mime,
+        CacheControl: 'public, max-age=31536000, immutable',
+      }),
+    );
+
+    return this.buildPublicUrl(key);
+  }
+
+  /** URL pública estável do objeto (sem presigned). */
+  private buildPublicUrl(key: string): string {
+    const base = process.env.S3_PUBLIC_URL?.replace(/\/+$/, '');
+    if (base) {
+      return `${base}/${key}`;
+    }
+    // Fallback: endpoint + bucket (path-style) ou host do bucket.
+    if (this.endpoint) {
+      const ep = this.endpoint.replace(/\/+$/, '');
+      return `${ep}/${this.bucket}/${key}`;
+    }
+    return `https://${this.bucket}.s3.amazonaws.com/${key}`;
   }
 
   /**

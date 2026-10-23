@@ -119,6 +119,7 @@ export function TenantConfigTab({ tenant }: { tenant: TenantDetail }) {
             form={form}
             prefix="settings.branding"
             previewVariant="operational"
+            tenantId={tenant.id}
           />
 
           <Divider

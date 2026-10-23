@@ -1,8 +1,10 @@
 import {
   Avatar,
   Box,
+  Button,
   Center,
   ColorInput,
+  FileButton,
   Group,
   Paper,
   Stack,
@@ -12,7 +14,10 @@ import {
 } from '@mantine/core';
 import type { UseFormReturnType } from '@mantine/form';
 import { useState } from 'react';
+import { IconUpload } from '@tabler/icons-react';
 import type { LoginBranding } from '../../types/branding.types';
+import { adminService } from '../../services/admin.service';
+import { getErrorMessage } from '../../utils/error.util';
 import { createLoginBackground } from '../../utils/theme.util';
 import {
   backofficeColorInputStyles,
@@ -27,6 +32,8 @@ interface BrandingFormFieldsProps<T> {
   showPreview?: boolean;
   /** login = tela de login; operational = área logada da filial */
   previewVariant?: 'login' | 'operational';
+  /** Quando presente, habilita o upload da logo para o S3 desta filial. */
+  tenantId?: string;
 }
 
 function getFieldPath(prefix: string | undefined, field: string): string {
@@ -125,6 +132,7 @@ export function BrandingFormFields<T>({
   prefix,
   showPreview = true,
   previewVariant = "login",
+  tenantId,
 }: BrandingFormFieldsProps<T>) {
   const displayNamePath = getFieldPath(prefix, 'displayName');
   const logoUrlPath = getFieldPath(prefix, 'logoUrl');
@@ -133,6 +141,26 @@ export function BrandingFormFields<T>({
 
   const branding = getNestedBranding(form.values, prefix);
   const logoUrlValue = (form.getInputProps(logoUrlPath).value as string | null) ?? '';
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleLogoUpload = async (file: File | null) => {
+    if (!file || !tenantId) return;
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const { url } = await adminService.uploadTenantLogo(tenantId, file);
+      form.setFieldValue(
+        logoUrlPath as never,
+        url as never,
+      );
+    } catch (err) {
+      setUploadError(getErrorMessage(err));
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <Stack gap="md">
@@ -161,8 +189,32 @@ export function BrandingFormFields<T>({
             size={52}
             radius="md"
           />
+          {tenantId && (
+            <FileButton
+              onChange={handleLogoUpload}
+              accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+            >
+              {(props) => (
+                <Button
+                  {...props}
+                  size="xs"
+                  variant="light"
+                  color="violet"
+                  loading={uploading}
+                  leftSection={<IconUpload size={14} />}
+                >
+                  Enviar
+                </Button>
+              )}
+            </FileButton>
+          )}
         </Stack>
       </Group>
+      {uploadError && (
+        <Text size="xs" c="red">
+          {uploadError}
+        </Text>
+      )}
       <Group grow align="flex-start">
         <ColorInput
           label="Cor primária"

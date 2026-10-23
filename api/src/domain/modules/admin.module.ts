@@ -20,6 +20,7 @@ import { AdminService } from '@domain/services/admin.service';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth.module';
+import { mediaStorageProvider } from '@domain/services/media-storage/media-storage.provider';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { AuthModule } from './auth.module';
     TenantRepository,
     UserRepository,
     WhatsappInstanceRepository,
+    mediaStorageProvider,
   ],
 })
 export class AdminModule {}

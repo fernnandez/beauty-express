@@ -4,9 +4,10 @@ import { UpdateTenantDto } from '@application/dtos/admin/update-tenant.dto';
 import { UpdateUserDto } from '@application/dtos/admin/update-user.dto';
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '@domain/entities/user-role.enum';
 import { Tenant } from '@domain/entities/tenant.entity';
@@ -18,6 +19,10 @@ import { TenantRepository } from '@domain/repositories/tenant.repository';
 import { UserRepository } from '@domain/repositories/user.repository';
 import { WhatsappInstanceRepository } from '@domain/repositories/whatsapp-instance.repository';
 import { WhatsappInstanceStatus } from '@domain/entities/whatsapp-enums';
+import {
+  MEDIA_STORAGE,
+  MediaStorage,
+} from '@domain/services/media-storage/media-storage.interface';
 import { AdminAuditContext, AdminAuditService } from './admin-audit.service';
 import { Collaborator } from '@domain/entities/collaborator.entity';
 import { Service } from '@domain/entities/service.entity';
@@ -117,6 +122,8 @@ export class AdminService {
     private readonly serviceRepo: Repository<Service>,
     @InjectRepository(Appointment)
     private readonly appointmentRepo: Repository<Appointment>,
+    @Inject(MEDIA_STORAGE)
+    private readonly mediaStorage: MediaStorage,
   ) {}
 
   async listTenants(): Promise<Tenant[]> {
@@ -621,6 +628,45 @@ export class AdminService {
       withProfile: rows.filter((r) => r.hasOwnProfile).length,
       collaborators: rows,
     };
+  }
+
+  /**
+   * Recebe o upload da logo de uma filial, persiste no storage público
+   * (S3 em produção; data URL em dev) e retorna a URL pública resultante.
+   */
+  async uploadTenantLogo(
+    tenantId: string,
+    file: { buffer: Buffer; mimetype: string; size: number },
+  ): Promise<{ url: string }> {
+    await this.resolveTenantOrThrow(tenantId);
+
+    const allowed = [
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/webp',
+      'image/svg+xml',
+      'image/gif',
+    ];
+    if (!file || !allowed.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Formato inválido. Envie uma imagem PNG, JPG, WEBP, SVG ou GIF.',
+      );
+    }
+
+    const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+    if (file.size > MAX_BYTES) {
+      throw new BadRequestException('A logo deve ter no máximo 2 MB.');
+    }
+
+    const url = await this.mediaStorage.storePublic({
+      buffer: file.buffer,
+      mime: file.mimetype,
+      prefix: 'branding',
+      tenantId,
+    });
+
+    return { url };
   }
 
   async getTenantAppointments(

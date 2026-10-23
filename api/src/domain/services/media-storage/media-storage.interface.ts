@@ -32,6 +32,25 @@ export interface MediaStorage {
    *   pois o bucket é privado.
    */
   resolveUrl(stored: string | null | undefined): Promise<string | null>;
+
+  /**
+   * Persiste um asset PÚBLICO e estável (ex.: logo de branding) e retorna uma
+   * URL diretamente servível, sem presigned/expiração.
+   * - InlineMediaStorage: data URL base64 (dev).
+   * - S3MediaStorage: URL pública montada a partir de S3_PUBLIC_URL/endpoint.
+   */
+  storePublic(input: StorePublicInput): Promise<string>;
+}
+
+export interface StorePublicInput {
+  /** Conteúdo bruto do arquivo. */
+  buffer: Buffer;
+  /** MIME type (ex.: image/png, image/webp, image/svg+xml). */
+  mime: string;
+  /** Prefixo lógico no bucket (ex.: 'branding'). */
+  prefix: string;
+  /** Tenant dono do asset — particiona o caminho. */
+  tenantId: string;
 }
 
 /** Token de injeção do NestJS para a MediaStorage. */

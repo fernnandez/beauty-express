@@ -18,16 +18,31 @@ import {
   Post,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
-} from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+  UseInterceptors,
+} from "@nestjs/common";
+import {
+  ApiConsumes,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
 import { DateTime } from 'luxon';
 import { VALIDATION_CONSTANTS } from '../../common/constants/validation.constants';
 import { validateDateFormat } from '../../common/utils/date-validation.util';
 import { endOfDay, parseDateString } from '../../utils/date.util';
 
-@ApiTags('Admin')
+interface UploadedImage {
+  buffer: Buffer;
+  mimetype: string;
+  size: number;
+  originalname: string;
+}
+
+@ApiTags("Admin")
 @Controller('admin')
 @UseGuards(SuperAdminGuard)
 export class AdminController {
@@ -91,6 +106,21 @@ export class AdminController {
   @ApiOperation({ summary: 'Descritivo de colaboradores de uma filial' })
   async getTenantCollaborators(@Param('id') id: string) {
     return await this.adminService.getTenantCollaborators(id);
+  }
+
+  @Post('tenants/:id/branding/logo')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Upload da logo de uma filial (retorna a URL)' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadTenantLogo(
+    @Param('id') id: string,
+    @UploadedFile() file?: UploadedImage,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Nenhum arquivo enviado.');
+    }
+    return await this.adminService.uploadTenantLogo(id, file);
   }
 
   @Get('tenants/:id/appointments')

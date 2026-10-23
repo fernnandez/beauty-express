@@ -65,6 +65,20 @@ export const adminService = {
     return response.data;
   },
 
+  uploadTenantLogo: async (
+    id: string,
+    file: File,
+  ): Promise<{ url: string }> => {
+    const form = new FormData();
+    form.append("file", file);
+    const response = await adminApi.post<{ url: string }>(
+      `/admin/tenants/${id}/branding/logo`,
+      form,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data;
+  },
+
   getTenantCollaborators: async (
     id: string,
   ): Promise<TenantCollaboratorsReport> => {

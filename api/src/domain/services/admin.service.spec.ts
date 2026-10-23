@@ -9,6 +9,7 @@ import { AppointmentRepository } from '../repositories/appointment.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { WhatsappInstanceRepository } from '../repositories/whatsapp-instance.repository';
+import { MEDIA_STORAGE } from './media-storage/media-storage.interface';
 import { Collaborator } from '../entities/collaborator.entity';
 import { Service } from '../entities/service.entity';
 import { Appointment, AppointmentStatus } from '../entities/appointment.entity';
@@ -101,6 +102,10 @@ describe('AdminService', () => {
         {
           provide: WhatsappInstanceRepository,
           useValue: mockWhatsappInstanceRepository,
+        },
+        {
+          provide: MEDIA_STORAGE,
+          useValue: { store: jest.fn(), resolveUrl: jest.fn(), storePublic: jest.fn() },
         },
         {
           provide: getRepositoryToken(Collaborator),
