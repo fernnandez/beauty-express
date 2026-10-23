@@ -1,10 +1,6 @@
 import { CreateCollaboratorDto } from '@application/dtos/collaborator/create-collaborator.dto';
 import { UpdateCollaboratorDto } from '@application/dtos/collaborator/update-collaborator.dto';
-import {
-  Injectable,
-  NotFoundException,
-  Scope,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, Scope } from '@nestjs/common';
 import { Collaborator } from '../entities/collaborator.entity';
 import { CollaboratorRepository } from '../repositories/collaborator.repository';
 import { TenantContextService } from './tenant-context.service';
@@ -55,7 +51,10 @@ export class CollaboratorService {
       throw new NotFoundException('Collaborator not found');
     }
 
-    await this.repository.update({ id, tenantId: this.getTenantId() }, updateDto);
+    await this.repository.update(
+      { id, tenantId: this.getTenantId() },
+      updateDto,
+    );
 
     const updated = await this.repository.findById(id, this.getTenantId());
     if (!updated) {

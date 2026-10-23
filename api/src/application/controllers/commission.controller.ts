@@ -8,7 +8,13 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CommissionService } from '@domain/services/commission.service';
 import { endOfDay, parseDateString } from '../../utils/date.util';
 import { validateDateFormat } from '../../common/utils/date-validation.util';
@@ -26,7 +32,9 @@ export class CommissionController {
   constructor(private readonly commissionDomainService: CommissionService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get commissions with optional filters and pagination' })
+  @ApiOperation({
+    summary: 'Get commissions with optional filters and pagination',
+  })
   @ApiQuery({
     name: 'paid',
     required: false,
@@ -130,7 +138,8 @@ export class CommissionController {
   @Get('alerts')
   @Roles(UserRole.ADMIN)
   @ApiOperation({
-    summary: 'Alertas de comissões não pagas por colaborador (atraso/pendência)',
+    summary:
+      'Alertas de comissões não pagas por colaborador (atraso/pendência)',
   })
   @ApiResponse({
     status: 200,

@@ -23,4 +23,3 @@ import { ExpenseModule } from './expense.module';
   exports: [FinancialReportService],
 })
 export class FinancialReportModule {}
-

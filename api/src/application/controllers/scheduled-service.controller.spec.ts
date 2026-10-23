@@ -15,7 +15,7 @@ describe('ScheduledServiceController', () => {
 
   const mockScheduledService: ScheduledService = {
     id: 'scheduled-1',
-        tenantId: TENANT_ID_MOCK,
+    tenantId: TENANT_ID_MOCK,
     appointmentId: 'appointment-1',
     serviceId: 'service-1',
     collaboratorId: 'collaborator-1',

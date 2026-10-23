@@ -102,9 +102,7 @@ async function run() {
     'Natália Barbosa',
   ];
   const existingClients = await clientRepo.find({ where: { tenantId } });
-  const byPhone = new Map(
-    existingClients.map((c) => [c.phoneNormalized, c]),
-  );
+  const byPhone = new Map(existingClients.map((c) => [c.phoneNormalized, c]));
   const clients: Client[] = [...existingClients];
   for (let i = 0; i < demoClientes.length; i++) {
     const phone = `(11) 96666-${pad(10 + i)}${pad(i)}`.slice(0, 15);
@@ -262,10 +260,29 @@ async function run() {
       linkToClientIndex: 0,
       unread: 0,
       msgs: [
-        { dir: MessageDirection.INBOUND, text: 'Oi! Vocês têm horário pra manicure amanhã?', minsAgo: 180 },
-        { dir: MessageDirection.OUTBOUND, text: 'Oi, Amanda! Temos sim 😊 às 10h ou 14h. Qual prefere?', status: MessageStatus.READ, minsAgo: 175 },
-        { dir: MessageDirection.INBOUND, text: 'Pode ser 14h!', reaction: '❤️', minsAgo: 170 },
-        { dir: MessageDirection.OUTBOUND, text: 'Agendado! Te espero amanhã às 14h 💅', status: MessageStatus.READ, minsAgo: 168 },
+        {
+          dir: MessageDirection.INBOUND,
+          text: 'Oi! Vocês têm horário pra manicure amanhã?',
+          minsAgo: 180,
+        },
+        {
+          dir: MessageDirection.OUTBOUND,
+          text: 'Oi, Amanda! Temos sim 😊 às 10h ou 14h. Qual prefere?',
+          status: MessageStatus.READ,
+          minsAgo: 175,
+        },
+        {
+          dir: MessageDirection.INBOUND,
+          text: 'Pode ser 14h!',
+          reaction: '❤️',
+          minsAgo: 170,
+        },
+        {
+          dir: MessageDirection.OUTBOUND,
+          text: 'Agendado! Te espero amanhã às 14h 💅',
+          status: MessageStatus.READ,
+          minsAgo: 168,
+        },
       ],
     },
     {
@@ -274,8 +291,16 @@ async function run() {
       linkToClientIndex: 1,
       unread: 2,
       msgs: [
-        { dir: MessageDirection.INBOUND, text: 'Bom dia! Quanto fica esmaltação em gel + pé?', minsAgo: 95 },
-        { dir: MessageDirection.INBOUND, text: 'E vocês atendem no sábado?', minsAgo: 92 },
+        {
+          dir: MessageDirection.INBOUND,
+          text: 'Bom dia! Quanto fica esmaltação em gel + pé?',
+          minsAgo: 95,
+        },
+        {
+          dir: MessageDirection.INBOUND,
+          text: 'E vocês atendem no sábado?',
+          minsAgo: 92,
+        },
       ],
     },
     {
@@ -283,7 +308,11 @@ async function run() {
       phone: '(11) 95555-2042',
       unread: 1,
       msgs: [
-        { dir: MessageDirection.INBOUND, text: 'Oi, vi vocês no Instagram! Fazem limpeza de pele?', minsAgo: 40 },
+        {
+          dir: MessageDirection.INBOUND,
+          text: 'Oi, vi vocês no Instagram! Fazem limpeza de pele?',
+          minsAgo: 40,
+        },
       ],
     },
     {
@@ -292,9 +321,23 @@ async function run() {
       linkToClientIndex: 3,
       unread: 0,
       msgs: [
-        { dir: MessageDirection.OUTBOUND, text: 'Oi, Daniela! Passando pra confirmar seu horário de hoje às 16h. Podemos confirmar?', status: MessageStatus.DELIVERED, minsAgo: 300 },
-        { dir: MessageDirection.INBOUND, text: 'Confirmado! Até mais tarde 🙌', minsAgo: 280 },
-        { dir: MessageDirection.OUTBOUND, text: 'Perfeito, até já! 💖', status: MessageStatus.READ, minsAgo: 279 },
+        {
+          dir: MessageDirection.OUTBOUND,
+          text: 'Oi, Daniela! Passando pra confirmar seu horário de hoje às 16h. Podemos confirmar?',
+          status: MessageStatus.DELIVERED,
+          minsAgo: 300,
+        },
+        {
+          dir: MessageDirection.INBOUND,
+          text: 'Confirmado! Até mais tarde 🙌',
+          minsAgo: 280,
+        },
+        {
+          dir: MessageDirection.OUTBOUND,
+          text: 'Perfeito, até já! 💖',
+          status: MessageStatus.READ,
+          minsAgo: 279,
+        },
       ],
     },
     {
@@ -303,8 +346,20 @@ async function run() {
       linkToClientIndex: 4,
       unread: 0,
       msgs: [
-        { dir: MessageDirection.INBOUND, text: 'Mandei foto da referência da unha 💅', type: MessageType.IMAGE, mediaUrl: 'https://via.placeholder.com/400x400.png?text=Referencia+Unha', minsAgo: 1440 },
-        { dir: MessageDirection.OUTBOUND, text: 'Amei! Consigo fazer sim 😍', status: MessageStatus.READ, minsAgo: 1435 },
+        {
+          dir: MessageDirection.INBOUND,
+          text: 'Mandei foto da referência da unha 💅',
+          type: MessageType.IMAGE,
+          mediaUrl:
+            'https://via.placeholder.com/400x400.png?text=Referencia+Unha',
+          minsAgo: 1440,
+        },
+        {
+          dir: MessageDirection.OUTBOUND,
+          text: 'Amei! Consigo fazer sim 😍',
+          status: MessageStatus.READ,
+          minsAgo: 1435,
+        },
       ],
     },
     {
@@ -313,8 +368,17 @@ async function run() {
       linkToClientIndex: 5,
       unread: 1,
       msgs: [
-        { dir: MessageDirection.OUTBOUND, text: 'Oi, Fernanda! Temos uma promoção de escova essa semana 💁‍♀️', status: MessageStatus.DELIVERED, minsAgo: 600 },
-        { dir: MessageDirection.INBOUND, text: 'Que legal! Quais os horários disponíveis?', minsAgo: 30 },
+        {
+          dir: MessageDirection.OUTBOUND,
+          text: 'Oi, Fernanda! Temos uma promoção de escova essa semana 💁‍♀️',
+          status: MessageStatus.DELIVERED,
+          minsAgo: 600,
+        },
+        {
+          dir: MessageDirection.INBOUND,
+          text: 'Que legal! Quais os horários disponíveis?',
+          minsAgo: 30,
+        },
       ],
     },
     {
@@ -322,9 +386,22 @@ async function run() {
       phone: '(11) 95555-2088',
       unread: 0,
       msgs: [
-        { dir: MessageDirection.INBOUND, text: 'Vocês fazem sobrancelha?', minsAgo: 2880 },
-        { dir: MessageDirection.OUTBOUND, text: 'Fazemos sim! Design de sobrancelha R$ 40. Quer agendar?', status: MessageStatus.READ, minsAgo: 2875 },
-        { dir: MessageDirection.INBOUND, text: 'Depois te chamo, obrigada!', minsAgo: 2870 },
+        {
+          dir: MessageDirection.INBOUND,
+          text: 'Vocês fazem sobrancelha?',
+          minsAgo: 2880,
+        },
+        {
+          dir: MessageDirection.OUTBOUND,
+          text: 'Fazemos sim! Design de sobrancelha R$ 40. Quer agendar?',
+          status: MessageStatus.READ,
+          minsAgo: 2875,
+        },
+        {
+          dir: MessageDirection.INBOUND,
+          text: 'Depois te chamo, obrigada!',
+          minsAgo: 2870,
+        },
       ],
     },
   ];

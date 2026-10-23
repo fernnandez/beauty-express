@@ -16,6 +16,8 @@ export class AddCommissionIndexes1783000000000 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_commissions_tenant_collaborator"`,
     );
-    await queryRunner.query(`DROP INDEX "public"."IDX_commissions_tenant_paid"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_commissions_tenant_paid"`,
+    );
   }
 }

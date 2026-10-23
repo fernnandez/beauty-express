@@ -5,9 +5,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * - quotedWaMessageId: id da mensagem citada no WhatsApp
  * - quotedPreview: prévia textual da mensagem citada (mostrada acima da resposta)
  */
-export class AddWhatsappMessageQuote1786200000000
-  implements MigrationInterface
-{
+export class AddWhatsappMessageQuote1786200000000 implements MigrationInterface {
   name = 'AddWhatsappMessageQuote1786200000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

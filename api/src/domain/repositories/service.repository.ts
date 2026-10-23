@@ -19,10 +19,7 @@ export class ServiceRepository extends Repository<Service> {
     });
   }
 
-  async searchByName(
-    searchTerm: string,
-    tenantId: string,
-  ): Promise<Service[]> {
+  async searchByName(searchTerm: string, tenantId: string): Promise<Service[]> {
     return await this.createQueryBuilder('service')
       .leftJoinAndSelect('service.collaborators', 'collaborators')
       .where('service.name LIKE :search', { search: `%${searchTerm}%` })

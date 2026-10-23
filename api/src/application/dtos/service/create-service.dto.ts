@@ -35,4 +35,3 @@ export class CreateServiceDto {
   @IsOptional()
   description?: string;
 }
-

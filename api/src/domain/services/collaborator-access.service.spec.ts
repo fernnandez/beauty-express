@@ -31,7 +31,10 @@ describe('CollaboratorAccessService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CollaboratorAccessService,
-        { provide: CollaboratorRepository, useValue: mockCollaboratorRepository },
+        {
+          provide: CollaboratorRepository,
+          useValue: mockCollaboratorRepository,
+        },
         { provide: UserRepository, useValue: mockUserRepository },
         { provide: TenantContextService, useValue: mockTenantContextService },
       ],
@@ -116,7 +119,9 @@ describe('CollaboratorAccessService', () => {
 
     it('recusa e-mail duplicado no tenant', async () => {
       mockUserRepository.findOne.mockResolvedValue(null);
-      mockUserRepository.findByEmailAndTenant.mockResolvedValue({ id: 'other' });
+      mockUserRepository.findByEmailAndTenant.mockResolvedValue({
+        id: 'other',
+      });
       await expect(
         service.grant(collaboratorId, {
           email: 'dup@y.com',

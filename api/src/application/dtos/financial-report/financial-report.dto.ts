@@ -13,7 +13,9 @@ export class FinancialReportDto {
   @ApiProperty({ description: 'Total de comissões pagas no período' })
   totalCommissionsPaid: number;
 
-  @ApiProperty({ description: 'Total de comissões previstas (pagas + não pagas)' })
+  @ApiProperty({
+    description: 'Total de comissões previstas (pagas + não pagas)',
+  })
   totalCommissionsExpected: number;
 
   @ApiProperty({ description: 'Total de despesas que incidem no período' })
@@ -29,7 +31,10 @@ export class FinancialReportDto {
   @ApiProperty({ description: 'Valor líquido (total pago - comissões pagas)' })
   netAmount: number;
 
-  @ApiProperty({ description: 'Valor líquido previsto (total pago - todas as comissões previstas)' })
+  @ApiProperty({
+    description:
+      'Valor líquido previsto (total pago - todas as comissões previstas)',
+  })
   netAmountExpected: number;
 
   @ApiProperty({
@@ -43,4 +48,3 @@ export class FinancialReportDto {
     endDate: string;
   };
 }
-

@@ -39,7 +39,9 @@ export class SettingsService {
 
   async updateSettings(dto: {
     branding?: Partial<TenantBranding>;
-    features?: Partial<import('../types/tenant-settings.types').TenantFeatureSettings>;
+    features?: Partial<
+      import('../types/tenant-settings.types').TenantFeatureSettings
+    >;
   }): Promise<TenantSettingsResponse> {
     const tenant = await this.requireTenant();
 

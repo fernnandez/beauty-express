@@ -3,9 +3,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 const PORTAL_MARIA_ID = 'b1000001-0001-4000-8000-000000000001';
 const PORTAL_LOCAL_ID = 'b1000001-0001-4000-8000-000000000002';
 
-export class AddPortalsAndTenantSettings1782000000000
-  implements MigrationInterface
-{
+export class AddPortalsAndTenantSettings1782000000000 implements MigrationInterface {
   name = 'AddPortalsAndTenantSettings1782000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

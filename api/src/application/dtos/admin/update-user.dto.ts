@@ -9,7 +9,6 @@ import {
   IsString,
   IsUUID,
   MinLength,
-  ValidateIf,
 } from 'class-validator';
 
 export class UpdateUserDto {
@@ -18,7 +17,10 @@ export class UpdateUserDto {
   @IsEmail()
   email?: string;
 
-  @ApiProperty({ required: false, description: 'Nova senha (mín. 6 caracteres)' })
+  @ApiProperty({
+    required: false,
+    description: 'Nova senha (mín. 6 caracteres)',
+  })
   @IsOptional()
   @IsString()
   @MinLength(6)

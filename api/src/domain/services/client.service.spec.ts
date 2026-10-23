@@ -10,7 +10,6 @@ import { mockTenantContextService } from '../../test/tenant-context.mock';
 
 describe('ClientService', () => {
   let service: ClientService;
-  let repository: jest.Mocked<ClientRepository>;
 
   const mockRepository = {
     save: jest.fn(),
@@ -46,7 +45,6 @@ describe('ClientService', () => {
     }).compile();
 
     service = await module.resolve<ClientService>(ClientService);
-    repository = module.get(ClientRepository);
     jest.clearAllMocks();
   });
 

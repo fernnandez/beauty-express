@@ -24,7 +24,7 @@ describe('CommissionController', () => {
 
   const mockCommission: Commission = {
     id: 'commission-1',
-      tenantId: TENANT_ID_MOCK,
+    tenantId: TENANT_ID_MOCK,
     collaboratorId: 'collaborator-1',
     scheduledServiceId: 'scheduled-1',
     amount: 10.0,
@@ -118,7 +118,9 @@ describe('CommissionController', () => {
     it('should throw error when startDate format is invalid', async () => {
       const invalidDate = '2024/12/01';
 
-      await expect(controller.findAll(adminUser, undefined, invalidDate)).rejects.toThrow(
+      await expect(
+        controller.findAll(adminUser, undefined, invalidDate),
+      ).rejects.toThrow(
         'Invalid date format. Expected yyyy-mm-dd, got: 2024/12/01',
       );
 
@@ -129,7 +131,12 @@ describe('CommissionController', () => {
       const endDate = '2024-12-31';
       mockCommissionService.findAll.mockResolvedValue(mockListResult);
 
-      const result = await controller.findAll(adminUser, undefined, undefined, endDate);
+      const result = await controller.findAll(
+        adminUser,
+        undefined,
+        undefined,
+        endDate,
+      );
 
       expect(result).toEqual(mockListResult);
       expect(service.findAll).toHaveBeenCalledWith(
@@ -188,11 +195,7 @@ describe('CommissionController', () => {
       );
 
       expect(result).toEqual(mockListResult);
-      expect(service.findAll).toHaveBeenCalledWith(
-        { collaboratorIds },
-        1,
-        50,
-      );
+      expect(service.findAll).toHaveBeenCalledWith({ collaboratorIds }, 1, 50);
     });
 
     it('should combine multiple filters', async () => {

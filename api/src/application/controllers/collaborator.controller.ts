@@ -105,7 +105,9 @@ export class CollaboratorController {
   }
 
   @Patch(':id/access')
-  @ApiOperation({ summary: 'Atualizar acesso do colaborador (senha/email/ativo)' })
+  @ApiOperation({
+    summary: 'Atualizar acesso do colaborador (senha/email/ativo)',
+  })
   async updateAccess(
     @Param('id') id: string,
     @Body() dto: UpdateCollaboratorAccessDto,

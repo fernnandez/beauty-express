@@ -233,10 +233,7 @@ export class FinancialReportService {
    * Serviços mais vendidos (por quantidade) nos últimos `months` meses.
    * Serviços cancelados são ignorados.
    */
-  async getTopServices(
-    months: number,
-    limit = 5,
-  ): Promise<TopServiceItem[]> {
+  async getTopServices(months: number, limit = 5): Promise<TopServiceItem[]> {
     const tenantId = this.getTenantId();
 
     const now = DateTime.now().setZone('America/Sao_Paulo');

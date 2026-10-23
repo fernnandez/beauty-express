@@ -36,7 +36,9 @@ describe('FinancialReportController', () => {
       ],
     }).compile();
 
-    controller = module.get<FinancialReportController>(FinancialReportController);
+    controller = module.get<FinancialReportController>(
+      FinancialReportController,
+    );
     service = module.get<FinancialReportService>(FinancialReportService);
 
     jest.clearAllMocks();
@@ -111,9 +113,14 @@ describe('FinancialReportController', () => {
 
   describe('getPeriodReport', () => {
     it('should return report for valid date range', async () => {
-      mockFinancialReportService.getReportForPeriod.mockResolvedValue(mockReport);
+      mockFinancialReportService.getReportForPeriod.mockResolvedValue(
+        mockReport,
+      );
 
-      const result = await controller.getPeriodReport('2024-12-01', '2024-12-15');
+      const result = await controller.getPeriodReport(
+        '2024-12-01',
+        '2024-12-15',
+      );
 
       expect(result).toEqual(mockReport);
       expect(service.getReportForPeriod).toHaveBeenCalledWith(
@@ -141,4 +148,3 @@ describe('FinancialReportController', () => {
     });
   });
 });
-

@@ -4,7 +4,6 @@ import {
   IsEmail,
   IsEnum,
   IsNotEmpty,
-  IsOptional,
   IsString,
   IsUUID,
   MinLength,
@@ -25,7 +24,10 @@ export class CreateUserDto {
   @IsEnum(UserRole)
   role: UserRole;
 
-  @ApiProperty({ required: false, description: 'Obrigatório para roles operacionais' })
+  @ApiProperty({
+    required: false,
+    description: 'Obrigatório para roles operacionais',
+  })
   @ValidateIf((dto: CreateUserDto) => dto.role !== UserRole.SUPER_ADMIN)
   @IsUUID()
   @IsNotEmpty()

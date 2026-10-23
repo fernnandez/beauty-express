@@ -13,9 +13,7 @@ export class AddClientsTable1781000000000 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "clients" ADD CONSTRAINT "FK_clients_tenant" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "appointments" ADD "clientId" uuid`,
-    );
+    await queryRunner.query(`ALTER TABLE "appointments" ADD "clientId" uuid`);
     await queryRunner.query(
       `ALTER TABLE "appointments" ADD CONSTRAINT "FK_appointments_client" FOREIGN KEY ("clientId") REFERENCES "clients"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
     );

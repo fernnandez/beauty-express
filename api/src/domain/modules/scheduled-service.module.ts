@@ -35,4 +35,3 @@ import { AuthModule } from './auth.module';
   exports: [ScheduledServiceRepository, ScheduledServiceService],
 })
 export class ScheduledServiceModule {}
-

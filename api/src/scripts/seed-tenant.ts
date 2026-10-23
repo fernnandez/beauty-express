@@ -15,10 +15,7 @@ import {
 } from '@domain/entities/scheduled-service.entity';
 import { Commission } from '@domain/entities/commission.entity';
 import { Expense } from '@domain/entities/expense.entity';
-import {
-  ExpenseCategory,
-  ExpenseType,
-} from '@domain/entities/expense-enums';
+import { ExpenseCategory, ExpenseType } from '@domain/entities/expense-enums';
 import { Tenant } from '@domain/entities/tenant.entity';
 import { normalizePhone } from '@common/utils/phone.util';
 
@@ -75,7 +72,9 @@ async function seedTenant() {
     }
     // Tabelas de WhatsApp referenciam clients/tenant; limpa se existirem.
     const hasTable = async (name: string): Promise<boolean> => {
-      const r = await m.query('SELECT to_regclass($1) AS t', [`public.${name}`]);
+      const r = await m.query('SELECT to_regclass($1) AS t', [
+        `public.${name}`,
+      ]);
       return r[0].t !== null;
     };
     if (await hasTable('whatsapp_messages')) {
@@ -106,10 +105,34 @@ async function seedTenant() {
 
   // --- Colaboradores --------------------------------------------------------
   const collaborators = await collaboratorRepo.save([
-    { tenantId, name: 'Ana', phone: '(11) 98888-0001', area: 'Nail Designer', isActive: true },
-    { tenantId, name: 'Bruna', phone: '(11) 98888-0002', area: 'Hairdresser', isActive: true },
-    { tenantId, name: 'Carla', phone: '(11) 98888-0003', area: 'Esthetician', isActive: true },
-    { tenantId, name: 'Diana', phone: '(11) 98888-0004', area: 'Barber', isActive: true },
+    {
+      tenantId,
+      name: 'Ana',
+      phone: '(11) 98888-0001',
+      area: 'Nail Designer',
+      isActive: true,
+    },
+    {
+      tenantId,
+      name: 'Bruna',
+      phone: '(11) 98888-0002',
+      area: 'Hairdresser',
+      isActive: true,
+    },
+    {
+      tenantId,
+      name: 'Carla',
+      phone: '(11) 98888-0003',
+      area: 'Esthetician',
+      isActive: true,
+    },
+    {
+      tenantId,
+      name: 'Diana',
+      phone: '(11) 98888-0004',
+      area: 'Barber',
+      isActive: true,
+    },
   ]);
   console.log(`✅ ${collaborators.length} colaboradores`);
 
@@ -117,11 +140,31 @@ async function seedTenant() {
   const services = await serviceRepo.save([
     { tenantId, name: 'Manicure', defaultPrice: 35, commissionPercentage: 40 },
     { tenantId, name: 'Pedicure', defaultPrice: 40, commissionPercentage: 40 },
-    { tenantId, name: 'Esmaltação em Gel', defaultPrice: 70, commissionPercentage: 40 },
-    { tenantId, name: 'Corte Feminino', defaultPrice: 60, commissionPercentage: 40 },
+    {
+      tenantId,
+      name: 'Esmaltação em Gel',
+      defaultPrice: 70,
+      commissionPercentage: 40,
+    },
+    {
+      tenantId,
+      name: 'Corte Feminino',
+      defaultPrice: 60,
+      commissionPercentage: 40,
+    },
     { tenantId, name: 'Escova', defaultPrice: 50, commissionPercentage: 40 },
-    { tenantId, name: 'Sobrancelha Design', defaultPrice: 40, commissionPercentage: 50 },
-    { tenantId, name: 'Limpeza de Pele', defaultPrice: 120, commissionPercentage: 50 },
+    {
+      tenantId,
+      name: 'Sobrancelha Design',
+      defaultPrice: 40,
+      commissionPercentage: 50,
+    },
+    {
+      tenantId,
+      name: 'Limpeza de Pele',
+      defaultPrice: 120,
+      commissionPercentage: 50,
+    },
     { tenantId, name: 'Barba', defaultPrice: 35, commissionPercentage: 40 },
   ]);
   console.log(`✅ ${services.length} serviços`);
@@ -145,7 +188,12 @@ async function seedTenant() {
   const clients = await clientRepo.save(
     clientNames.map((name, i) => {
       const phone = `(11) 97777-00${String(i + 1).padStart(2, '0')}`;
-      return { tenantId, name, phone, phoneNormalized: `55${normalizePhone(phone)}` };
+      return {
+        tenantId,
+        name,
+        phone,
+        phoneNormalized: `55${normalizePhone(phone)}`,
+      };
     }),
   );
   console.log(`✅ ${clients.length} clientes`);
@@ -208,15 +256,78 @@ async function seedTenant() {
   };
 
   // 3 hoje (agendados)
-  await makeAppointment(clients[0], collaborators[0], services[0], today, '09:00', '10:00', AppointmentStatus.SCHEDULED, false);
-  await makeAppointment(clients[1], collaborators[1], services[3], today, '10:00', '11:00', AppointmentStatus.SCHEDULED, false);
-  await makeAppointment(clients[2], collaborators[2], services[6], today, '14:00', '15:00', AppointmentStatus.SCHEDULED, false);
+  await makeAppointment(
+    clients[0],
+    collaborators[0],
+    services[0],
+    today,
+    '09:00',
+    '10:00',
+    AppointmentStatus.SCHEDULED,
+    false,
+  );
+  await makeAppointment(
+    clients[1],
+    collaborators[1],
+    services[3],
+    today,
+    '10:00',
+    '11:00',
+    AppointmentStatus.SCHEDULED,
+    false,
+  );
+  await makeAppointment(
+    clients[2],
+    collaborators[2],
+    services[6],
+    today,
+    '14:00',
+    '15:00',
+    AppointmentStatus.SCHEDULED,
+    false,
+  );
   // 2 ontem (concluídos, com comissão)
-  await makeAppointment(clients[3], collaborators[0], services[2], dayOffset(-1), '15:00', '16:00', AppointmentStatus.COMPLETED, true);
-  await makeAppointment(clients[4], collaborators[1], services[4], dayOffset(-1), '16:00', '17:00', AppointmentStatus.COMPLETED, true);
+  await makeAppointment(
+    clients[3],
+    collaborators[0],
+    services[2],
+    dayOffset(-1),
+    '15:00',
+    '16:00',
+    AppointmentStatus.COMPLETED,
+    true,
+  );
+  await makeAppointment(
+    clients[4],
+    collaborators[1],
+    services[4],
+    dayOffset(-1),
+    '16:00',
+    '17:00',
+    AppointmentStatus.COMPLETED,
+    true,
+  );
   // 2 futuros (agendados)
-  await makeAppointment(clients[5], collaborators[3], services[7], dayOffset(2), '11:00', '11:30', AppointmentStatus.SCHEDULED, false);
-  await makeAppointment(clients[0], collaborators[2], services[5], dayOffset(3), '13:00', '13:40', AppointmentStatus.SCHEDULED, false);
+  await makeAppointment(
+    clients[5],
+    collaborators[3],
+    services[7],
+    dayOffset(2),
+    '11:00',
+    '11:30',
+    AppointmentStatus.SCHEDULED,
+    false,
+  );
+  await makeAppointment(
+    clients[0],
+    collaborators[2],
+    services[5],
+    dayOffset(3),
+    '13:00',
+    '13:40',
+    AppointmentStatus.SCHEDULED,
+    false,
+  );
   console.log('✅ 7 agendamentos (3 hoje, 2 concluídos ontem, 2 futuros)');
 
   // --- Despesas -------------------------------------------------------------

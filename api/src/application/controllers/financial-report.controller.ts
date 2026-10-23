@@ -156,7 +156,10 @@ export class FinancialReportController {
     @Query('limit') limit?: string,
   ) {
     const months = granularity === 'year' ? 12 : 6;
-    const parsedLimit = Math.min(20, Math.max(1, parseInt(limit ?? '5', 10) || 5));
+    const parsedLimit = Math.min(
+      20,
+      Math.max(1, parseInt(limit ?? '5', 10) || 5),
+    );
     return await this.financialReportService.getTopServices(
       months,
       parsedLimit,

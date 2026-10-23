@@ -16,7 +16,9 @@ export class AddExpensesTable1785500000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_expenses_tenant"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "public"."IDX_expenses_tenant"`,
+    );
     await queryRunner.query(
       `ALTER TABLE "expenses" DROP CONSTRAINT IF EXISTS "FK_expenses_tenant"`,
     );

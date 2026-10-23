@@ -125,8 +125,12 @@ describe('AdminService', () => {
       appointments?: number;
     } = {},
   ) => {
-    mockAppointmentRepo.count.mockResolvedValue(tenantMetrics.appointments ?? 5);
-    mockCollaboratorRepo.count.mockResolvedValue(tenantMetrics.collaborators ?? 3);
+    mockAppointmentRepo.count.mockResolvedValue(
+      tenantMetrics.appointments ?? 5,
+    );
+    mockCollaboratorRepo.count.mockResolvedValue(
+      tenantMetrics.collaborators ?? 3,
+    );
     mockServiceRepo.count.mockResolvedValue(tenantMetrics.services ?? 8);
 
     mockCommissionRepository.createQueryBuilder.mockReturnValue({
@@ -274,7 +278,9 @@ describe('AdminService', () => {
 
     it('should fetch appointments by date', async () => {
       mockTenantRepository.findOne.mockResolvedValue(mockTenant);
-      const appointments = [{ id: 'appt-1', status: AppointmentStatus.SCHEDULED }];
+      const appointments = [
+        { id: 'appt-1', status: AppointmentStatus.SCHEDULED },
+      ];
       mockAppointmentRepository.findByDate.mockResolvedValue(appointments);
 
       const result = await service.getTenantAppointments('tenant-1', {

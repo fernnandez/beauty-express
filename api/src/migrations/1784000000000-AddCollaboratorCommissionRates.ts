@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddCollaboratorCommissionRates1784000000000
-  implements MigrationInterface
-{
+export class AddCollaboratorCommissionRates1784000000000 implements MigrationInterface {
   name = 'AddCollaboratorCommissionRates1784000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

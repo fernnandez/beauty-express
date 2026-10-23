@@ -3,7 +3,10 @@ import { FinancialReportService } from './financial-report.service';
 import { ScheduledServiceRepository } from '../repositories/scheduled-service.repository';
 import { CommissionRepository } from '../repositories/commission.repository';
 import { ExpenseService } from './expense.service';
-import { ScheduledService, ScheduledServiceStatus } from '../entities/scheduled-service.entity';
+import {
+  ScheduledService,
+  ScheduledServiceStatus,
+} from '../entities/scheduled-service.entity';
 import { Commission } from '../entities/commission.entity';
 import { TENANT_ID_MOCK } from '../../test/tenant-context.mock';
 import { TenantContextService } from './tenant-context.service';
@@ -11,8 +14,6 @@ import { mockTenantContextService } from '../../test/tenant-context.mock';
 
 describe('FinancialReportService', () => {
   let service: FinancialReportService;
-  let scheduledServiceRepository: jest.Mocked<ScheduledServiceRepository>;
-  let commissionRepository: jest.Mocked<CommissionRepository>;
 
   const mockScheduledServiceRepository = {
     createQueryBuilder: jest.fn(),
@@ -51,9 +52,9 @@ describe('FinancialReportService', () => {
       ],
     }).compile();
 
-    service = await module.resolve<FinancialReportService>(FinancialReportService);
-    scheduledServiceRepository = module.get(ScheduledServiceRepository);
-    commissionRepository = module.get(CommissionRepository);
+    service = await module.resolve<FinancialReportService>(
+      FinancialReportService,
+    );
 
     jest.clearAllMocks();
     mockExpenseService.getExpensesForPeriod.mockResolvedValue({
@@ -210,7 +211,7 @@ describe('FinancialReportService', () => {
       const completedServices: ScheduledService[] = [
         {
           id: 'scheduled-1',
-        tenantId: TENANT_ID_MOCK,
+          tenantId: TENANT_ID_MOCK,
           appointmentId: 'appointment-1',
           serviceId: 'service-1',
           price: 100.0,
@@ -239,7 +240,7 @@ describe('FinancialReportService', () => {
       const servicesWithCancelled: ScheduledService[] = [
         {
           id: 'scheduled-1',
-        tenantId: TENANT_ID_MOCK,
+          tenantId: TENANT_ID_MOCK,
           appointmentId: 'appointment-1',
           serviceId: 'service-1',
           price: 100.0,
@@ -247,7 +248,7 @@ describe('FinancialReportService', () => {
         } as ScheduledService,
         {
           id: 'scheduled-2',
-        tenantId: TENANT_ID_MOCK,
+          tenantId: TENANT_ID_MOCK,
           appointmentId: 'appointment-1',
           serviceId: 'service-2',
           price: 50.0,
@@ -287,7 +288,9 @@ describe('FinancialReportService', () => {
         { tenantId: TENANT_ID_MOCK },
       );
       const dateFilterCall = mockQueryBuilder.andWhere.mock.calls.find(
-        (call) => typeof call[0] === 'string' && call[0].includes('appointment.date BETWEEN'),
+        (call) =>
+          typeof call[0] === 'string' &&
+          call[0].includes('appointment.date BETWEEN'),
       );
       expect(dateFilterCall).toBeDefined();
 
@@ -312,101 +315,115 @@ describe('FinancialReportService', () => {
       expect(mockQueryBuilder.where).toHaveBeenCalled();
     });
 
-  describe('getMonthlyTimeseries', () => {
-    function mockRawQueryBuilder(rawRows: unknown[]) {
-      const qb: Record<string, jest.Mock> = {};
-      [
-        'select',
-        'addSelect',
-        'innerJoin',
-        'where',
-        'andWhere',
-        'groupBy',
-        'addGroupBy',
-        'orderBy',
-        'limit',
-      ].forEach((m) => {
-        qb[m] = jest.fn().mockReturnValue(qb);
+    describe('getMonthlyTimeseries', () => {
+      function mockRawQueryBuilder(rawRows: unknown[]) {
+        const qb: Record<string, jest.Mock> = {};
+        [
+          'select',
+          'addSelect',
+          'innerJoin',
+          'where',
+          'andWhere',
+          'groupBy',
+          'addGroupBy',
+          'orderBy',
+          'limit',
+        ].forEach((m) => {
+          qb[m] = jest.fn().mockReturnValue(qb);
+        });
+        qb.getRawMany = jest.fn().mockResolvedValue(rawRows);
+        return qb;
+      }
+
+      it('should return a point per month and fill empty months with zeros', async () => {
+        // Sem linhas: todos os meses devem vir zerados.
+        const qb = mockRawQueryBuilder([]);
+        mockScheduledServiceRepository.createQueryBuilder.mockReturnValue(
+          qb as any,
+        );
+
+        const result = await service.getMonthlyTimeseries(6);
+
+        expect(result).toHaveLength(6);
+        expect(result.every((p) => p.appointmentsCount === 0)).toBe(true);
+        expect(result.every((p) => p.averageTicket === 0)).toBe(true);
+        // meses em ordem crescente
+        const months = result.map((p) => p.month);
+        expect([...months].sort()).toEqual(months);
       });
-      qb.getRawMany = jest.fn().mockResolvedValue(rawRows);
-      return qb;
-    }
 
-    it('should return a point per month and fill empty months with zeros', async () => {
-      // Sem linhas: todos os meses devem vir zerados.
-      const qb = mockRawQueryBuilder([]);
-      mockScheduledServiceRepository.createQueryBuilder.mockReturnValue(
-        qb as any,
-      );
+      it('should compute averageTicket as revenue / appointments for a month', async () => {
+        const now = new Date();
+        const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const qb = mockRawQueryBuilder([
+          {
+            month: key,
+            appointmentsCount: '4',
+            servicesCount: '5',
+            revenue: '400',
+          },
+        ]);
+        mockScheduledServiceRepository.createQueryBuilder.mockReturnValue(
+          qb as any,
+        );
 
-      const result = await service.getMonthlyTimeseries(6);
+        const result = await service.getMonthlyTimeseries(6);
+        const current = result.find((p) => p.month === key)!;
 
-      expect(result).toHaveLength(6);
-      expect(result.every((p) => p.appointmentsCount === 0)).toBe(true);
-      expect(result.every((p) => p.averageTicket === 0)).toBe(true);
-      // meses em ordem crescente
-      const months = result.map((p) => p.month);
-      expect([...months].sort()).toEqual(months);
-    });
-
-    it('should compute averageTicket as revenue / appointments for a month', async () => {
-      const now = new Date();
-      const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const qb = mockRawQueryBuilder([
-        {
-          month: key,
-          appointmentsCount: '4',
-          servicesCount: '5',
-          revenue: '400',
-        },
-      ]);
-      mockScheduledServiceRepository.createQueryBuilder.mockReturnValue(
-        qb as any,
-      );
-
-      const result = await service.getMonthlyTimeseries(6);
-      const current = result.find((p) => p.month === key)!;
-
-      expect(current.appointmentsCount).toBe(4);
-      expect(current.servicesCount).toBe(5);
-      expect(current.revenue).toBe(400);
-      expect(current.averageTicket).toBe(100);
-    });
-  });
-
-  describe('getTopServices', () => {
-    it('should map raw rows to typed items ordered by the query', async () => {
-      const qb: Record<string, jest.Mock> = {};
-      [
-        'select',
-        'addSelect',
-        'innerJoin',
-        'where',
-        'andWhere',
-        'groupBy',
-        'addGroupBy',
-        'orderBy',
-        'limit',
-      ].forEach((m) => {
-        qb[m] = jest.fn().mockReturnValue(qb);
+        expect(current.appointmentsCount).toBe(4);
+        expect(current.servicesCount).toBe(5);
+        expect(current.revenue).toBe(400);
+        expect(current.averageTicket).toBe(100);
       });
-      qb.getRawMany = jest.fn().mockResolvedValue([
-        { serviceId: 's1', serviceName: 'Corte', quantity: '17', revenue: '765' },
-        { serviceId: 's2', serviceName: 'Manicure', quantity: '16', revenue: '400' },
-      ]);
-      mockScheduledServiceRepository.createQueryBuilder.mockReturnValue(
-        qb as any,
-      );
-
-      const result = await service.getTopServices(12, 5);
-
-      expect(result).toEqual([
-        { serviceId: 's1', serviceName: 'Corte', quantity: 17, revenue: 765 },
-        { serviceId: 's2', serviceName: 'Manicure', quantity: 16, revenue: 400 },
-      ]);
-      expect(qb.limit).toHaveBeenCalledWith(5);
     });
-  });
+
+    describe('getTopServices', () => {
+      it('should map raw rows to typed items ordered by the query', async () => {
+        const qb: Record<string, jest.Mock> = {};
+        [
+          'select',
+          'addSelect',
+          'innerJoin',
+          'where',
+          'andWhere',
+          'groupBy',
+          'addGroupBy',
+          'orderBy',
+          'limit',
+        ].forEach((m) => {
+          qb[m] = jest.fn().mockReturnValue(qb);
+        });
+        qb.getRawMany = jest.fn().mockResolvedValue([
+          {
+            serviceId: 's1',
+            serviceName: 'Corte',
+            quantity: '17',
+            revenue: '765',
+          },
+          {
+            serviceId: 's2',
+            serviceName: 'Manicure',
+            quantity: '16',
+            revenue: '400',
+          },
+        ]);
+        mockScheduledServiceRepository.createQueryBuilder.mockReturnValue(
+          qb as any,
+        );
+
+        const result = await service.getTopServices(12, 5);
+
+        expect(result).toEqual([
+          { serviceId: 's1', serviceName: 'Corte', quantity: 17, revenue: 765 },
+          {
+            serviceId: 's2',
+            serviceName: 'Manicure',
+            quantity: 16,
+            revenue: 400,
+          },
+        ]);
+        expect(qb.limit).toHaveBeenCalledWith(5);
+      });
+    });
   });
 });
-

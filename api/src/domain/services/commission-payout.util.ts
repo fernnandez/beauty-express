@@ -30,7 +30,9 @@ export function resolvePayoutDays(
  * Normaliza a lista de dias de pagamento: inteiros entre 1 e 31, únicos e
  * ordenados crescentemente. Cai para o default se vier vazia/inválida.
  */
-export function normalizePayoutDays(days: number[] | null | undefined): number[] {
+export function normalizePayoutDays(
+  days: number[] | null | undefined,
+): number[] {
   const cleaned = Array.from(
     new Set(
       (days ?? [])

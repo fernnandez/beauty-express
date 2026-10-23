@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class MoveCommissionToService1785000000000
-  implements MigrationInterface
-{
+export class MoveCommissionToService1785000000000 implements MigrationInterface {
   name = 'MoveCommissionToService1785000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

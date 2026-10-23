@@ -60,8 +60,10 @@ export class ExpenseService {
       type: dto.type,
       date: dto.type === ExpenseType.ONE_TIME ? dto.date : null,
       dayOfMonth: dto.type === ExpenseType.RECURRING ? dto.dayOfMonth : null,
-      startDate: dto.type === ExpenseType.RECURRING ? dto.startDate ?? null : null,
-      endDate: dto.type === ExpenseType.RECURRING ? dto.endDate ?? null : null,
+      startDate:
+        dto.type === ExpenseType.RECURRING ? (dto.startDate ?? null) : null,
+      endDate:
+        dto.type === ExpenseType.RECURRING ? (dto.endDate ?? null) : null,
       isActive: true,
     });
 
@@ -73,7 +75,10 @@ export class ExpenseService {
   }
 
   async findById(id: string): Promise<Expense> {
-    const expense = await this.expenseRepository.findById(id, this.getTenantId());
+    const expense = await this.expenseRepository.findById(
+      id,
+      this.getTenantId(),
+    );
     if (!expense) {
       throw new NotFoundException('Despesa não encontrada');
     }
@@ -99,9 +104,9 @@ export class ExpenseService {
     Object.assign(expense, {
       ...dto,
       // Garante consistência dos campos conforme o tipo.
-      date: nextType === ExpenseType.ONE_TIME ? merged.date ?? null : null,
+      date: nextType === ExpenseType.ONE_TIME ? (merged.date ?? null) : null,
       dayOfMonth:
-        nextType === ExpenseType.RECURRING ? merged.dayOfMonth ?? null : null,
+        nextType === ExpenseType.RECURRING ? (merged.dayOfMonth ?? null) : null,
       type: nextType,
     });
 

@@ -42,4 +42,3 @@ export class UpdateServiceDto {
   @IsOptional()
   description?: string;
 }
-

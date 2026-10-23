@@ -39,7 +39,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Renovar tokens operacionais' })
   async refresh(@Body() dto: RefreshTokenDto) {
-    return await this.authService.refresh(dto, RefreshTokenAudience.OPERATIONAL);
+    return await this.authService.refresh(
+      dto,
+      RefreshTokenAudience.OPERATIONAL,
+    );
   }
 
   @Public()
@@ -47,7 +50,10 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Logout operacional' })
   async logout(@Body() dto: RefreshTokenDto) {
-    await this.authService.logout(dto.refreshToken, RefreshTokenAudience.OPERATIONAL);
+    await this.authService.logout(
+      dto.refreshToken,
+      RefreshTokenAudience.OPERATIONAL,
+    );
   }
 
   @Get('me')

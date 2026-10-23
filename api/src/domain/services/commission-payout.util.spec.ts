@@ -19,7 +19,9 @@ const fmt = (date: Date) =>
 describe('commission-payout.util', () => {
   describe('normalizePayoutDays', () => {
     it('ordena, remove duplicados e descarta inválidos', () => {
-      expect(normalizePayoutDays([30, 15, 15, 0, 32, 10])).toEqual([10, 15, 30]);
+      expect(normalizePayoutDays([30, 15, 15, 0, 32, 10])).toEqual([
+        10, 15, 30,
+      ]);
     });
 
     it('cai para o default quando vazio/ inválido', () => {

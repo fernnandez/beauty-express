@@ -15,7 +15,9 @@ async function resetDb() {
   await dataSource.initialize();
   await dataSource.destroy();
 
-  console.log('✅ Schema recriado com sucesso. Rode npm run seed para popular os dados.');
+  console.log(
+    '✅ Schema recriado com sucesso. Rode npm run seed para popular os dados.',
+  );
 }
 
 resetDb().catch((error) => {

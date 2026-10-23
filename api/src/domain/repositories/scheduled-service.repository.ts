@@ -12,7 +12,10 @@ export class ScheduledServiceRepository extends Repository<ScheduledService> {
     super(repository.target, repository.manager, repository.queryRunner);
   }
 
-  async findById(id: string, tenantId: string): Promise<ScheduledService | null> {
+  async findById(
+    id: string,
+    tenantId: string,
+  ): Promise<ScheduledService | null> {
     return await this.findOne({
       where: { id, tenantId },
       relations: ['appointment', 'service', 'collaborator'],

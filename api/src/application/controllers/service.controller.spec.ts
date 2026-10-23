@@ -12,7 +12,7 @@ describe('ServiceController', () => {
 
   const mockService: Service = {
     id: '123e4567-e89b-12d3-a456-426614174000',
-      tenantId: TENANT_ID_MOCK,
+    tenantId: TENANT_ID_MOCK,
     name: 'Corte de Cabelo',
     defaultPrice: 50.0,
     commissionPercentage: 0,
@@ -117,7 +117,10 @@ describe('ServiceController', () => {
       const result = await controller.update(mockService.id, updateDto);
 
       expect(result).toEqual(updatedService);
-      expect(service.updateService).toHaveBeenCalledWith(mockService.id, updateDto);
+      expect(service.updateService).toHaveBeenCalledWith(
+        mockService.id,
+        updateDto,
+      );
     });
   });
 
@@ -131,4 +134,3 @@ describe('ServiceController', () => {
     });
   });
 });
-

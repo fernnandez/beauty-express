@@ -10,10 +10,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import {
-  ExpenseCategory,
-  ExpenseType,
-} from '@domain/entities/expense-enums';
+import { ExpenseCategory, ExpenseType } from '@domain/entities/expense-enums';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -69,6 +66,8 @@ export class CreateExpenseDto {
 
   @ApiProperty({ required: false, example: '2026-12-31' })
   @IsOptional()
-  @Matches(DATE_PATTERN, { message: 'endDate deve estar no formato yyyy-MM-dd' })
+  @Matches(DATE_PATTERN, {
+    message: 'endDate deve estar no formato yyyy-MM-dd',
+  })
   endDate?: string;
 }

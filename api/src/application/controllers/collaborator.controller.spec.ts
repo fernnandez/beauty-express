@@ -13,7 +13,7 @@ describe('CollaboratorController', () => {
 
   const mockCollaborator: Collaborator = {
     id: '123e4567-e89b-12d3-a456-426614174000',
-      tenantId: TENANT_ID_MOCK,
+    tenantId: TENANT_ID_MOCK,
     name: 'João Silva',
     phone: '11999999999',
     area: 'Cabeleireiro',
@@ -69,7 +69,9 @@ describe('CollaboratorController', () => {
     };
 
     it('should create a collaborator', async () => {
-      mockCollaboratorService.createCollaborator.mockResolvedValue(mockCollaborator);
+      mockCollaboratorService.createCollaborator.mockResolvedValue(
+        mockCollaborator,
+      );
 
       const result = await controller.create(createDto);
 
@@ -134,7 +136,9 @@ describe('CollaboratorController', () => {
     };
 
     it('should update a collaborator', async () => {
-      mockCollaboratorService.updateCollaborator.mockResolvedValue(updatedCollaborator);
+      mockCollaboratorService.updateCollaborator.mockResolvedValue(
+        updatedCollaborator,
+      );
 
       const result = await controller.update(mockCollaborator.id, updateDto);
 
@@ -156,4 +160,3 @@ describe('CollaboratorController', () => {
     });
   });
 });
-
