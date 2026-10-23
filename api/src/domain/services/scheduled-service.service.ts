@@ -132,11 +132,10 @@ export class ScheduledServiceService {
       scheduledService.price,
       service.commissionPercentage,
     );
-    const existingCommission =
-      await commissionRepo.findByScheduledServiceId(
-        scheduledService.id,
-        tenantId,
-      );
+    const existingCommission = await commissionRepo.findByScheduledServiceId(
+      scheduledService.id,
+      tenantId,
+    );
 
     if (existingCommission) {
       await commissionRepo.update(

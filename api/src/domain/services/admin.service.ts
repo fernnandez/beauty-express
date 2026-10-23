@@ -446,7 +446,8 @@ export class AdminService {
   async getWhatsappStatus(
     tenantId: string,
   ): Promise<WhatsappInstanceStatus | 'none'> {
-    const instance = await this.whatsappInstanceRepository.findByTenant(tenantId);
+    const instance =
+      await this.whatsappInstanceRepository.findByTenant(tenantId);
     return (instance?.status as WhatsappInstanceStatus) ?? 'none';
   }
 

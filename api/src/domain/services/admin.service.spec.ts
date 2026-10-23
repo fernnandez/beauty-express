@@ -191,7 +191,10 @@ describe('AdminService', () => {
         .mockResolvedValueOnce({ status: 'connected' })
         .mockResolvedValueOnce(null);
       mockAppointmentRepo.findOne
-        .mockResolvedValueOnce({ id: 'a1', date: new Date('2026-10-20T12:00:00Z') })
+        .mockResolvedValueOnce({
+          id: 'a1',
+          date: new Date('2026-10-20T12:00:00Z'),
+        })
         .mockResolvedValueOnce(null);
 
       const metricsSnapshotSpy = jest
@@ -237,8 +240,8 @@ describe('AdminService', () => {
             collaborators: 3,
             services: 4,
             users: 4,
-            whatsappStatus: "connected",
-            lastActivityAt: "2026-10-20T12:00:00.000Z",
+            whatsappStatus: 'connected',
+            lastActivityAt: '2026-10-20T12:00:00.000Z',
           },
           {
             tenantId: 'tenant-2',
@@ -251,7 +254,7 @@ describe('AdminService', () => {
             collaborators: 2,
             services: 3,
             users: 4,
-            whatsappStatus: "none",
+            whatsappStatus: 'none',
             lastActivityAt: null,
           },
         ],
