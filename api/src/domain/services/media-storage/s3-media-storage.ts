@@ -140,6 +140,9 @@ export class S3MediaStorage implements MediaStorage, OnModuleInit {
         Body: input.buffer,
         ContentType: input.mime,
         CacheControl: 'public, max-age=31536000, immutable',
+        // Apenas assets de branding são públicos; as mídias de WhatsApp
+        // continuam privadas (servidas via presigned em resolveUrl).
+        ACL: 'public-read',
       }),
     );
 
