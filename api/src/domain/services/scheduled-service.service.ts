@@ -21,6 +21,8 @@ import { ServiceRepository } from '../repositories/service.repository';
 import { TenantContextService } from './tenant-context.service';
 import { TenantSettingsService } from './tenant-settings.service';
 import { calcCommissionAmount } from './commission-calc.util';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 
 @Injectable({ scope: Scope.REQUEST })
 export class ScheduledServiceService {
@@ -32,6 +34,7 @@ export class ScheduledServiceService {
     private appointmentRepository: AppointmentRepository,
     private tenantContext: TenantContextService,
     private tenantSettingsService: TenantSettingsService,
+    @InjectDataSource() private dataSource: DataSource,
   ) {}
 
   private getTenantId(): string {
@@ -87,6 +90,7 @@ export class ScheduledServiceService {
 
   private async syncCommissionForCompletedService(
     scheduledService: ScheduledService,
+    manager?: EntityManager,
   ): Promise<Commission | null> {
     if (scheduledService.status !== ScheduledServiceStatus.COMPLETED) {
       return null;
@@ -104,9 +108,18 @@ export class ScheduledServiceService {
       );
     }
 
+    // Repositórios ligados à transação quando houver manager; caso contrário,
+    // os repositórios padrão (não transacionais).
+    const commissionRepo = manager
+      ? manager.withRepository(this.commissionRepository)
+      : this.commissionRepository;
+    const serviceRepo = manager
+      ? manager.withRepository(this.serviceRepository)
+      : this.serviceRepository;
+
     await this.assertCommissionNotPaid(scheduledService.id);
 
-    const service = await this.serviceRepository.findById(
+    const service = await serviceRepo.findById(
       scheduledService.serviceId,
       tenantId,
     );
@@ -120,13 +133,13 @@ export class ScheduledServiceService {
       service.commissionPercentage,
     );
     const existingCommission =
-      await this.commissionRepository.findByScheduledServiceId(
+      await commissionRepo.findByScheduledServiceId(
         scheduledService.id,
         tenantId,
       );
 
     if (existingCommission) {
-      await this.commissionRepository.update(
+      await commissionRepo.update(
         { id: existingCommission.id, tenantId },
         {
           amount,
@@ -134,13 +147,10 @@ export class ScheduledServiceService {
           collaboratorId: scheduledService.collaboratorId,
         },
       );
-      return await this.commissionRepository.findById(
-        existingCommission.id,
-        tenantId,
-      );
+      return await commissionRepo.findById(existingCommission.id, tenantId);
     }
 
-    return await this.commissionRepository.save({
+    return await commissionRepo.save({
       tenantId,
       collaboratorId: scheduledService.collaboratorId,
       scheduledServiceId: scheduledService.id,
@@ -329,17 +339,22 @@ export class ScheduledServiceService {
     }
 
     scheduledService.status = ScheduledServiceStatus.COMPLETED;
-    const savedService =
-      await this.scheduledServiceRepository.save(scheduledService);
 
-    await this.syncCommissionForCompletedService(savedService);
+    // Conclusão + comissão + fechamento do agendamento precisam ser atômicos:
+    // se qualquer passo falhar, nada é persistido (evita serviço concluído sem
+    // comissão ou agendamento meio-fechado).
+    const savedService = await this.dataSource.transaction(async (manager) => {
+      const ssRepo = manager.withRepository(this.scheduledServiceRepository);
+      const saved = await ssRepo.save(scheduledService);
 
-    // Fecha o agendamento automaticamente quando este foi o último serviço
-    // pendente (todos os não-cancelados já concluídos).
-    await this.completeAppointmentIfAllServicesDone(
-      scheduledService.appointmentId,
-      tenantId,
-    );
+      await this.syncCommissionForCompletedService(saved, manager);
+      await this.completeAppointmentIfAllServicesDone(
+        scheduledService.appointmentId,
+        tenantId,
+        manager,
+      );
+      return saved;
+    });
 
     return savedService;
   }
@@ -351,19 +366,21 @@ export class ScheduledServiceService {
   private async completeAppointmentIfAllServicesDone(
     appointmentId: string,
     tenantId: string,
+    manager?: EntityManager,
   ): Promise<void> {
-    const appointment = await this.appointmentRepository.findById(
-      appointmentId,
-      tenantId,
-    );
+    const appointmentRepo = manager
+      ? manager.withRepository(this.appointmentRepository)
+      : this.appointmentRepository;
+    const ssRepo = manager
+      ? manager.withRepository(this.scheduledServiceRepository)
+      : this.scheduledServiceRepository;
+
+    const appointment = await appointmentRepo.findById(appointmentId, tenantId);
     if (!appointment || appointment.status !== AppointmentStatus.SCHEDULED) {
       return;
     }
 
-    const services = await this.scheduledServiceRepository.findByAppointmentId(
-      appointmentId,
-      tenantId,
-    );
+    const services = await ssRepo.findByAppointmentId(appointmentId, tenantId);
     const nonCancelled = services.filter(
       (s) => s.status !== ScheduledServiceStatus.CANCELLED,
     );
@@ -373,7 +390,7 @@ export class ScheduledServiceService {
 
     if (nonCancelled.length > 0 && !hasPending) {
       appointment.status = AppointmentStatus.COMPLETED;
-      await this.appointmentRepository.save(appointment);
+      await appointmentRepo.save(appointment);
     }
   }
 

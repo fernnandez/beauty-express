@@ -1,6 +1,7 @@
 import { CreateScheduledServiceDto } from '@application/dtos/scheduled-service/create-scheduled-service.dto';
 import { UpdateScheduledServiceDto } from '@application/dtos/scheduled-service/update-scheduled-service.dto';
 import { Test, TestingModule } from '@nestjs/testing';
+import { getDataSourceToken } from '@nestjs/typeorm';
 import { Collaborator } from '../entities/collaborator.entity';
 import { Commission } from '../entities/commission.entity';
 import {
@@ -97,6 +98,16 @@ describe('ScheduledServiceService', () => {
         {
           provide: TenantSettingsService,
           useValue: mockTenantSettingsService,
+        },
+        {
+          // DataSource.transaction executa o callback com um manager cujo
+          // withRepository(repo) devolve o próprio repo (mock) injetado.
+          provide: getDataSourceToken(),
+          useValue: {
+            transaction: jest.fn((cb) =>
+              cb({ withRepository: (repo: unknown) => repo }),
+            ),
+          },
         },
       ],
     }).compile();
@@ -754,6 +765,30 @@ describe('ScheduledServiceService', () => {
 
       expect(result).toEqual(completedScheduledService);
       expect(mockCommissionRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('propaga o erro (rollback da transação) se a comissão falhar ao salvar', async () => {
+      mockRepository.findById.mockResolvedValueOnce({
+        ...pendingScheduledService,
+      });
+      mockRepository.save.mockResolvedValue(completedScheduledService);
+      mockCommissionRepository.findByScheduledServiceId.mockResolvedValue(null);
+      mockServiceRepository.findById.mockResolvedValue({
+        id: 'service-1',
+        tenantId: TENANT_ID_MOCK,
+        name: 'Corte',
+        defaultPrice: 50.0,
+        commissionPercentage: 10,
+        collaborators: [],
+      });
+      // falha ao persistir a comissão dentro da transação
+      mockCommissionRepository.save.mockRejectedValue(new Error('db down'));
+
+      await expect(
+        service.completeScheduledService('scheduled-1'),
+      ).rejects.toThrow('db down');
+      // o agendamento não deve ser fechado quando a transação falha no meio
+      expect(mockAppointmentRepository.save).not.toHaveBeenCalled();
     });
   });
 
